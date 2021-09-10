@@ -8,6 +8,8 @@ from test_functions import six_hump_camel_2D
 # adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
 # gitlab.com/energyincities/besos/-/blob/master/besos/
 
+#TODO add 1D case
+#TODO code samples unexpected locations. check what goes wrong
 class LolaVoronoi():
 
     def __init__(self, model, train_X, train_y, test_X, test_y, dom, f, n_init = 20, n_iteration = 10, n_per_iteration = 5):
