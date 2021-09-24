@@ -8,11 +8,9 @@ from test_functions import six_hump_camel_2D
 # adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
 # gitlab.com/energyincities/besos/-/blob/master/besos/
 
-#TODO add 1D case
-#TODO code samples unexpected locations. check what goes wrong
 class LolaVoronoi():
 
-    def __init__(self, model, train_X, train_y, test_X, test_y, dom, f, n_init = 20, n_iteration = 10, n_per_iteration = 5):
+    def __init__(self, model, train_X, train_y, test_X, test_y, dom, f, n_init = 20, n_iteration = 10, n_per_iteration = 5, metric = r2_score):
         self.model = model
         self.dimension = len(train_X[0,:])
         self.train_X = train_X
@@ -24,32 +22,20 @@ class LolaVoronoi():
         self.n_iteration = n_iteration
         self.n_per_iteration = n_per_iteration
         self.f = f
-
+        self.metric = metric
         self.score = np.empty((self.n_iteration+1))
 
         if np.ndim(self.test_X) == 1:
-            self.score[0] = r2_score(self.test_y, self.model.predict(self.test_X.reshape(-1,1)))
+            self.score[0] = self.metric(self.test_y, self.model.predict(self.test_X.reshape(-1,1)))
         else:
-            self.score[0] = r2_score(self.test_y, self.model.predict(self.test_X))
+            self.score[0] = self.metric(self.test_y, self.model.predict(self.test_X))
+
 
     def update_model(self):
         self.model.fit(self.train_X, self.train_y)
 
 
     def run_sequential_design(self):
-        self.N, self.S = initialize_samples(self.train_X)
-        self.sample()
-        self.update_model()
-
-        for i in range(self.n_iteration):
-            P_new = select_new_datapoints()
-            y = self.model(P_new)
-            P = np.concatenate(P, P_new)
-            self.update_model()
-
-
-
-    def apply(self):
         self.N, self.S = initialize_samples(self.train_X)
         self.sample()
         self.update_model()
@@ -65,7 +51,7 @@ class LolaVoronoi():
             self.train_y = np.append(self.train_y, self.new_data_y, axis=0)
             self.sample()
             self.update_model()
-            self.score[i+1] = r2_score(self.test_y, self.model.predict(self.test_X))
+            self.score[i+1] = self.metric(self.test_y, self.model.predict(self.test_X))
 
             print(f"iteration {i} finished: score {self.score[i+1]}")
 
@@ -93,17 +79,15 @@ class LolaVoronoi():
         #output from function evaluation on newly selected X samples
         self.new_data_y = self.f(self.new_data)
 
-#N: Neighbours for points in train_X
-#S: Scores for neighbourhood
 
-def select_new_sample(d, neighhbours, candidates):
-    neighhbours = np.append(neighhbours, [d], axis =0)
+def select_new_sample(reference_point, neighhbours, candidates):
+    neighbours = np.append(neighhbours, [reference_point], axis =0)
     dist_max = 0
 
-    for candidate in candidates:
+    for candidate in candidates[1:,:]:
         d = 0
-        for neighbour in neighhbours:
-            d = d+np.linalg.norm(candidate-neighbour)
+        for neighbour in neighbours:
+            d = d + np.linalg.norm(candidate - neighbour)
         if d>dist_max:
             dist_max = d
             candidate_max = candidate
@@ -111,15 +95,15 @@ def select_new_sample(d, neighhbours, candidates):
     return candidate_max
 
 
-
-def in_voronoi_region(d, train_X, samples):
-    mask = train_X != d
+def in_voronoi_region(reference_point, train_X, samples):
+    mask = train_X != reference_point
     train_X_temp = train_X[mask[:,0], :]
-    candidates = np.empty([1, train_X.shape[1]])
+    #candidates = np.empty([1, train_X.shape[1]])
+    candidates = np.empty([1, len(train_X[0, :])])
 
     for s in samples:
         for train_i in train_X_temp:
-            if np.linalg.norm(s-train_i) <= np.linalg.norm(s-d):
+            if np.linalg.norm(s-train_i) <= np.linalg.norm(s - reference_point):
                 break
             else:
                 continue
@@ -133,7 +117,7 @@ def initialize_samples(train_X, train_new = None):
     m = 2 * len(train_X[0,:])
     d = train_X.shape[1]
 
-    if np.any(train_new == None):
+    if train_new is None:
         n = len(train_X)
         Neighbourhood_points = np.empty((m,d,n))
         Score_points = np.empty((n))
@@ -151,7 +135,7 @@ def initialize_samples(train_X, train_new = None):
         mask = train_X != train_ref[i,:]
         train_norefpoint = train_X[mask[:,0],:]
         Neighbourhood_points[:,:,i] = train_norefpoint[0:m,:]
-        Score_points[i] = neighbourhood_score(Neighbourhood_points[:,:,i],train_ref[i,:], np.ndim(train_new))
+        Score_points[i] = neighbourhood_score(Neighbourhood_points[:,:,i],train_ref[i,:], train_ref.shape[1])
 
     ind = 0
 
@@ -202,7 +186,7 @@ def update_neighbourhood(neighbours, train_X, scores, candidates):
     return neighbours, scores
 
 
-def neighbourhood_score(neighbourhood, candidates, dim):
+def neighbourhood_score(neighbourhood, reference_point, dim):
     m = len(neighbourhood)
 
     cand_dist = np.empty((m))
@@ -210,27 +194,22 @@ def neighbourhood_score(neighbourhood, candidates, dim):
 
     C = 0
     for i in range(m):
-        C = C + np.linalg.norm(neighbourhood[i,:] - candidates)
+        C = C + np.linalg.norm(neighbourhood[i,:] - reference_point)
     C = C / m
 
     for i in range(m):
         for j in range(m):
-            if i==j:
-                pass
-            else:
+            if not i==j:
                 cand_dist[i] = np.linalg.norm(neighbourhood[i,:] - neighbourhood[j,:])
         min_dist[i] = min(cand_dist)
 
     if dim > 1:
         A = 1 / m * sum(min_dist)
         R = A / (np.sqrt(2) * C)
-    elif dim == 1:
-        #todo check and fix
-        R = np.empy((m))
-        for i in range(m):
-            R[i] = 1-(np.abs(neighbourhood[i,:] + neighbourhood[i+1]) /
-                      (np.abs(neighbourhood[i] + np.abs(neighbourhood[i+1]) + np.abs(neighbourhood[i]-neighbourhood[i+1]))))
-
+    elif dim == 1:  #1D cases: see Crombecq p.1960
+        pr1 = neighbourhood[0,:]
+        pr2 = neighbourhood[1,:]
+        R = 1-(np.abs(pr1+pr2) / (np.abs(pr1) + np.abs(pr2) + np.abs(pr1-pr2)))
 
     return R/C
 
@@ -269,15 +248,15 @@ def nonlinearity_measure(grad, neighbours, p, model):
    kdt = KDTree(P.T)
    kdt.query(PQ.T)
 '''
-def estimate_voronoi_volume(samples, domain, n = 500):
+def estimate_voronoi_volume(P, domain, n = 100):
 
-    V = np.zeros(len(samples))
+    V = np.zeros(len(P))
     S = latin_hypercube(domain, n)
 
     for s in S:
         d = np.inf
         idx = 0
-        for p in samples:
+        for p in P:
             if np.linalg.norm(p-s) < d:
                 d = np.linalg.norm(p-s)
                 idx_fin = idx
@@ -302,101 +281,74 @@ def gradient(N, p, model):
 
     return grad
 
-def test():
+def test_2D():
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import RBF, Matern, RationalQuadratic
     from sklearn.manifold import MDS
     from sklearn.model_selection import train_test_split
-    from test_functions import bohachevsky_2D, six_hump_camel_2D, six_hump_camel_2D_2input
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-    from plotting import plot_function_custom
-
-    x0_range = [-3, 3]
-    x1_range = [-2, 2]
-
-    grid_size = 30
-    X1_s = np.random.uniform(x0_range[0], x0_range[1], grid_size)
-    X2_s = np.random.uniform(x1_range[0], x1_range[1], grid_size)
-    X = np.stack((X1_s,X2_s),-1)
-    #plot_function_custom(six_hump_camel_2D, X, plot_sample_locations=True, show=True)
-
-
-    indices = np.random.permutation(X1_s.shape[0])
-    train_idx, test_idx = indices[:round(len(indices)*0.8)], indices[round(len(indices)*0.8):]
-    train_X= X[train_idx,:]
-    test_X = X[test_idx,:]
-    train_y = six_hump_camel_2D(train_X)
-    test_y = six_hump_camel_2D(test_X)
-
-    gp = GaussianProcessRegressor()
-    gp.fit(train_X, train_y)
-    p = gp.predict(X)
-    p2 = gp.predict(train_X)
-
-    #plot_function_custom(six_hump_camel_2D, X, y=p, plot_sample_locations=True, show=True)
-
-    n_iters = 10
-    n_per_iters = 10
-    lv = LolaVoronoi(gp, train_X, train_y, test_X, test_y, [x0_range, x1_range], bohachevsky_2D, n_iteration=n_iters, n_per_iteration=n_per_iters)
-    lv.apply()
-    #
-    end_sample = (lv.n_iteration * lv.n_per_iteration)
-    #
-    cmap = plotting.get_cmap(lv.n_iteration)
-    plot = plotting.plot_function_custom(six_hump_camel_2D, train_X,
-                                          y=train_y, show=True)
-    #
-    plot2 = plotting.plot_function_custom(six_hump_camel_2D, lv.train_X, lv.train_y, show=True)
-
-    gp2 = GaussianProcessRegressor()
-    gp2.fit(train_X, train_y)
-    for j in range(n_iters):
-        X1_new = np.random.uniform(x0_range[0], x0_range[1], n_per_iters)
-        X2_new = np.random.uniform(x1_range[0], x1_range[1], n_per_iters)
-        X_new = np.stack((X1_new, X2_new),-1)
-        new_y = six_hump_camel_2D(X_new)
-        train_X = np.append(train_X, X_new, axis=0)
-        train_y = np.append(train_y, new_y, axis=0)
-        gp2.fit(train_X, train_y)
-        print(f"r2: {r2_score(test_y, gp2.predict(test_X))}")
-    plot3 = plotting.plot_function_custom(six_hump_camel_2D, train_X, train_y, show=True)
-
-    gp2 = GaussianProcessRegressor()
-    gp2.fit(lv.train_X, lv.train_y)
-    p2 = gp2.predict(X)
-
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    #surface = ax.plot_surface(train_x1, train_x2, , cmap=cm.coolwarm)
-    surface = ax.plot_surface(x1, x2, p2.reshape(grid_size, grid_size), cmap=cm.coolwarm)
-    ax.scatter(new_points_x1, new_points_x2, t)
-    fig.colorbar(surface)
-    plt.show()
-
-    print(lv.score)
-
-
-
-def test2():
-    from sklearn.gaussian_process import GaussianProcessRegressor
-    from sklearn.gaussian_process.kernels import RBF, Matern, RationalQuadratic
-    from sklearn.manifold import MDS
-    from sklearn.model_selection import train_test_split
-    from test_functions import forresterEtAl
+    from test_functions import bohachevsky_2D
     import matplotlib.pyplot as plt
     from matplotlib import cm
     from plotting import plot_function_custom,add_samples_to_plot
 
+    domain = [[-100.0, 100.0],[-100.0, 100.0]]
+    X1_range = np.linspace(domain[0][0], domain[0][1], 1000)
+    X2_range = np.linspace(domain[1][0], domain[1][1], 1000)
+    n_points = 20
+    X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
+    X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
+    X = np.stack([X1,X2], -1)
+    y = bohachevsky_2D(X)
+
+    indices = np.random.permutation(X1.shape[0])
+    train_idx, test_idx = indices[:round(len(indices) * 0.8)], indices[round(len(indices) * 0.8):]
+    train_X = X[train_idx,:]
+    test_X = X[test_idx,:]
+    train_y = bohachevsky_2D(train_X)
+    test_y = bohachevsky_2D(test_X)
+
+    gp = GaussianProcessRegressor()
+    gp.fit(train_X, train_y)
+
+    p = gp.predict(test_X)
+    print(f"test R2: {r2_score(test_y, p)}")
+
+    plot = plot_function_custom(bohachevsky_2D, train_X, y=gp.predict(train_X),
+                                plot_sample_locations=True, show=False)
+    # plot = add_samples_to_plot(plot, test_X, p, 'r' )
+#    plot.plot(X, y, 'r')
+
+
+    n_iters = 10
+    n_per_iters = 10
+    lv = LolaVoronoi(gp, train_X, train_y, test_X, test_y,
+                     [[domain[0], domain[1]]], bohachevsky_2D, n_iteration=n_iters,
+                     n_per_iteration=n_per_iters)
+    lv.run_sequential_design()
+
+    plot = add_samples_to_plot(plot, lv.train_X[-n_iters * n_per_iters:],
+                               bohachevsky_2D(lv.train_X[-n_iters * n_per_iters:]), 'g')
+    plot.show()
+
+    plot2 = plot_function_custom(bohachevsky_2D, lv.train_X,
+                               lv.model.predict(lv.train_X), plot_sample_locations=True, show=True)
+    plot2.show()
+
+
+def test_1D():
+    from sklearn.gaussian_process import GaussianProcessRegressor
+    from test_functions import forresterEtAl
+    from plotting import plot_function_custom,add_samples_to_plot
+
     X_range = np.linspace(0,1,1000)
     y_range = forresterEtAl(X_range)
-    domain = [0,1]
+    domain = [0.0,1.0]
     n_points = 10
     X = np.random.uniform(domain[0], domain[1], n_points)
 
     indices = np.random.permutation(X.shape[0])
     train_idx, test_idx = indices[:round(len(indices)*0.8)], indices[round(len(indices)*0.8):]
-    train_X= np.sort(X[train_idx])
+    train_X = np.sort(X[train_idx])
     test_X = np.sort(X[test_idx])
     train_y = forresterEtAl(train_X)
     test_y = forresterEtAl(test_X)
@@ -407,7 +359,7 @@ def test2():
     p = gp.predict(test_X.reshape(-1,1))
     print(f"test R2: {r2_score(test_y, p)}")
 
-    plot = plot_function_custom(six_hump_camel_2D, train_X, y=gp.predict(train_X.reshape(-1,1)), plot_sample_locations=True, show=False)
+    plot = plot_function_custom(forresterEtAl, train_X, y=gp.predict(train_X.reshape(-1,1)), plot_sample_locations=True, show=False)
     #plot = add_samples_to_plot(plot, test_X, p, 'r' )
     plot.plot(X_range, y_range, 'r')
 
@@ -415,7 +367,7 @@ def test2():
     n_per_iters = 3
     lv = LolaVoronoi(gp, train_X.reshape(-1,1), train_y.reshape(-1,1), test_X.reshape(-1,1), test_y.reshape(-1,1), [[domain[0], domain[1]]], forresterEtAl, n_iteration=n_iters,
                      n_per_iteration=n_per_iters)
-    lv.apply()
+    lv.run_sequential_design()
 
     plot = add_samples_to_plot(plot, lv.train_X[-n_iters*n_per_iters:], forresterEtAl(lv.train_X[-n_iters*n_per_iters:]), 'g')
     plot.show()
@@ -427,4 +379,4 @@ def test_fun(X):
     return np.sin(x1-3)*np.cos(x2/4)
 
 if __name__ == '__main__':
-    test2()
+    test_2D()

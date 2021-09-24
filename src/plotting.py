@@ -21,7 +21,7 @@ def plot_function(f, domain, grid_size = 1000, plot_name = None, show = True, sa
     Z = f(np.hstack((x1.reshape(grid_size * grid_size, 1), x2.reshape(grid_size * grid_size, 1))))
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    surface = ax.plot_surface(x1, x2, Z.reshape(grid_size,grid_size), cmap=cm.coolwarm, label=f.__name__ if plot_name is None else plot_name)
+    surface = ax.plot_trisurf(x1, x2, Z.reshape(grid_size,grid_size), cmap=cm.coolwarm, label=f.__name__ if plot_name is None else plot_name)
     fig.colorbar(surface)
 
     if show:
@@ -70,7 +70,7 @@ def plot_function_custom(f, X, y = None, plot_sample_locations = False, plot_nam
 def add_samples_to_plot(plot, X, y, color):
     ax = plot.gca()
 
-    if len(X.shape) == 1:
+    if X.shape[1] == 1:
         ax.scatter(X, y, c=color)
     elif X.shape[1] > 1:
         ax.scatter(X[:, 0], X[:, 1], y, c=color)
