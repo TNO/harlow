@@ -8,11 +8,24 @@ from test_functions import six_hump_camel_2D
 # adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
 # gitlab.com/energyincities/besos/-/blob/master/besos/
 
-class LolaVoronoi():
 
-    def __init__(self, model, train_X, train_y, test_X, test_y, dom, f, n_init = 20, n_iteration = 10, n_per_iteration = 5, metric = r2_score):
+class LolaVoronoi:
+    def __init__(
+        self,
+        model,
+        train_X,
+        train_y,
+        test_X,
+        test_y,
+        dom,
+        f,
+        n_init=20,
+        n_iteration=10,
+        n_per_iteration=5,
+        metric=r2_score,
+    ):
         self.model = model
-        self.dimension = len(train_X[0,:])
+        self.dimension = len(train_X[0, :])
         self.train_X = train_X
         self.train_y = train_y
         self.test_X = test_X
@@ -23,17 +36,17 @@ class LolaVoronoi():
         self.n_per_iteration = n_per_iteration
         self.f = f
         self.metric = metric
-        self.score = np.empty((self.n_iteration+1))
+        self.score = np.empty((self.n_iteration + 1))
 
         if np.ndim(self.test_X) == 1:
-            self.score[0] = self.metric(self.test_y, self.model.predict(self.test_X.reshape(-1,1)))
+            self.score[0] = self.metric(
+                self.test_y, self.model.predict(self.test_X.reshape(-1, 1))
+            )
         else:
             self.score[0] = self.metric(self.test_y, self.model.predict(self.test_X))
 
-
     def update_model(self):
         self.model.fit(self.train_X, self.train_y)
-
 
     def run_sequential_design(self):
         self.N, self.S = initialize_samples(self.train_X)
@@ -42,7 +55,9 @@ class LolaVoronoi():
 
         for i in range(self.n_iteration):
             for train_new in self.new_data:
-                self.N, self.S = update_neighbourhood(self.N, self.train_X, self.S, train_new)
+                self.N, self.S = update_neighbourhood(
+                    self.N, self.train_X, self.S, train_new
+                )
                 N_new, S_new = initialize_samples(self.train_X, train_new)
                 self.N = np.append(self.N, N_new, axis=2)
                 self.S = np.append(self.S, S_new, axis=0)
@@ -51,44 +66,51 @@ class LolaVoronoi():
             self.train_y = np.append(self.train_y, self.new_data_y, axis=0)
             self.sample()
             self.update_model()
-            self.score[i+1] = self.metric(self.test_y, self.model.predict(self.test_X))
+            self.score[i + 1] = self.metric(
+                self.test_y, self.model.predict(self.test_X)
+            )
 
             print(f"iteration {i} finished: score {self.score[i+1]}")
-
 
     def sample(self):
         lola_est = lola_score(self.N, self.train_X, self.model)
         voronoi, samples = estimate_voronoi_volume(self.train_X, self.dom)
         hybrid_score = lola_voronoi_score(lola_est, voronoi)
         idx_new = np.argsort(hybrid_score)
-        data_sorted = self.train_X[idx_new,:]
+        data_sorted = self.train_X[idx_new, :]
 
         ind = 2
         self.new_data = np.empty([self.n_per_iteration, self.train_X.shape[1]])
 
         for i in range(self.n_per_iteration):
-            candidates = in_voronoi_region(data_sorted[-i-1,:], self.train_X, samples)
+            candidates = in_voronoi_region(
+                data_sorted[-i - 1, :], self.train_X, samples
+            )
 
             while len(candidates) <= 1:
-                candidates = in_voronoi_region(data_sorted[-i-ind,:], self.train_X, samples)
+                candidates = in_voronoi_region(
+                    data_sorted[-i - ind, :], self.train_X, samples
+                )
                 ind += 1
 
-            #new X data sample
-            self.new_data[i,:] = select_new_sample(data_sorted[-i-1,:], self.N[:,:, idx_new][:,:,-i-1], candidates)
+            # new X data sample
+            self.new_data[i, :] = select_new_sample(
+                data_sorted[-i - 1, :], self.N[:, :, idx_new][:, :, -i - 1], candidates
+            )
 
-        #output from function evaluation on newly selected X samples
+        # output from function evaluation on newly selected X samples
         self.new_data_y = self.f(self.new_data)
 
 
 def select_new_sample(reference_point, neighhbours, candidates):
-    neighbours = np.append(neighhbours, [reference_point], axis =0)
+    neighbours = np.append(neighhbours, [reference_point], axis=0)
     dist_max = 0
 
-    for candidate in candidates[1:,:]:
+    for candidate in candidates[1:, :]:
         d = 0
         for neighbour in neighbours:
             d = d + np.linalg.norm(candidate - neighbour)
-        if d>dist_max:
+        if d > dist_max:
             dist_max = d
             candidate_max = candidate
 
@@ -97,13 +119,13 @@ def select_new_sample(reference_point, neighhbours, candidates):
 
 def in_voronoi_region(reference_point, train_X, samples):
     mask = train_X != reference_point
-    train_X_temp = train_X[mask[:,0], :]
-    #candidates = np.empty([1, train_X.shape[1]])
+    train_X_temp = train_X[mask[:, 0], :]
+    # candidates = np.empty([1, train_X.shape[1]])
     candidates = np.empty([1, len(train_X[0, :])])
 
     for s in samples:
         for train_i in train_X_temp:
-            if np.linalg.norm(s-train_i) <= np.linalg.norm(s - reference_point):
+            if np.linalg.norm(s - train_i) <= np.linalg.norm(s - reference_point):
                 break
             else:
                 continue
@@ -113,36 +135,40 @@ def in_voronoi_region(reference_point, train_X, samples):
     return candidates
 
 
-def initialize_samples(train_X, train_new = None):
-    m = 2 * len(train_X[0,:])
+def initialize_samples(train_X, train_new=None):
+    m = 2 * len(train_X[0, :])
     d = train_X.shape[1]
 
     if train_new is None:
         n = len(train_X)
-        Neighbourhood_points = np.empty((m,d,n))
+        Neighbourhood_points = np.empty((m, d, n))
         Score_points = np.empty((n))
-        train_ref = (train_X*1.0)
+        train_ref = train_X * 1.0
     else:
         if np.ndim(train_new) == 1:
             train_ref = np.expand_dims(train_new, axis=0)
         else:
             train_ref = train_new * 1.0
         n_new = len(train_ref)
-        Neighbourhood_points = np.empty([m,d,n_new])
+        Neighbourhood_points = np.empty([m, d, n_new])
         Score_points = np.empty([n_new])
 
     for i in range(len(train_ref)):
-        mask = train_X != train_ref[i,:]
-        train_norefpoint = train_X[mask[:,0],:]
-        Neighbourhood_points[:,:,i] = train_norefpoint[0:m,:]
-        Score_points[i] = neighbourhood_score(Neighbourhood_points[:,:,i],train_ref[i,:], train_ref.shape[1])
+        mask = train_X != train_ref[i, :]
+        train_norefpoint = train_X[mask[:, 0], :]
+        Neighbourhood_points[:, :, i] = train_norefpoint[0:m, :]
+        Score_points[i] = neighbourhood_score(
+            Neighbourhood_points[:, :, i], train_ref[i, :], train_ref.shape[1]
+        )
 
     ind = 0
 
     for cand in train_X:
         ind += 1
 
-        Neighbourhood_points, Score_points = update_neighbourhood(Neighbourhood_points, train_ref, Score_points, cand)
+        Neighbourhood_points, Score_points = update_neighbourhood(
+            Neighbourhood_points, train_ref, Score_points, cand
+        )
 
     return Neighbourhood_points, Score_points
 
@@ -154,30 +180,36 @@ def lola_voronoi_score(E, V):
 def update_neighbourhood(neighbours, train_X, scores, candidates):
     if np.ndim(train_X) == 1:
         train_X = np.expand_dims(train_X, axis=0)
-        neighbours = np.reshape(neighbours, (neighbours.shape[1], neighbours.shape[1], 1))
+        neighbours = np.reshape(
+            neighbours, (neighbours.shape[1], neighbours.shape[1], 1)
+        )
         scores = np.expand_dims(scores, axis=0)
 
     if np.ndim(candidates) == 1:
         candidates = np.expand_dims(candidates, axis=0)
 
-    m = 2*len(train_X[0,:])
+    m = 2 * len(train_X[0, :])
     ind = 0
 
     for candidate in candidates:
         for p in train_X:
-            if sum(p == candidate) < len(train_X[0,:]):
-                neighbours_temp = np.dstack([neighbours[:,:,ind]]*m)
+            if sum(p == candidate) < len(train_X[0, :]):
+                neighbours_temp = np.dstack([neighbours[:, :, ind]] * m)
                 scores_temp = np.zeros((m))
 
                 for i in range(m):
-                    if sum(sum(neighbours_temp[:,:,i] == candidate)) < len(train_X[0,:]):
-                        neighbours_temp[i,:,i] = candidate
+                    if sum(sum(neighbours_temp[:, :, i] == candidate)) < len(
+                        train_X[0, :]
+                    ):
+                        neighbours_temp[i, :, i] = candidate
                     else:
                         pass
-                    scores_temp[i] = neighbourhood_score(neighbours_temp[:,:,i], p, np.ndim(candidates))
+                    scores_temp[i] = neighbourhood_score(
+                        neighbours_temp[:, :, i], p, np.ndim(candidates)
+                    )
                 min_ind = np.argmin(scores_temp)
 
-                neighbours[:,:,ind] = neighbours_temp[:,:, min_ind]
+                neighbours[:, :, ind] = neighbours_temp[:, :, min_ind]
                 scores[ind] = scores_temp[min_ind]
                 ind += 1
             else:
@@ -194,25 +226,24 @@ def neighbourhood_score(neighbourhood, reference_point, dim):
 
     C = 0
     for i in range(m):
-        C = C + np.linalg.norm(neighbourhood[i,:] - reference_point)
+        C = C + np.linalg.norm(neighbourhood[i, :] - reference_point)
     C = C / m
 
     for i in range(m):
         for j in range(m):
-            if not i==j:
-                cand_dist[i] = np.linalg.norm(neighbourhood[i,:] - neighbourhood[j,:])
+            if not i == j:
+                cand_dist[i] = np.linalg.norm(neighbourhood[i, :] - neighbourhood[j, :])
         min_dist[i] = min(cand_dist)
 
     if dim > 1:
         A = 1 / m * sum(min_dist)
         R = A / (np.sqrt(2) * C)
-    elif dim == 1:  #1D cases: see Crombecq p.1960
-        pr1 = neighbourhood[0,:]
-        pr2 = neighbourhood[1,:]
-        R = 1-(np.abs(pr1+pr2) / (np.abs(pr1) + np.abs(pr2) + np.abs(pr1-pr2)))
+    elif dim == 1:  # 1D cases: see Crombecq p.1960
+        pr1 = neighbourhood[0, :]
+        pr2 = neighbourhood[1, :]
+        R = 1 - (np.abs(pr1 + pr2) / (np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)))
 
-    return R/C
-
+    return R / C
 
 
 def lola_score(neighbours, train_X, model):
@@ -221,25 +252,30 @@ def lola_score(neighbours, train_X, model):
     E = np.empty([n])
 
     for p in train_X:
-        grad = gradient(neighbours[:,:,idx], p, model)
-        E[idx] = nonlinearity_measure(grad, neighbours[:,:,idx], p, model)
-        idx+=1
+        grad = gradient(neighbours[:, :, idx], p, model)
+        E[idx] = nonlinearity_measure(grad, neighbours[:, :, idx], p, model)
+        idx += 1
 
     return E
+
 
 def nonlinearity_measure(grad, neighbours, p, model):
     E = 0
 
     for i in range(len(neighbours)):
-        E = E+abs(model.predict([neighbours[i,:]]) - (model.predict([p]) + np.dot(grad, (neighbours[i,:] - p))))
+        E = E + abs(
+            model.predict([neighbours[i, :]])
+            - (model.predict([p]) + np.dot(grad, (neighbours[i, :] - p)))
+        )
 
     return E
 
-'''
+
+"""
  Exploration using Voronoi approximation: identify regions where sample density is low. low Voronoi volume implies low sampling density.
  Crombecq, Karel; Gorissen, Dirk; Deschrijver, Dirk; Dhaene, Tom (2011) A novel hybrid sequential design strategy for global surrogate modeling of computer experiments
  Estimation of Voronoi cell size, see algorithm 2.
- How large should n be approximate V-size?
+ How large should n be to approximate V-size?
 
  alternative would be to calculated voronoi cell via Delauney tesselation. more expensive, not necessary according to paper.
 
@@ -247,9 +283,10 @@ def nonlinearity_measure(grad, neighbours, p, model):
    from scipy.spatial import KDTree
    kdt = KDTree(P.T)
    kdt.query(PQ.T)
-'''
-def estimate_voronoi_volume(P, domain, n = 100):
+"""
 
+
+def estimate_voronoi_volume(P, domain, n=100):
     V = np.zeros(len(P))
     S = latin_hypercube(domain, n)
 
@@ -257,8 +294,8 @@ def estimate_voronoi_volume(P, domain, n = 100):
         d = np.inf
         idx = 0
         for p in P:
-            if np.linalg.norm(p-s) < d:
-                d = np.linalg.norm(p-s)
+            if np.linalg.norm(p - s) < d:
+                d = np.linalg.norm(p - s)
                 idx_fin = idx
             idx += 1
         V[idx_fin] = V[idx_fin] + 1 / len(S)
@@ -270,113 +307,13 @@ def gradient(N, p, model):
     m = len(N)
     d = len(p)
 
-    P_mtrx = np.empty((m,d))
+    P_mtrx = np.empty((m, d))
     F_mtrx = np.empty((m))
 
     for i in range(m):
-        P_mtrx[i,:] = N[i,:] - p
-        F_mtrx[i] = model.predict(N[i,:].reshape(1,-1))
+        P_mtrx[i, :] = N[i, :] - p
+        F_mtrx[i] = model.predict(N[i, :].reshape(1, -1))
 
-    grad = np.linalg.lstsq(P_mtrx, np.transpose(F_mtrx), rcond=None)[0].reshape((1,d))
+    grad = np.linalg.lstsq(P_mtrx, np.transpose(F_mtrx), rcond=None)[0].reshape((1, d))
 
     return grad
-
-def test_2D():
-    from sklearn.gaussian_process import GaussianProcessRegressor
-    from sklearn.gaussian_process.kernels import RBF, Matern, RationalQuadratic
-    from sklearn.manifold import MDS
-    from sklearn.model_selection import train_test_split
-    from test_functions import bohachevsky_2D
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-    from plotting import plot_function_custom,add_samples_to_plot
-
-    domain = [[-100.0, 100.0],[-100.0, 100.0]]
-    X1_range = np.linspace(domain[0][0], domain[0][1], 1000)
-    X2_range = np.linspace(domain[1][0], domain[1][1], 1000)
-    n_points = 20
-    X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
-    X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
-    X = np.stack([X1,X2], -1)
-    y = bohachevsky_2D(X)
-
-    indices = np.random.permutation(X1.shape[0])
-    train_idx, test_idx = indices[:round(len(indices) * 0.8)], indices[round(len(indices) * 0.8):]
-    train_X = X[train_idx,:]
-    test_X = X[test_idx,:]
-    train_y = bohachevsky_2D(train_X)
-    test_y = bohachevsky_2D(test_X)
-
-    gp = GaussianProcessRegressor()
-    gp.fit(train_X, train_y)
-
-    p = gp.predict(test_X)
-    print(f"test R2: {r2_score(test_y, p)}")
-
-    plot = plot_function_custom(bohachevsky_2D, train_X, y=gp.predict(train_X),
-                                plot_sample_locations=True, show=False)
-    # plot = add_samples_to_plot(plot, test_X, p, 'r' )
-#    plot.plot(X, y, 'r')
-
-
-    n_iters = 10
-    n_per_iters = 10
-    lv = LolaVoronoi(gp, train_X, train_y, test_X, test_y,
-                     [[domain[0], domain[1]]], bohachevsky_2D, n_iteration=n_iters,
-                     n_per_iteration=n_per_iters)
-    lv.run_sequential_design()
-
-    plot = add_samples_to_plot(plot, lv.train_X[-n_iters * n_per_iters:],
-                               bohachevsky_2D(lv.train_X[-n_iters * n_per_iters:]), 'g')
-    plot.show()
-
-    plot2 = plot_function_custom(bohachevsky_2D, lv.train_X,
-                               lv.model.predict(lv.train_X), plot_sample_locations=True, show=True)
-    plot2.show()
-
-
-def test_1D():
-    from sklearn.gaussian_process import GaussianProcessRegressor
-    from test_functions import forresterEtAl
-    from plotting import plot_function_custom,add_samples_to_plot
-
-    X_range = np.linspace(0,1,1000)
-    y_range = forresterEtAl(X_range)
-    domain = [0.0,1.0]
-    n_points = 10
-    X = np.random.uniform(domain[0], domain[1], n_points)
-
-    indices = np.random.permutation(X.shape[0])
-    train_idx, test_idx = indices[:round(len(indices)*0.8)], indices[round(len(indices)*0.8):]
-    train_X = np.sort(X[train_idx])
-    test_X = np.sort(X[test_idx])
-    train_y = forresterEtAl(train_X)
-    test_y = forresterEtAl(test_X)
-
-    gp = GaussianProcessRegressor()
-    gp.fit(train_X.reshape(-1,1), train_y)
-
-    p = gp.predict(test_X.reshape(-1,1))
-    print(f"test R2: {r2_score(test_y, p)}")
-
-    plot = plot_function_custom(forresterEtAl, train_X, y=gp.predict(train_X.reshape(-1,1)), plot_sample_locations=True, show=False)
-    #plot = add_samples_to_plot(plot, test_X, p, 'r' )
-    plot.plot(X_range, y_range, 'r')
-
-    n_iters = 5
-    n_per_iters = 3
-    lv = LolaVoronoi(gp, train_X.reshape(-1,1), train_y.reshape(-1,1), test_X.reshape(-1,1), test_y.reshape(-1,1), [[domain[0], domain[1]]], forresterEtAl, n_iteration=n_iters,
-                     n_per_iteration=n_per_iters)
-    lv.run_sequential_design()
-
-    plot = add_samples_to_plot(plot, lv.train_X[-n_iters*n_per_iters:], forresterEtAl(lv.train_X[-n_iters*n_per_iters:]), 'g')
-    plot.show()
-
-
-def test_fun(X):
-    x1 = X[:,0]
-    x2 = X[:,1]
-    return np.sin(x1-3)*np.cos(x2/4)
-
-if __name__ == '__main__':
-    test_2D()
