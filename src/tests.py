@@ -4,6 +4,7 @@ from plotting import plot_function_custom, add_samples_to_plot
 from lolaVoronoi import LolaVoronoi
 from sklearn.metrics import r2_score
 import numpy as np
+from surrogate_model import GaussianProcess
 
 
 def test_2D():
@@ -128,6 +129,40 @@ def test_1D():
     plot.show()
 
 
+def test_tfdGP():
+    import matplotlib.pyplot as plt
+    import tensorflow_probability as tfp
+
+    num_training_points = 100
+    index_points_ = np.random.uniform(-1., 1., (num_training_points, 1))
+    index_points_ = index_points_.astype(np.float64)
+    observations_ = ((np.sin(3 * np.pi * index_points_[..., 0])) +
+                     np.random.normal(loc=0,
+                                      scale=np.sqrt(0.1),
+                                      size=(num_training_points)))
+
+    gp = GaussianProcess()
+    gp.fit(index_points_, observations_)
+
+    predictive_index_points_ = np.linspace(-1.2, 1.2, 200, dtype=np.float64)
+    predictive_index_points_ = predictive_index_points_[..., np.newaxis]
+    mean, dev, samples = gp.predict(predictive_index_points_)
+
+    plt.figure(figsize=(12, 4))
+    plt.plot(predictive_index_points_,  (np.sin(3 * np.pi * predictive_index_points_[..., 0])), label='True fn')
+    plt.scatter(index_points_[:, 0], observations_,
+                label='Observations')
+    for i in range(50):
+        plt.plot(predictive_index_points_, samples[i, :], c='r', alpha=.1,
+                 label='Posterior Sample' if i == 0 else None)
+    leg = plt.legend(loc='upper right')
+    for lh in leg.legendHandles:
+        lh.set_alpha(1)
+    plt.xlabel(r"Index points ($\mathbb{R}^1$)")
+    plt.ylabel("Observation space")
+    plt.show()
+
+
 def test_fun(X):
     x1 = X[:, 0]
     x2 = X[:, 1]
@@ -135,4 +170,4 @@ def test_fun(X):
 
 
 if __name__ == "__main__":
-    test_2D()
+    test_tfdGP()
