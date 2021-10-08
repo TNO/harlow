@@ -134,12 +134,11 @@ def test_tfdGP():
     import tensorflow_probability as tfp
 
     num_training_points = 100
-    index_points_ = np.random.uniform(-1., 1., (num_training_points, 1))
+    index_points_ = np.random.uniform(-1.0, 1.0, (num_training_points, 1))
     index_points_ = index_points_.astype(np.float64)
-    observations_ = ((np.sin(3 * np.pi * index_points_[..., 0])) +
-                     np.random.normal(loc=0,
-                                      scale=np.sqrt(0.1),
-                                      size=(num_training_points)))
+    observations_ = (np.sin(3 * np.pi * index_points_[..., 0])) + np.random.normal(
+        loc=0, scale=np.sqrt(0.1), size=(num_training_points)
+    )
 
     gp = GaussianProcess()
     gp.fit(index_points_, observations_)
@@ -149,13 +148,21 @@ def test_tfdGP():
     mean, dev, samples = gp.predict(predictive_index_points_)
 
     plt.figure(figsize=(12, 4))
-    plt.plot(predictive_index_points_,  (np.sin(3 * np.pi * predictive_index_points_[..., 0])), label='True fn')
-    plt.scatter(index_points_[:, 0], observations_,
-                label='Observations')
+    plt.plot(
+        predictive_index_points_,
+        (np.sin(3 * np.pi * predictive_index_points_[..., 0])),
+        label="True fn",
+    )
+    plt.scatter(index_points_[:, 0], observations_, label="Observations")
     for i in range(50):
-        plt.plot(predictive_index_points_, samples[i, :], c='r', alpha=.1,
-                 label='Posterior Sample' if i == 0 else None)
-    leg = plt.legend(loc='upper right')
+        plt.plot(
+            predictive_index_points_,
+            samples[i, :],
+            c="r",
+            alpha=0.1,
+            label="Posterior Sample" if i == 0 else None,
+        )
+    leg = plt.legend(loc="upper right")
     for lh in leg.legendHandles:
         lh.set_alpha(1)
     plt.xlabel(r"Index points ($\mathbb{R}^1$)")

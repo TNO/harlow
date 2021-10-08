@@ -6,6 +6,7 @@ from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.optimizers import Adam
 import tensorflow_probability as tfp
 import tensorflow as tf
+
 tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
@@ -13,6 +14,7 @@ tfk = tfp.math.psd_kernels
 # TODO make architectures configurable through API
 # TODO chech if class structure is appropriate for all sampling techniques
 # TODO add retrainingn strategies
+
 
 def NLL(y, distr):
     return -distr.log_prob(y)
@@ -25,7 +27,6 @@ def normal_sp(params):
 
 
 class GaussianProcess:
-
     def __init__(self, normalize_Y=False, **kwargs):
         self.normalize_Y = normalize_Y
         self.model = None
@@ -33,43 +34,55 @@ class GaussianProcess:
         def _build_gp(amplitude, length_scale, observation_noise_variance):
             kernel = tfk.ExponentiatedQuadratic(amplitude, length_scale)
 
-            return tfd.GaussianProcess(kernel=kernel, index_points=self.observation_index_points,
-                                       observation_noise_variance=observation_noise_variance)
+            return tfd.GaussianProcess(
+                kernel=kernel,
+                index_points=self.observation_index_points,
+                observation_noise_variance=observation_noise_variance,
+            )
 
-        self.gp_joint_model = tfd.JointDistributionNamed({
-            'amplitude': tfd.LogNormal(loc=0., scale=np.float64(1.)),
-            'length_scale': tfd.LogNormal(loc=0., scale=np.float64(1.)),
-            'observation_noise_variance': tfd.LogNormal(loc=0., scale=np.float64(1.)),
-            'observations': _build_gp,
-        })
+        self.gp_joint_model = tfd.JointDistributionNamed(
+            {
+                "amplitude": tfd.LogNormal(loc=0.0, scale=np.float64(1.0)),
+                "length_scale": tfd.LogNormal(loc=0.0, scale=np.float64(1.0)),
+                "observation_noise_variance": tfd.LogNormal(
+                    loc=0.0, scale=np.float64(1.0)
+                ),
+                "observations": _build_gp,
+            }
+        )
 
-
-
-    def optimize_parameters(self, verbose = 0):
+    def optimize_parameters(self, verbose=0):
         constrain_positive = tfb.Shift(np.finfo(np.float64).tiny)(tfb.Exp())
 
         self.amplitude_var = tfp.util.TransformedVariable(
-            initial_value=1.,
+            initial_value=1.0,
             bijector=constrain_positive,
-            name='amplitude',
-            dtype=np.float64)
+            name="amplitude",
+            dtype=np.float64,
+        )
 
         self.length_scale_var = tfp.util.TransformedVariable(
-            initial_value=1.,
+            initial_value=1.0,
             bijector=constrain_positive,
-            name='length_scale',
-            dtype=np.float64)
+            name="length_scale",
+            dtype=np.float64,
+        )
 
         self.observation_noise_variance_var = tfp.util.TransformedVariable(
-            initial_value=1.,
+            initial_value=1.0,
             bijector=constrain_positive,
-            name='observation_noise_variance_var',
-            dtype=np.float64)
+            name="observation_noise_variance_var",
+            dtype=np.float64,
+        )
 
-        trainable_variables = [v.trainable_variables[0] for v in
-                               [self.amplitude_var,
-                                self.length_scale_var,
-                                self.observation_noise_variance_var]]
+        trainable_variables = [
+            v.trainable_variables[0]
+            for v in [
+                self.amplitude_var,
+                self.length_scale_var,
+                self.observation_noise_variance_var,
+            ]
+        ]
 
         num_iterations = 1000
         optimizer = tf.optimizers.Adam(learning_rate=0.01)
@@ -77,7 +90,11 @@ class GaussianProcess:
         @tf.function(autograph=False)
         def train_model():
             with tf.GradientTape() as tape:
-                loss = -self.target_log_prob(self.amplitude_var, self.length_scale_var, self.observation_noise_variance_var)
+                loss = -self.target_log_prob(
+                    self.amplitude_var,
+                    self.length_scale_var,
+                    self.observation_noise_variance_var,
+                )
             grads = tape.gradient(loss, trainable_variables)
             optimizer.apply_gradients(zip(grads, trainable_variables))
 
@@ -88,42 +105,47 @@ class GaussianProcess:
             loss = train_model()
             lls_[i] = loss
 
-        self.kernel = tfk.ExponentiatedQuadratic(self.amplitude_var, self.length_scale_var)
+        self.kernel = tfk.ExponentiatedQuadratic(
+            self.amplitude_var, self.length_scale_var
+        )
         if verbose == 1:
-            print('Trained parameters:')
-            print('amplitude: {}'.format(self.amplitude_var._value().numpy()))
-            print('length_scale: {}'.format(self.length_scale_var._value().numpy()))
-            print('observation_noise_variance: {}'.format(self.observation_noise_variance_var._value().numpy()))
-
+            print("Trained parameters:")
+            print("amplitude: {}".format(self.amplitude_var._value().numpy()))
+            print("length_scale: {}".format(self.length_scale_var._value().numpy()))
+            print(
+                "observation_noise_variance: {}".format(
+                    self.observation_noise_variance_var._value().numpy()
+                )
+            )
 
     def target_log_prob(self, amplitude, length_scale, observation_noise_variance):
-        return self.gp_joint_model.log_prob({
-            'amplitude': amplitude,
-            'length_scale': length_scale,
-            'observation_noise_variance': observation_noise_variance,
-            'observations': self.observations
-        })
-
+        return self.gp_joint_model.log_prob(
+            {
+                "amplitude": amplitude,
+                "length_scale": length_scale,
+                "observation_noise_variance": observation_noise_variance,
+                "observations": self.observations,
+            }
+        )
 
     def fit(self, X, y):
         self.observation_index_points = X
         self.observations = y
         self.optimize_parameters()
 
-
-    def predict(self, X, num_samples = 50):
+    def predict(self, X, num_samples=50):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
             index_points=X,
             observation_index_points=self.observation_index_points,
             observations=self.observations,
             observation_noise_variance=self.observation_noise_variance_var,
-            predictive_noise_variance=0.)
+            predictive_noise_variance=0.0,
+        )
 
         samples = gprm.sample(num_samples)
 
-        return np.mean(samples, axis=0), np.std(samples,axis=0), samples
-
+        return np.mean(samples, axis=0), np.std(samples, axis=0), samples
 
 
 class Prob_NN:
