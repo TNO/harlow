@@ -1,14 +1,13 @@
-from sampling import latin_hypercube
 import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score
+from skopt.space import Space
+from skopt.sampler import Lhs
 import logging
-import plotting
-from test_functions import six_hump_camel_2D
+
+#TODO add logging
 
 # adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
 # gitlab.com/energyincities/besos/-/blob/master/besos/
-
-
 class LolaVoronoi:
     def __init__(
         self,
@@ -46,7 +45,7 @@ class LolaVoronoi:
             self.score[0] = self.metric(self.test_y, self.model.predict(self.test_X))
 
     def update_model(self):
-        self.model.fit(self.train_X, self.train_y)
+        self.model.update(self.new_data, self.new_data_y)
 
     def run_sequential_design(self):
         self.N, self.S = initialize_samples(self.train_X)
@@ -99,7 +98,7 @@ class LolaVoronoi:
             )
 
         # output from function evaluation on newly selected X samples
-        self.new_data_y = self.f(self.new_data)
+        self.new_data_y = self.f(self.new_data).flatten()
 
 
 def select_new_sample(reference_point, neighhbours, candidates):
@@ -288,7 +287,7 @@ def nonlinearity_measure(grad, neighbours, p, model):
 
 def estimate_voronoi_volume(P, domain, n=100):
     V = np.zeros(len(P))
-    S = latin_hypercube(domain, n)
+    S = hypercube_sampling(domain, n)
 
     for s in S:
         d = np.inf
@@ -301,6 +300,19 @@ def estimate_voronoi_volume(P, domain, n=100):
         V[idx_fin] = V[idx_fin] + 1 / len(S)
 
     return V, np.asarray(S)
+
+
+def hypercube_sampling(domain, n_samples, method = "maximin"):
+    space_domain = []
+
+    for i in range(len(domain)):
+        space_domain.append(tuple(domain[i]))
+
+    space = Space(space_domain[i])
+    lhs = Lhs(criterion=method, iterations=5000)
+    samples = lhs.generate(space.dimensions, n_samples)
+
+    return samples
 
 
 def gradient(N, p, model):

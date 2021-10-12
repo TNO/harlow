@@ -36,11 +36,9 @@ def plot_function(f, domain, grid_size=1000, plot_name=None, show=True, save=Fal
 
     if show:
         plt.show()
-    else:
-        return plt
     if save:
         plt.savefig(f"{f.__name__ if plot_name is None else plot_name}.png")
-        return plt
+    return plt
 
 
 def plot_function_custom(
@@ -83,11 +81,9 @@ def plot_function_custom(
 
     if show:
         plt.show()
-    else:
-        return plt
     if save:
         plt.savefig(f"{f.__name__ if plot_name is None else plot_name}.png")
-        return plt
+    return plt
 
 
 def add_samples_to_plot(plot, X, y, color):

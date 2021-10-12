@@ -133,7 +133,8 @@ class GaussianProcess:
         self.observations = y
         self.optimize_parameters()
 
-    def predict(self, X, num_samples=50):
+
+    def predict(self, X, num_samples=50, return_samples = False):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
             index_points=X,
@@ -145,10 +146,39 @@ class GaussianProcess:
 
         samples = gprm.sample(num_samples)
 
-        return np.mean(samples, axis=0), np.std(samples, axis=0), samples
+        if return_samples:
+            return np.mean(samples, axis=0), samples
+        return np.mean(samples, axis=0)
+
+
+    def predict_uncertainty(self, X, num_samples=50):
+        gprm = tfd.GaussianProcessRegressionModel(
+            kernel=self.kernel,
+            index_points=X,
+            observation_index_points=self.observation_index_points,
+            observations=self.observations,
+            observation_noise_variance=self.observation_noise_variance_var,
+            predictive_noise_variance=0.0,
+        )
+
+        samples = gprm.sample(num_samples)
+
+        return np.std(samples, axis=0)
+
+
+    def update(self, new_X, new_y):
+        self.observation_index_points = np.concatenate([self.observation_index_points, new_X])
+
+        if new_y.ndim > self.observations.ndim:
+            new_y = new_y.flatten()
+        self.observations = np.concatenate([self.observations, new_y])
+        self.optimize_parameters(verbose=True)
 
 
 class Prob_NN:
+    learning_rate_initial = 0.01
+    learning_rate_update = 0.001
+
     def __init__(self, normalize_Y=False, **kwargs):
         self.normalize_Y = normalize_Y
         self.model = None
@@ -161,22 +191,24 @@ class Prob_NN:
         hidden = Dense(20, activation="relu")(hidden)
         params = Dense(2)(hidden)
         dist = tfp.layers.DistributionLambda(normal_sp)(params)
-
+        optimizer = Adam(learning_rate=self.learning_rate_initial)
         self.model = Model(inputs=inputs, outputs=dist)
-        self.model.compile(Adam(), loss=NLL)
+        self.model.compile(optimizer=optimizer, loss=NLL)
+
 
     def fit(self, X, y, epochs=10):
         self.model.fit(X, y, epochs=epochs, batch_size=32)
 
-    def updateModel(self, X_all, Y_all, X_new, Y_new):
+
+    def update(self, X_new, y_new):
 
         if self.normalize_Y:
-            Y_all = (Y_all - Y_all.mean()) / (Y_all.std())
+            y_new = (y_new - y_new.mean()) / (y_new.std())
 
-        if self.model is None:
-            self._create_model()
-        else:
-            self.model.fit(X_all, Y_all, epochs=10, batch_size=32)
+        optimizer = Adam(learning_rate=self.learning_rate_update)
+        self.model.compile(optimizer=optimizer, loss=NLL)
+        self.model.fit(X_new, y_new, epochs=10, batch_size=32)
+
 
     def predict(self, X, its=10):
         if self.model:
@@ -268,19 +300,17 @@ class Bayesian_NN:
         self.y = y
         self.model.fit(X, y, epochs=epochs, batch_size=32, verbose=verbose)
 
-    def updateModel(self, X_new, y_new, epochs=25, verbose=0):
 
-        # self.X = np.concatenate((self.X, X_new))
-        # self.y = np.concatenate((self.y, y_new))
-
+    def update(self, X_new, y_new, epochs=25, verbose=0):
         if self.normalize_Y:
-            Y_all = (self.y - self.y.mean()) / (self.y.std())
+            y_new = (y_new - y_new.mean()) / (y_new.std())
 
         if self.model is None:
             self._create_model()
         else:
             self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
             self.model.fit(X_new, y_new, epochs=epochs, batch_size=32, verbose=verbose)
+
 
     def predict(self, X, its=10):
         if self.model:
