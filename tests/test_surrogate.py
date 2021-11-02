@@ -13,6 +13,7 @@ def test_2D():
     n_points = 40
     n_iters = 10
     n_per_iters = 4
+    show_plot = False
 
     X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
     X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
@@ -42,7 +43,7 @@ def test_2D():
         train_X,
         y=gp.predict(train_X),
         plot_sample_locations=True,
-        show=True,
+        show=show_plot,
     )
 
     lv = LolaVoronoi(
@@ -59,24 +60,21 @@ def test_2D():
     lv.run_sequential_design()
 
     plt.plot(np.arange(0, n_iters + 1), lv.score)
-    plt.show()
 
-    plot = add_samples_to_plot(
+    add_samples_to_plot(
         plot,
         lv.train_X[-n_iters * n_per_iters :],
         bohachevsky_2D(lv.train_X[-n_iters * n_per_iters :]),
         "g",
     )
-    plot.show()
 
-    plot2 = plot_function_custom(
+    plot_function_custom(
         bohachevsky_2D,
         lv.train_X,
         lv.model.predict(lv.train_X),
         plot_sample_locations=True,
-        show=True,
+        show=show_plot,
     )
-    plot2.show()
 
     random_scores = [r2_score(test_y, p)]
     for _ in range(n_iters):
@@ -87,14 +85,13 @@ def test_2D():
         train_y = np.concatenate([train_y, bohachevsky_2D(X_random_test)])
 
         gp_copy.update(X_random_test, bohachevsky_2D(X_random_test))
-        rand_y, _, _ = gp_copy.predict(test_X)
+        rand_y = gp_copy.predict(test_X)
         random_scores.append(r2_score(test_y, rand_y))
 
     plt.plot(np.arange(0, n_iters + 1), random_scores)
-    plt.show()
 
     plot_function_custom(
-        bohachevsky_2D, train_X, train_y, plot_sample_locations=True, show=True
+        bohachevsky_2D, train_X, train_y, plot_sample_locations=True, show=show_plot
     )
 
 
@@ -146,18 +143,15 @@ def test_1D():
     )
     lv.run_sequential_design()
 
-    plot = add_samples_to_plot(
+    add_samples_to_plot(
         plot,
         lv.train_X[-n_iters * n_per_iters :],
         forresterEtAl(lv.train_X[-n_iters * n_per_iters :]),
         "g",
     )
-    plot.show()
 
 
 def test_tfdGP():
-    import matplotlib.pyplot as plt
-
     num_training_points = 100
     index_points_ = np.random.uniform(-1.0, 1.0, (num_training_points, 1))
     index_points_ = index_points_.astype(np.float64)
@@ -192,14 +186,10 @@ def test_tfdGP():
         lh.set_alpha(1)
     plt.xlabel(r"Index points ($\mathbb{R}^1$)")
     plt.ylabel("Observation space")
-    plt.show()
 
 
-def test_fun(X):
-    x1 = X[:, 0]
-    x2 = X[:, 1]
-    return np.sin(x1 - 3) * np.cos(x2 / 4)
-
-
-if __name__ == "__main__":
-    test_1D()
+# removed because it makes the unit test fail, it is a misplaced file
+# def test_fun(X):
+#     x1 = X[:, 0]
+#     x2 = X[:, 1]
+#     return np.sin(x1 - 3) * np.cos(x2 / 4)
