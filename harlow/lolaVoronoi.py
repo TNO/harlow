@@ -1,10 +1,9 @@
 import numpy as np
-from sklearn.metrics import mean_squared_error, r2_score
-from skopt.space import Space
+from sklearn.metrics import r2_score
 from skopt.sampler import Lhs
-import logging
+from skopt.space import Space
 
-#TODO add logging
+# TODO add logging
 
 # adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
 # gitlab.com/energyincities/besos/-/blob/master/besos/
@@ -302,7 +301,7 @@ def estimate_voronoi_volume(P, domain, n=100):
     return V, np.asarray(S)
 
 
-def hypercube_sampling(domain, n_samples, method = "maximin"):
+def hypercube_sampling(domain, n_samples, method="maximin"):
     space_domain = []
 
     for i in range(len(domain)):

@@ -1,6 +1,5 @@
-import numpy as np
-from skopt.space import Space
 from skopt.sampler import Lhs
+from skopt.space import Space
 
 
 def latin_hypercube(domain, n_samples, method="maximin"):
@@ -15,8 +14,10 @@ def latin_hypercube(domain, n_samples, method="maximin"):
 
     return samples
 
+
 def lola_voronoi():
     pass
+
 
 # TODO add lola-voronoi and iterative sampling strategies as interface
 

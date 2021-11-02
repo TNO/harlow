@@ -1,6 +1,7 @@
-import numpy as np
-import math
 import json
+import math
+
+import numpy as np
 
 
 def ackley_nD(x, a=20, b=0.2, c=2 * math.pi):
