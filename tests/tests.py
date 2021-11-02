@@ -1,10 +1,10 @@
-from test_functions import bohachevsky_2D, forresterEtAl
+from tests.test_functions import bohachevsky_2D, forresterEtAl
 from sklearn.gaussian_process import GaussianProcessRegressor
-from plotting import plot_function_custom, add_samples_to_plot
-from lolaVoronoi import LolaVoronoi
+from harlow.plotting import plot_function_custom, add_samples_to_plot
+from harlow.lolaVoronoi import LolaVoronoi
 from sklearn.metrics import r2_score
 import numpy as np
-from surrogate_model import GaussianProcess
+from harlow.surrogate_model import GaussianProcess
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
