@@ -5,8 +5,9 @@ from skopt.space import Space
 
 # TODO add logging
 
-# adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
-# gitlab.com/energyincities/besos/-/blob/master/besos/
+
+# adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+# and gitlab.com/energyincities/besos/-/blob/master/besos/
 class LolaVoronoi:
     def __init__(
         self,
@@ -60,7 +61,7 @@ class LolaVoronoi:
                 self.N = np.append(self.N, N_new, axis=2)
                 self.S = np.append(self.S, S_new, axis=0)
             self.train_X = np.append(self.train_X, self.new_data, axis=0)
-            res = self.f(self.new_data)
+            self.f(self.new_data)
             self.train_y = np.append(self.train_y, self.new_data_y, axis=0)
             self.sample()
             self.update_model()
@@ -270,12 +271,14 @@ def nonlinearity_measure(grad, neighbours, p, model):
 
 
 """
- Exploration using Voronoi approximation: identify regions where sample density is low. low Voronoi volume implies low sampling density.
- Crombecq, Karel; Gorissen, Dirk; Deschrijver, Dirk; Dhaene, Tom (2011) A novel hybrid sequential design strategy for global surrogate modeling of computer experiments
- Estimation of Voronoi cell size, see algorithm 2.
- How large should n be to approximate V-size?
+ Exploration using Voronoi approximation: identify regions where sample density is
+ low. lLw Voronoi volume implies low sampling density. Crombecq, Karel; Gorissen,
+ Dirk; Deschrijver, Dirk; Dhaene, Tom (2011) A novel hybrid sequential design
+ strategy for global surrogate modeling of computer experiments Estimation of Voronoi
+ cell size, see algorithm 2. How large should n be to approximate V-size?
 
- alternative would be to calculated voronoi cell via Delauney tesselation. more expensive, not necessary according to paper.
+ alternative would be to calculated voronoi cell via Delauney tesselation. more
+ expensive, not necessary according to paper.
 
  alternative for finding nearest, using kdtrees:
    from scipy.spatial import KDTree

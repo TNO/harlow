@@ -235,13 +235,11 @@ class Bayesian_NN:
         self.model = None
 
     def create_model(self, x):
+        def kernel_divergence_fn(q, p, _):
+            return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
 
-        kernel_divergence_fn = lambda q, p, _: tfp.distributions.kl_divergence(q, p) / (
-            x.shape[0] * 1.0
-        )
-        bias_divergence_fn = lambda q, p, _: tfp.distributions.kl_divergence(q, p) / (
-            x.shape[0] * 1.0
-        )
+        def bias_divergence_fn(q, p, _):
+            return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
 
         inputs = Input(shape=(2,))
 

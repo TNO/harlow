@@ -79,7 +79,7 @@ def test_2D():
     plot2.show()
 
     random_scores = [r2_score(test_y, p)]
-    for i in range(n_iters):
+    for _ in range(n_iters):
         X1_random_test = np.random.uniform(domain[0][0], domain[0][1], n_per_iters)
         X2_random_test = np.random.uniform(domain[0][0], domain[0][1], n_per_iters)
         X_random_test = np.stack([X1_random_test, X2_random_test], -1)
@@ -93,7 +93,7 @@ def test_2D():
     plt.plot(np.arange(0, n_iters + 1), random_scores)
     plt.show()
 
-    plot3 = plot_function_custom(
+    plot_function_custom(
         bohachevsky_2D, train_X, train_y, plot_sample_locations=True, show=True
     )
 
