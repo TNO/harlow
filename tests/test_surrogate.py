@@ -186,10 +186,3 @@ def test_tfdGP():
         lh.set_alpha(1)
     plt.xlabel(r"Index points ($\mathbb{R}^1$)")
     plt.ylabel("Observation space")
-
-
-# removed because it makes the unit test fail, it is a misplaced file
-# def test_fun(X):
-#     x1 = X[:, 0]
-#     x2 = X[:, 1]
-#     return np.sin(x1 - 3) * np.cos(x2 / 4)
