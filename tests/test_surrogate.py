@@ -1,12 +1,11 @@
-from test_functions import bohachevsky_2D, forresterEtAl
-from sklearn.gaussian_process import GaussianProcessRegressor
-from plotting import plot_function_custom, add_samples_to_plot
-from lolaVoronoi import LolaVoronoi
-from sklearn.metrics import r2_score
-import numpy as np
-from surrogate_model import GaussianProcess
-from copy import deepcopy
 import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.metrics import r2_score
+
+from harlow.lola_voronoi import LolaVoronoi
+from harlow.plotting import add_samples_to_plot, plot_function_custom
+from harlow.surrogate_model import GaussianProcess
+from tests.test_functions import bohachevsky_2D, forresterEtAl
 
 
 def test_2D():
@@ -14,6 +13,7 @@ def test_2D():
     n_points = 40
     n_iters = 10
     n_per_iters = 4
+    show_plot = False
 
     X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
     X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
@@ -34,7 +34,6 @@ def test_2D():
     gp_copy = GaussianProcess()
     gp_copy.fit(train_X, train_y)
 
-
     p = gp.predict(test_X)
     print(f"test R2: {r2_score(test_y, p)}")
     print(f"test2 R2: {r2_score(test_y, gp_copy.predict(test_X))}")
@@ -44,7 +43,7 @@ def test_2D():
         train_X,
         y=gp.predict(train_X),
         plot_sample_locations=True,
-        show=True,
+        show=show_plot,
     )
 
     lv = LolaVoronoi(
@@ -60,28 +59,25 @@ def test_2D():
     )
     lv.run_sequential_design()
 
-    plt.plot(np.arange(0,n_iters+1), lv.score)
-    plt.show()
+    plt.plot(np.arange(0, n_iters + 1), lv.score)
 
-    plot = add_samples_to_plot(
+    add_samples_to_plot(
         plot,
         lv.train_X[-n_iters * n_per_iters :],
         bohachevsky_2D(lv.train_X[-n_iters * n_per_iters :]),
         "g",
     )
-    plot.show()
 
-    plot2 = plot_function_custom(
+    plot_function_custom(
         bohachevsky_2D,
         lv.train_X,
         lv.model.predict(lv.train_X),
         plot_sample_locations=True,
-        show=True,
+        show=show_plot,
     )
-    plot2.show()
 
     random_scores = [r2_score(test_y, p)]
-    for i in range(n_iters):
+    for _ in range(n_iters):
         X1_random_test = np.random.uniform(domain[0][0], domain[0][1], n_per_iters)
         X2_random_test = np.random.uniform(domain[0][0], domain[0][1], n_per_iters)
         X_random_test = np.stack([X1_random_test, X2_random_test], -1)
@@ -89,18 +85,13 @@ def test_2D():
         train_y = np.concatenate([train_y, bohachevsky_2D(X_random_test)])
 
         gp_copy.update(X_random_test, bohachevsky_2D(X_random_test))
-        rand_y, _, _ = gp_copy.predict(test_X)
+        rand_y = gp_copy.predict(test_X)
         random_scores.append(r2_score(test_y, rand_y))
 
-    plt.plot(np.arange(0,n_iters+1), random_scores)
-    plt.show()
+    plt.plot(np.arange(0, n_iters + 1), random_scores)
 
-    plot3 = plot_function_custom(
-        bohachevsky_2D,
-        train_X,
-        train_y,
-        plot_sample_locations=True,
-        show=True
+    plot_function_custom(
+        bohachevsky_2D, train_X, train_y, plot_sample_locations=True, show=show_plot
     )
 
 
@@ -125,15 +116,15 @@ def test_1D():
     test_y = forresterEtAl(test_X)
 
     gp = GaussianProcess()
-    gp.fit(train_X.reshape(-1,1), train_y)
+    gp.fit(train_X.reshape(-1, 1), train_y)
 
-    p = gp.predict(test_X.reshape(-1,1))
+    p = gp.predict(test_X.reshape(-1, 1))
     print(f"test R2: {r2_score(test_y, p)}")
 
     plot = plot_function_custom(
         forresterEtAl,
-        train_X.reshape(-1,1),
-        y=gp.predict(train_X.reshape(-1,1)),
+        train_X.reshape(-1, 1),
+        y=gp.predict(train_X.reshape(-1, 1)),
         plot_sample_locations=True,
         show=False,
     )
@@ -141,9 +132,9 @@ def test_1D():
 
     lv = LolaVoronoi(
         gp,
-        train_X.reshape(-1,1),
+        train_X.reshape(-1, 1),
         train_y,
-        test_X.reshape(-1,1),
+        test_X.reshape(-1, 1),
         test_y,
         [[domain]],
         forresterEtAl,
@@ -152,19 +143,15 @@ def test_1D():
     )
     lv.run_sequential_design()
 
-    plot = add_samples_to_plot(
+    add_samples_to_plot(
         plot,
         lv.train_X[-n_iters * n_per_iters :],
         forresterEtAl(lv.train_X[-n_iters * n_per_iters :]),
         "g",
     )
-    plot.show()
 
 
 def test_tfdGP():
-    import matplotlib.pyplot as plt
-    import tensorflow_probability as tfp
-
     num_training_points = 100
     index_points_ = np.random.uniform(-1.0, 1.0, (num_training_points, 1))
     index_points_ = index_points_.astype(np.float64)
@@ -199,14 +186,3 @@ def test_tfdGP():
         lh.set_alpha(1)
     plt.xlabel(r"Index points ($\mathbb{R}^1$)")
     plt.ylabel("Observation space")
-    plt.show()
-
-
-def test_fun(X):
-    x1 = X[:, 0]
-    x2 = X[:, 1]
-    return np.sin(x1 - 3) * np.cos(x2 / 4)
-
-
-if __name__ == "__main__":
-    test_1D()

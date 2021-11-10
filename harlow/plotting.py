@@ -1,5 +1,7 @@
-import numpy as np
+"""Visualization functions."""
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import cm
 
 

@@ -1,6 +1,7 @@
-import numpy as np
+"""Target functions for testing."""
 import math
-import json
+
+import numpy as np
 
 
 def ackley_nD(x, a=20, b=0.2, c=2 * math.pi):
@@ -54,15 +55,3 @@ def bohachevsky_2D(X):
     t4 = -0.4 * np.cos(4 * math.pi * x2)
 
     return t1 + t2 + t3 + t4 + 0.7
-
-
-if __name__ == "__main__":
-
-    with open("example/new_content.json", "r") as f:
-        res = json.load(f)
-
-    six_hump_camel_2D_2input(res["x"], res["y"])
-    print(res)
-
-    with open("example/new_new_content.json", "w") as f:
-        json.dump(res, f)

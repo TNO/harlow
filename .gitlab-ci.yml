@@ -1,0 +1,39 @@
+image: python:3.8-slim
+
+stages:
+  - check
+  - test
+
+# ......................................................................................
+# Function(s)
+# ......................................................................................
+.run_test: &run_test >-
+  pip install -e .[tests] &&
+  coverage run -m pytest && coverage report -m
+
+.install_git: &install_git >-
+  apt-get update &&
+  apt-get install -y git
+
+# ......................................................................................
+# Check code format/style
+# ......................................................................................
+# We allow this to fail to not hinder contributors
+check:hooks:
+  stage: check
+  allow_failure: true
+  before_script:
+    - pip install pre-commit
+    - *install_git
+  script:
+    - pre-commit run --all-files --verbose --show-diff-on-failure
+
+
+# ......................................................................................
+# Unit and integration tests
+# ......................................................................................
+unit_test:
+  stage: test
+  script:
+    - *run_test
+  coverage: /TOTAL\s+\d+\s+\d+\s+(\d+%)/
