@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import r2_score
 
-from harlow.lolaVoronoi import LolaVoronoi
+from harlow.lola_voronoi import LolaVoronoi
 from harlow.plotting import add_samples_to_plot, plot_function_custom
 from harlow.surrogate_model import GaussianProcess
 from tests.test_functions import bohachevsky_2D, forresterEtAl

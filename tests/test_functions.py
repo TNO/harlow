@@ -1,3 +1,4 @@
+"""Target functions for testing."""
 import math
 
 import numpy as np

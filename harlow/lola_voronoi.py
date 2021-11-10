@@ -1,3 +1,15 @@
+"""Lola-Vornoi adaptive design strategy for global surrogate modelling.
+
+The algorithm is proposed and described in this paper:
+Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
+surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
+(2011): 1948-1974.
+
+The implementation is based on and inspired by:
+* adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+* gitlab.com/energyincities/besos/-/blob/master/besos/
+"""
+
 import numpy as np
 from sklearn.metrics import r2_score
 from skopt.sampler import Lhs
@@ -6,8 +18,6 @@ from skopt.space import Space
 # TODO add logging
 
 
-# adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
-# and gitlab.com/energyincities/besos/-/blob/master/besos/
 class LolaVoronoi:
     def __init__(
         self,

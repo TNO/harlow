@@ -1,3 +1,12 @@
+"""Surrogate model (function) module for fitting (not adaptive) and prediction.
+
+`f_surrogate(x) ~= f_target(x)` for `R^n -> R^1` functions.
+
+The main requirements towards each surrogate model are that they:
+* can be fitted to points from the target function.
+* can make predictions at user selected points.
+
+"""
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
