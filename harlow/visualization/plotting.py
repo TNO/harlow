@@ -73,7 +73,7 @@ def plot_function_custom(
     if len(x_mx.shape) == 1:
         ax = fig.gca()
         ax.plot(x_mx, y_vec, label=f.__name__ if plot_name is None else plot_name)
-    elif x_mx.shape[1] > 1:
+    else:
         ax = fig.gca(projection="3d")
         surface = ax.plot_trisurf(
             x_mx[:, 0],
