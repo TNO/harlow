@@ -70,7 +70,7 @@ def plot_function_custom(
 
     fig = plt.figure()
 
-    if len(x_mx.shape) == 1:
+    if len(x_mx.squeeze().shape) == 1:
         ax = fig.gca()
         ax.plot(x_mx, y_vec, label=f.__name__ if plot_name is None else plot_name)
     else:
