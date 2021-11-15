@@ -5,7 +5,7 @@ from sklearn.metrics import r2_score
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.plotting import add_samples_to_plot, plot_function_custom
 from harlow.surrogate_model import GaussianProcess
-from tests.test_functions import bohachevsky_2D, forresterEtAl
+from tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
 
 
 def test_2D():
@@ -52,7 +52,7 @@ def test_2D():
         train_y,
         test_X,
         test_y,
-        [[domain[0], domain[1]]],
+        domain,
         bohachevsky_2D,
         n_init=1,
         n_iteration=n_iters,
@@ -137,7 +137,7 @@ def test_1D():
         train_y,
         test_X.reshape(-1, 1),
         test_y,
-        [[domain]],
+        [domain],
         forresterEtAl,
         n_iteration=n_iters,
         n_per_iteration=n_per_iters,
