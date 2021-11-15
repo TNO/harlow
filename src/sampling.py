@@ -3,6 +3,9 @@ from skopt.space import Space
 from skopt.sampler import Lhs
 
 
+def heuristic_sample(domain, n_samples):
+    pass
+
 def latin_hypercube(domain, n_samples, method="maximin"):
     space_domain = []
 

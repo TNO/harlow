@@ -20,16 +20,22 @@ def NLL(y, distr):
     return -distr.log_prob(y)
 
 
+def root_mean_squared_error(y_true, y_pred):
+    return tf.sqrt(tf.reduce_mean(tf.square(y_pred-y_true), axis=1))
+
+
 def normal_sp(params):
     return tfd.Normal(
         loc=params[:, 0:1], scale=1e-3 + tf.math.softplus(0.05 * params[:, 1:2])
     )  # both parameters are learnable
 
+## TODO add superclass (abstract) check enforcing methods at subclassing
 
 class GaussianProcess:
-    def __init__(self, normalize_Y=False, **kwargs):
+    def __init__(self, normalize_Y=False, train_iterations = 1000,  **kwargs):
         self.normalize_Y = normalize_Y
         self.model = None
+        self.train_iterations = train_iterations
 
         def _build_gp(amplitude, length_scale, observation_noise_variance):
             kernel = tfk.ExponentiatedQuadratic(amplitude, length_scale)
@@ -84,7 +90,6 @@ class GaussianProcess:
             ]
         ]
 
-        num_iterations = 1000
         optimizer = tf.optimizers.Adam(learning_rate=0.01)
 
         @tf.function(autograph=False)
@@ -100,8 +105,8 @@ class GaussianProcess:
 
             return loss
 
-        lls_ = np.zeros(num_iterations)
-        for i in range(num_iterations):
+        lls_ = np.zeros(self.train_iterations)
+        for i in range(self.train_iterations):
             loss = train_model()
             lls_[i] = loss
 
@@ -110,13 +115,9 @@ class GaussianProcess:
         )
         if verbose == 1:
             print("Trained parameters:")
-            print("amplitude: {}".format(self.amplitude_var._value().numpy()))
-            print("length_scale: {}".format(self.length_scale_var._value().numpy()))
-            print(
-                "observation_noise_variance: {}".format(
-                    self.observation_noise_variance_var._value().numpy()
-                )
-            )
+            print(f"amplitude: {self.amplitude_var._value().numpy()}")
+            print(f"length_scale: {self.length_scale_var._value().numpy()}")
+            print(f"observation_noise_variance: {self.observation_noise_variance_var._value().numpy()}")
 
     def target_log_prob(self, amplitude, length_scale, observation_noise_variance):
         return self.gp_joint_model.log_prob(
@@ -175,6 +176,56 @@ class GaussianProcess:
         self.optimize_parameters(verbose=True)
 
 
+class NN:
+    learning_rate_initial = 0.01
+    learning_rate_update = 0.001
+
+    def __init__(self, normalize_Y=False, **kwargs):
+        self.normalize_Y = normalize_Y
+        self.model = None
+
+    def create_model(self, input_dim = (2,)):
+        inputs = Input(shape=input_dim)
+        hidden = Dense(64, activation="relu")(inputs)
+        hidden = Dense(32, activation="relu")(hidden)
+        hidden = Dense(16, activation="relu")(hidden)
+        out = Dense(1)(hidden)
+        optimizer = Adam(learning_rate=self.learning_rate_initial)
+        self.model = Model(inputs=inputs, outputs=out)
+        self.model.compile(optimizer=optimizer, loss='mse')
+
+
+    def fit(self, X, y, epochs=10):
+        self.model.fit(X, y, epochs=epochs, batch_size=32)
+
+
+    def update(self, X_new, y_new):
+
+        if self.normalize_Y:
+            y_new = (y_new - y_new.mean()) / (y_new.std())
+
+        optimizer = Adam(learning_rate=self.learning_rate_update)
+        self.model.compile(optimizer=optimizer, loss=root_mean_squared_error)
+        self.model.fit(X_new, y_new, epochs=10, batch_size=32, verbose=False)
+
+
+    def predict(self, X):
+        if self.model:
+            if len(X.shape) == 1:
+                X = np.expand_dims(X, axis=0)
+            preds = self.model.predict(X)
+
+            return preds
+
+
+    def get_model_parameters(self):
+        if self.model is not None:
+            return self.model.get_weights()
+
+    def get_fmin(self):
+        return self.model.predict(self.X).min()
+
+
 class Prob_NN:
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
@@ -184,7 +235,6 @@ class Prob_NN:
         self.model = None
 
     def create_model(self):
-
         inputs = Input(shape=(2,))
         hidden = Dense(20, activation="relu")(inputs)
         hidden = Dense(50, activation="relu")(hidden)

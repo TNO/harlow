@@ -1,4 +1,4 @@
-from test_functions import bohachevsky_2D, forresterEtAl
+from test_functions import bohachevsky_2D, forresterEtAl, shekel
 from sklearn.gaussian_process import GaussianProcessRegressor
 from plotting import plot_function_custom, add_samples_to_plot
 from lolaVoronoi import LolaVoronoi
@@ -55,6 +55,7 @@ def test_2D():
         test_y,
         [[domain[0], domain[1]]],
         bohachevsky_2D,
+        n_init=1,
         n_iteration=n_iters,
         n_per_iteration=n_per_iters,
     )
@@ -149,6 +150,7 @@ def test_1D():
         forresterEtAl,
         n_iteration=n_iters,
         n_per_iteration=n_per_iters,
+        metric='rmse'
     )
     lv.run_sequential_design()
 
@@ -202,10 +204,25 @@ def test_tfdGP():
     plt.show()
 
 
-def test_fun(X):
-    x1 = X[:, 0]
-    x2 = X[:, 1]
-    return np.sin(x1 - 3) * np.cos(x2 / 4)
+def test_shekel():
+    domain = [[0.0, 10.0], [0.0, 10.0], [0.0, 10.0], [0.0, 10.0]]
+    n_points = 40
+
+    X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
+    X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
+    X3 = np.random.uniform(domain[2][0], domain[2][1], n_points)
+    X4 = np.random.uniform(domain[3][0], domain[3][1], n_points)
+
+    X1 = np.append(X1, 4.0)
+    X2 = np.append(X2, 4.0)
+    X3 = np.append(X3, 4.0)
+    X4 = np.append(X4, 4.0)
+
+    X = np.stack([X1, X2, X3, X4], -1)
+
+    y = shekel(X)
+
+    print(y)
 
 
 if __name__ == "__main__":

@@ -56,13 +56,20 @@ def bohachevsky_2D(X):
     return t1 + t2 + t3 + t4 + 0.7
 
 
-if __name__ == "__main__":
+def shekel(X):
+    xx = [X[:,0], X[:,1], X[:,2], X[:,3]]
+    m = 10
+    b = 0.1 * np.array([1,2,2,4,4,6,3,7,5,5])
+    C = np.array([[4.0, 1.0, 8.0, 6.0, 3.0, 2.0, 5.0, 8.0, 6.0, 7.0],[4.0, 1.0, 8.0, 6.0, 7.0, 9.0, 3.0, 1.0, 2.0, 3.6],[4.0, 1.0, 8.0, 6.0, 3.0, 2.0, 5.0, 8.0, 6.0, 7.0],[4.0, 1.0, 8.0, 6.0, 7.0, 9.0, 3.0, 1.0, 2.0, 3.6]])
 
-    with open("example/new_content.json", "r") as f:
-        res = json.load(f)
+    outer = 0
+    for i in range(0,m):
+        b_i = b[i]
+        inner = 0
+        for j in range(0,4):
+            x_j = xx[j]
+            C_ji = C[j,i]
+            inner = inner+ np.power((x_j-C_ji),2)
+        outer = outer+1/(inner+b_i)
 
-    six_hump_camel_2D_2input(res["x"], res["y"])
-    print(res)
-
-    with open("example/new_new_content.json", "w") as f:
-        json.dump(res, f)
+    return -1.0 * outer
