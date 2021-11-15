@@ -1,11 +1,18 @@
+"""Surrogate model (function) module for fitting (not adaptive) and prediction.
+
+`f_surrogate(x) ~= f_target(x)` for `R^n -> R^1` functions.
+
+The main requirements towards each surrogate model are that they:
+* can be fitted to points from the target function.
+* can make predictions at user selected points.
+
+"""
 import numpy as np
-from tensorflow.keras.layers import Input
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Concatenate
-from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.optimizers import Adam
-import tensorflow_probability as tfp
 import tensorflow as tf
+import tensorflow_probability as tfp
+from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
@@ -134,8 +141,7 @@ class GaussianProcess:
         self.observations = y
         self.optimize_parameters()
 
-
-    def predict(self, X, num_samples=50, return_samples = False):
+    def predict(self, X, num_samples=50, return_samples=False):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
             index_points=X,
@@ -151,7 +157,6 @@ class GaussianProcess:
             return np.mean(samples, axis=0), samples
         return np.mean(samples, axis=0)
 
-
     def predict_uncertainty(self, X, num_samples=50):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
@@ -166,9 +171,10 @@ class GaussianProcess:
 
         return np.std(samples, axis=0)
 
-
     def update(self, new_X, new_y):
-        self.observation_index_points = np.concatenate([self.observation_index_points, new_X])
+        self.observation_index_points = np.concatenate(
+            [self.observation_index_points, new_X]
+        )
 
         if new_y.ndim > self.observations.ndim:
             new_y = new_y.flatten()
@@ -245,10 +251,8 @@ class Prob_NN:
         self.model = Model(inputs=inputs, outputs=dist)
         self.model.compile(optimizer=optimizer, loss=NLL)
 
-
     def fit(self, X, y, epochs=10):
         self.model.fit(X, y, epochs=epochs, batch_size=32)
-
 
     def update(self, X_new, y_new):
 
@@ -258,7 +262,6 @@ class Prob_NN:
         optimizer = Adam(learning_rate=self.learning_rate_update)
         self.model.compile(optimizer=optimizer, loss=NLL)
         self.model.fit(X_new, y_new, epochs=10, batch_size=32)
-
 
     def predict(self, X, its=10):
         if self.model:
@@ -291,13 +294,11 @@ class Bayesian_NN:
         self.model = None
 
     def create_model(self, x):
+        def kernel_divergence_fn(q, p, _):
+            return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
 
-        kernel_divergence_fn = lambda q, p, _: tfp.distributions.kl_divergence(q, p) / (
-            x.shape[0] * 1.0
-        )
-        bias_divergence_fn = lambda q, p, _: tfp.distributions.kl_divergence(q, p) / (
-            x.shape[0] * 1.0
-        )
+        def bias_divergence_fn(q, p, _):
+            return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
 
         inputs = Input(shape=(2,))
 
@@ -350,7 +351,6 @@ class Bayesian_NN:
         self.y = y
         self.model.fit(X, y, epochs=epochs, batch_size=32, verbose=verbose)
 
-
     def update(self, X_new, y_new, epochs=25, verbose=0):
         if self.normalize_Y:
             y_new = (y_new - y_new.mean()) / (y_new.std())
@@ -360,7 +360,6 @@ class Bayesian_NN:
         else:
             self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
             self.model.fit(X_new, y_new, epochs=epochs, batch_size=32, verbose=verbose)
-
 
     def predict(self, X, its=10):
         if self.model:

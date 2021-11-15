@@ -1,6 +1,6 @@
-import numpy as np
+"""Target functions for testing."""
 import math
-import json
+import numpy as np
 
 
 def ackley_nD(x, a=20, b=0.2, c=2 * math.pi):
