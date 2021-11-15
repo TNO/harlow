@@ -14,7 +14,6 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score
 from skopt.space import Space
 from skopt.sampler import Lhs
-import logging
 from math import sqrt
 
 # TODO add logging
@@ -362,7 +361,7 @@ def hypercube_sampling(domain, n_samples, method="maximin"):
     for i in range(len(domain)):
         space_domain.append(tuple(domain[i]))
 
-    space = Space(space_domain[i])
+    space = Space(space_domain)
     lhs = Lhs(criterion=method, iterations=5000)
     samples = lhs.generate(space.dimensions, n_samples)
 

@@ -1,10 +1,9 @@
-from test_functions import shekel
-import lolaVoronoi
+from tests.test_functions import shekel
+from lola_voronoi import LolaVoronoi
 import numpy as np
 from surrogate_model import NN
 from sklearn.metrics import mean_squared_error
 import math
-from lolaVoronoi import LolaVoronoi
 
 
 def shekel_benchmark():
@@ -32,8 +31,8 @@ def shekel_benchmark():
     print(f"RMSE with initial trainingset of size {train_X.shape[0]}: {rmse}")
     experiment = [10, 50, 100, 150, 200]
 
-    # results = run_lv_experiment(nn, train_X, train_y, test_X, test_y, domain, experiment)
-    # print(results)
+    results = run_lv_experiment(nn, train_X, train_y, test_X, test_y, domain, experiment)
+    print(results)
 
     results_random = run_random_experiment(nn, shekel, train_X, train_y, test_X, test_y, domain, experiment)
     print(results_random)
@@ -72,7 +71,7 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
             train_y,
             test_X,
             test_y,
-            [[domain[0], domain[1], domain[2], domain[3]]],
+            domain,
             shekel,
             n_iteration=i,
             n_per_iteration=n_per_iter,
