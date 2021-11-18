@@ -141,7 +141,7 @@ def test_1D():
         forresterEtAl,
         n_iteration=n_iters,
         n_per_iteration=n_per_iters,
-        metric='rmse'
+        metric="rmse",
     )
     lv.run_sequential_design()
 
