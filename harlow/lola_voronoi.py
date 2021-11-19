@@ -375,15 +375,10 @@ def hypercube_sampling(domain, n_samples, method="maximin"):
 
 
 def gradient(N, p, model):
-    m = len(N)
     d = len(p)
-
-    P_mtrx = np.empty((m, d))
     predicted_neighbours = model.predict(N).flatten()
 
-    for i in range(m):
-        P_mtrx[i, :] = N[i, :] - p
-
+    P_mtrx = N - p
     gradient = np.linalg.lstsq(P_mtrx, np.transpose(predicted_neighbours), rcond=None)[
         0
     ].reshape((1, d))
