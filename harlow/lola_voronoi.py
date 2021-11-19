@@ -10,32 +10,37 @@ The implementation is based on and inspired by:
 * gitlab.com/energyincities/besos/-/blob/master/besos/
 """
 
+from math import sqrt
+
 import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score
-from skopt.space import Space
 from skopt.sampler import Lhs
-from math import sqrt
+from skopt.space import Space
 
 # TODO add logging
 
-# adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m and
-# gitlab.com/energyincities/besos/-/blob/master/besos/
+# adapted from https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+# and gitlab.com/energyincities/besos/-/blob/master/besos/
 
-'''
-    class LolaVoronoi creates a LV object. 
-    
+"""
+    class LolaVoronoi creates a LV object.
+
     :param model: The surrogate model
-    :param train_X: training data (inputs) 
+    :param train_X: training data (inputs)
     :param train_y: training data (output)
     :param test_X: testing data (inputs)
     :param test_y: testing data (output)
-    :param domain: the domain to use for sampling. should be a list of lists [[dim_1],[dim_2], ...]
+    :param domain: the domain to use for sampling. should be a list of lists
+        [[dim_1],[dim_2], ...]
     :param f: the evaluation function
     :param n_init: number of initial samples
-    :param n_iterations: number of iterations 
-    :param n_per_iteration: number of samples to draw per iteration of the sequential algorithm
+    :param n_iterations: number of iterations
+    :param n_per_iteration: number of samples to draw per iteration of the sequential
+        algorithm
     :param metric: the evaluation metric to use
-'''
+"""
+
+
 class LolaVoronoi:
     def __init__(
         self,
@@ -49,8 +54,8 @@ class LolaVoronoi:
         n_init=20,
         n_iteration=10,
         n_per_iteration=5,
-        metric='r2',
-        verbose = False
+        metric="r2",
+        verbose=False,
     ):
         self.model = model
         self.dimension = len(train_X[0, :])
@@ -66,12 +71,12 @@ class LolaVoronoi:
         self.score = np.empty((self.n_iteration + 1))
         self.verbose = verbose
 
-        if metric == 'r2':
+        if metric == "r2":
             self.metric = r2_score
-        elif metric == 'mse':
+        elif metric == "mse":
             self.metric = mean_squared_error
-        elif metric == 'rmse':
-            self.metric = lambda x,y:sqrt(mean_squared_error(x,y))
+        elif metric == "rmse":
+            self.metric = lambda x, y: sqrt(mean_squared_error(x, y))
 
         if np.ndim(self.test_X) == 1:
             self.score[0] = self.metric(
@@ -80,22 +85,24 @@ class LolaVoronoi:
         else:
             self.score[0] = self.metric(self.test_y, self.model.predict(self.test_X))
 
-    '''
+    """
     updates the surrogate model weights with newly sampled data
-    '''
+    """
+
     def update_model(self):
         self.model.update(self.new_data, self.new_data_y)
 
-    '''
+    """
     retrains the surrogate model on all current training data
-    '''
+    """
+
     def retrain_model(self):
         self.model.fit(self.train_X, self.train_y)
 
-
-    '''
+    """
     entry point to start the sequential algorithm
-    '''
+    """
+
     def run_sequential_design(self):
         self.N, self.S = initialize_samples(self.train_X)
         self.sample()
@@ -116,7 +123,6 @@ class LolaVoronoi:
             self.score[i + 1] = self.metric(
                 self.test_y, self.model.predict(self.test_X)
             )
-
 
     def sample(self):
         lola_est = lola_score(self.N, self.train_X, self.model)
@@ -301,9 +307,15 @@ def lola_score(neighbours, train_X, model):
     predicted_p = model.predict(train_X)
 
     for p in train_X:
-        predicted_neighbours[:,idx] = model.predict(neighbours[:,:,idx]).flatten()
+        predicted_neighbours[:, idx] = model.predict(neighbours[:, :, idx]).flatten()
         grad = gradient(neighbours[:, :, idx], p, model)
-        E[idx] = nonlinearity_measure(grad, neighbours[:, :, idx], p, predicted_neighbours[:,idx], predicted_p[idx])
+        E[idx] = nonlinearity_measure(
+            grad,
+            neighbours[:, :, idx],
+            p,
+            predicted_neighbours[:, idx],
+            predicted_p[idx],
+        )
         idx += 1
 
     return E
@@ -314,7 +326,7 @@ def nonlinearity_measure(grad, neighbours, p, neighbour_prediction, predicted_p)
 
     for i in range(len(neighbours)):
         E = E + abs(
-             neighbour_prediction[i]
+            neighbour_prediction[i]
             - (predicted_p + np.dot(grad, (neighbours[i, :] - p)))
         )
 
@@ -377,6 +389,8 @@ def gradient(N, p, model):
 
     for i in range(m):
         P_mtrx[i, :] = N[i, :] - p
-    gradient = np.linalg.lstsq(P_mtrx, np.transpose(predicted_neighbours), rcond=None)[0].reshape((1, d))
+    gradient = np.linalg.lstsq(P_mtrx, np.transpose(predicted_neighbours), rcond=None)[
+        0
+    ].reshape((1, d))
 
     return gradient

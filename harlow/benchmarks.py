@@ -1,9 +1,11 @@
-from tests.test_functions import shekel
-from lola_voronoi import LolaVoronoi
-import numpy as np
-from surrogate_model import NN
-from sklearn.metrics import mean_squared_error
 import math
+
+import numpy as np
+from lola_voronoi import LolaVoronoi
+from sklearn.metrics import mean_squared_error
+from surrogate_model import NN
+
+from tests.test_functions import shekel
 
 
 def shekel_benchmark():
@@ -31,14 +33,20 @@ def shekel_benchmark():
     print(f"RMSE with initial trainingset of size {train_X.shape[0]}: {rmse}")
     experiment = [10, 50, 100, 150, 200]
 
-    results = run_lv_experiment(nn, train_X, train_y, test_X, test_y, domain, experiment)
+    results = run_lv_experiment(
+        nn, train_X, train_y, test_X, test_y, domain, experiment
+    )
     print(results)
 
-    results_random = run_random_experiment(nn, shekel, train_X, train_y, test_X, test_y, domain, experiment)
+    results_random = run_random_experiment(
+        nn, shekel, train_X, train_y, test_X, test_y, domain, experiment
+    )
     print(results_random)
 
 
-def run_random_experiment(model, test_fun, train_X, train_y, test_X, test_y, domain, n_samples_list):
+def run_random_experiment(
+    model, test_fun, train_X, train_y, test_X, test_y, domain, n_samples_list
+):
     results = {}
 
     for i in n_samples_list:
@@ -49,8 +57,8 @@ def run_random_experiment(model, test_fun, train_X, train_y, test_X, test_y, dom
         new_X = np.stack([X1, X2, X3, X4], -1)
 
         for j in range(0, i):
-            new_y = test_fun(np.expand_dims(new_X[j,:], axis=0))
-            model.update(np.expand_dims(new_X[j,:], axis=0), new_y)
+            new_y = test_fun(np.expand_dims(new_X[j, :], axis=0))
+            model.update(np.expand_dims(new_X[j, :], axis=0), new_y)
 
         y_hat = model.predict(test_X)
         rmse = math.sqrt(mean_squared_error(test_y, y_hat))
@@ -75,7 +83,7 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
             shekel,
             n_iteration=i,
             n_per_iteration=n_per_iter,
-            metric='rmse'
+            metric="rmse",
         )
         lv.run_sequential_design()
         y_hat = lv.model.predict(test_X)
@@ -85,8 +93,6 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
 
     return results
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     shekel_benchmark()
-
-
-
