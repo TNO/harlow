@@ -37,7 +37,7 @@ def plot_function(
         )
     )
     fig = plt.figure()
-    ax = fig.gca(projection="3d")
+    ax = plt.axes(projection="3d")
     surface = ax.plot_trisurf(
         x1_mx,
         x2_mx,
@@ -74,7 +74,7 @@ def plot_function_custom(
         ax = fig.gca()
         ax.plot(x_mx, y_vec, label=f.__name__ if plot_name is None else plot_name)
     else:
-        ax = fig.gca(projection="3d")
+        ax = plt.axes(projection="3d")
         surface = ax.plot_trisurf(
             x_mx[:, 0],
             x_mx[:, 1],
