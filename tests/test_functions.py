@@ -55,3 +55,29 @@ def bohachevsky_2D(X):
     t4 = -0.4 * np.cos(4 * math.pi * x2)
 
     return t1 + t2 + t3 + t4 + 0.7
+
+
+def shekel(X):
+    xx = [X[:, 0], X[:, 1], X[:, 2], X[:, 3]]
+    m = 10
+    b = 0.1 * np.array([1, 2, 2, 4, 4, 6, 3, 7, 5, 5])
+    C = np.array(
+        [
+            [4.0, 1.0, 8.0, 6.0, 3.0, 2.0, 5.0, 8.0, 6.0, 7.0],
+            [4.0, 1.0, 8.0, 6.0, 7.0, 9.0, 3.0, 1.0, 2.0, 3.6],
+            [4.0, 1.0, 8.0, 6.0, 3.0, 2.0, 5.0, 8.0, 6.0, 7.0],
+            [4.0, 1.0, 8.0, 6.0, 7.0, 9.0, 3.0, 1.0, 2.0, 3.6],
+        ]
+    )
+
+    outer = 0
+    for i in range(0, m):
+        b_i = b[i]
+        inner = 0
+        for j in range(0, 4):
+            x_j = xx[j]
+            C_ji = C[j, i]
+            inner = inner + np.power((x_j - C_ji), 2)
+        outer = outer + 1 / (inner + b_i)
+
+    return -1.0 * outer

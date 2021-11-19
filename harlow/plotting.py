@@ -26,7 +26,7 @@ def plot_function(f, domain, grid_size=1000, plot_name=None, show=True, save=Fal
         )
     )
     fig = plt.figure()
-    ax = fig.gca(projection="3d")
+    ax = plt.axes(projection="3d")
     surface = ax.plot_trisurf(
         x1,
         x2,
@@ -65,7 +65,7 @@ def plot_function_custom(
         ax = fig.gca()
         ax.plot(X, Z, label=f.__name__ if plot_name is None else plot_name)
     elif X.shape[1] > 1:
-        ax = fig.gca(projection="3d")
+        ax = plt.axes(projection="3d")
         surface = ax.plot_trisurf(
             X[:, 0],
             X[:, 1],
