@@ -10,7 +10,7 @@ def get_cmap(n, name="hsv"):
 
 
 def plot_function(f, domain, grid_size=1000, plot_name=None, show=True, save=False):
-    if len(domain) > 2:
+    if domain.shape[0] > 2:
         raise NotImplementedError
 
     x0_range = domain[0]
