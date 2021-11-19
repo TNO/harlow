@@ -9,13 +9,13 @@ from tests.test_functions import shekel
 
 
 def shekel_benchmark():
-    domain = [[0.0, 10.0], [0.0, 10.0], [0.0, 10.0], [0.0, 10.0]]
+    domain = np.array([[0.0, 10.0], [0.0, 10.0], [0.0, 10.0], [0.0, 10.0]])
     n_points = 200
 
-    X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
-    X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
-    X3 = np.random.uniform(domain[2][0], domain[2][1], n_points)
-    X4 = np.random.uniform(domain[3][0], domain[3][1], n_points)
+    X1 = np.random.uniform(domain[0, 0], domain[0, 1], n_points)
+    X2 = np.random.uniform(domain[1, 0], domain[1, 1], n_points)
+    X3 = np.random.uniform(domain[2, 0], domain[2, 1], n_points)
+    X4 = np.random.uniform(domain[3, 0], domain[3, 1], n_points)
 
     X = np.stack([X1, X2, X3, X4], -1)
 
@@ -50,10 +50,10 @@ def run_random_experiment(
     results = {}
 
     for i in n_samples_list:
-        X1 = np.random.uniform(domain[0][0], domain[0][1], i)
-        X2 = np.random.uniform(domain[1][0], domain[1][1], i)
-        X3 = np.random.uniform(domain[2][0], domain[2][1], i)
-        X4 = np.random.uniform(domain[3][0], domain[3][1], i)
+        X1 = np.random.uniform(domain[0, 0], domain[0, 1], i)
+        X2 = np.random.uniform(domain[1, 0], domain[1, 1], i)
+        X3 = np.random.uniform(domain[2, 0], domain[2, 1], i)
+        X4 = np.random.uniform(domain[3, 0], domain[3, 1], i)
         new_X = np.stack([X1, X2, X3, X4], -1)
 
         for j in range(0, i):
@@ -92,7 +92,3 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
         print(f"RMSE with trainingset of size {lv.train_X.shape[0]}: {rmse}")
 
     return results
-
-
-if __name__ == "__main__":
-    shekel_benchmark()

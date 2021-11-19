@@ -9,14 +9,14 @@ from tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
 
 
 def test_2D():
-    domain = [[-100.0, 100.0], [-100.0, 100.0]]
+    domain = np.array([[-100.0, 100.0], [-100.0, 100.0]])
     n_points = 40
     n_iters = 10
     n_per_iters = 4
     show_plot = False
 
-    X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
-    X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
+    X1 = np.random.uniform(domain[0, 0], domain[0, 1], n_points)
+    X2 = np.random.uniform(domain[1, 0], domain[1, 1], n_points)
     X = np.stack([X1, X2], -1)
 
     indices = np.random.permutation(X1.shape[0])
@@ -79,8 +79,8 @@ def test_2D():
 
     random_scores = [r2_score(test_y, p)]
     for _ in range(n_iters):
-        X1_random_test = np.random.uniform(domain[0][0], domain[0][1], n_per_iters)
-        X2_random_test = np.random.uniform(domain[0][0], domain[0][1], n_per_iters)
+        X1_random_test = np.random.uniform(domain[0, 0], domain[0, 1], n_per_iters)
+        X2_random_test = np.random.uniform(domain[1, 0], domain[1, 1], n_per_iters)
         X_random_test = np.stack([X1_random_test, X2_random_test], -1)
         train_X = np.concatenate([train_X, X_random_test])
         train_y = np.concatenate([train_y, bohachevsky_2D(X_random_test)])
@@ -97,7 +97,7 @@ def test_2D():
 
 
 def test_1D():
-    domain = [0.0, 1.0]
+    domain = np.array([0.0, 1.0])
     n_points = 10
     n_iters = 5
     n_per_iters = 3
@@ -192,13 +192,13 @@ def test_tfdGP():
 
 
 def test_shekel():
-    domain = [[0.0, 10.0], [0.0, 10.0], [0.0, 10.0], [0.0, 10.0]]
+    domain = np.array([[0.0, 10.0], [0.0, 10.0], [0.0, 10.0], [0.0, 10.0]])
     n_points = 40
 
-    X1 = np.random.uniform(domain[0][0], domain[0][1], n_points)
-    X2 = np.random.uniform(domain[1][0], domain[1][1], n_points)
-    X3 = np.random.uniform(domain[2][0], domain[2][1], n_points)
-    X4 = np.random.uniform(domain[3][0], domain[3][1], n_points)
+    X1 = np.random.uniform(domain[0, 0], domain[0, 1], n_points)
+    X2 = np.random.uniform(domain[1, 0], domain[1, 1], n_points)
+    X3 = np.random.uniform(domain[2, 0], domain[2, 1], n_points)
+    X4 = np.random.uniform(domain[3, 0], domain[3, 1], n_points)
 
     X1 = np.append(X1, 4.0)
     X2 = np.append(X2, 4.0)

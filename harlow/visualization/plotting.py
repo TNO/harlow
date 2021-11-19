@@ -12,13 +12,13 @@ def get_cmap(n: int, name="hsv"):
 
 def plot_function(
     f: Callable,
-    domain: list,
+    domain: np.ndarray,
     grid_size: int = 1000,
     plot_name: int = None,
     show: bool = True,
     save: bool = False,
 ):
-    if len(domain) > 2:
+    if domain.shape[0] > 2:
         raise NotImplementedError
 
     x0_range = domain[0]
