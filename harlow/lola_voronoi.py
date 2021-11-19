@@ -30,8 +30,7 @@ from skopt.space import Space
     :param train_y: training data (output)
     :param test_X: testing data (inputs)
     :param test_y: testing data (output)
-    :param domain: the domain to use for sampling. should be a list of lists
-        [[dim_1],[dim_2], ...]
+    :param domain: the domain to use for sampling. numpy ndarray
     :param f: the evaluation function
     :param n_init: number of initial samples
     :param n_iterations: number of iterations
@@ -368,12 +367,7 @@ def estimate_voronoi_volume(P, domain, n=100):
 
 
 def hypercube_sampling(domain, n_samples, method="maximin"):
-    space_domain = []
-
-    for i in range(len(domain)):
-        space_domain.append(tuple(domain[i]))
-
-    space = Space(space_domain)
+    space = Space(list(map(tuple, domain)))
     lhs = Lhs(criterion=method, iterations=5000)
     samples = lhs.generate(space.dimensions, n_samples)
 
@@ -381,14 +375,10 @@ def hypercube_sampling(domain, n_samples, method="maximin"):
 
 
 def gradient(N, p, model):
-    m = len(N)
     d = len(p)
-
-    P_mtrx = np.empty((m, d))
     predicted_neighbours = model.predict(N).flatten()
 
-    for i in range(m):
-        P_mtrx[i, :] = N[i, :] - p
+    P_mtrx = N - p
     gradient = np.linalg.lstsq(P_mtrx, np.transpose(predicted_neighbours), rcond=None)[
         0
     ].reshape((1, d))
