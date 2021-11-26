@@ -56,7 +56,7 @@ def test_2D():
         bohachevsky_2D,
         n_init=1,
         n_iteration=n_iters,
-        n_per_iteration=n_per_iters,
+        n_new_point_per_iteration=n_per_iters,
     )
     lv.run_sequential_design()
 
@@ -72,7 +72,7 @@ def test_2D():
     plot_function_custom(
         bohachevsky_2D,
         lv.train_X,
-        lv.model.predict(lv.train_X),
+        lv.surrogate_model.predict(lv.train_X),
         plot_sample_locations=True,
         show=show_plot,
     )
@@ -140,7 +140,7 @@ def test_1D():
         [domain],
         forresterEtAl,
         n_iteration=n_iters,
-        n_per_iteration=n_per_iters,
+        n_new_point_per_iteration=n_per_iters,
         metric="rmse",
     )
     lv.run_sequential_design()
