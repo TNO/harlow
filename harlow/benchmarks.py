@@ -82,11 +82,11 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
             domain,
             shekel,
             n_iteration=i,
-            n_per_iteration=n_per_iter,
+            n_new_point_per_iteration=n_per_iter,
             metric="rmse",
         )
         lv.run_sequential_design()
-        y_hat = lv.model.predict(test_X)
+        y_hat = lv.surrogate_model.predict(test_X)
         rmse = math.sqrt(mean_squared_error(test_y, y_hat))
         results[i] = rmse
         print(f"RMSE with trainingset of size {lv.train_X.shape[0]}: {rmse}")
