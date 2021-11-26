@@ -71,12 +71,14 @@ def bounded_voronoi_2d(towers: np.ndarray, bounding_box: list):
             regions.append(region)
             idx_filtered_regions.append(ii)
 
-    unordered_regions = regions
-    unordered_point_regions = vor.point_region[: towers.shape[0]]
-    ordered_regions = [None] * len(regions)
-    for ii, unordered_point_region in enumerate(unordered_point_regions):
-        idx = np.where(unordered_point_region == idx_filtered_regions)[0][0]
-        ordered_regions[ii] = unordered_regions[idx]
+    # until we can get the order right..
+    # unordered_regions = regions
+    # unordered_point_regions = vor.point_region[: towers.shape[0]]
+    # ordered_regions = [None] * len(regions)
+    # for ii, unordered_point_region in enumerate(unordered_point_regions):
+    #     idx = int(np.where(unordered_point_region == idx_filtered_regions)[0])
+    #     ordered_regions[ii] = unordered_regions[idx]
+    ordered_regions = regions
 
     vor.filtered_points = points_center
     vor.filtered_regions = ordered_regions
