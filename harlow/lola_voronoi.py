@@ -14,7 +14,7 @@ from math import sqrt
 from typing import Tuple
 
 import numpy as np
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.metrics import mean_squared_error, r2_score
 from skopt.sampler import Lhs
 from skopt.space import Space
@@ -275,32 +275,50 @@ def update_neighbourhood(neighbours, train_X, scores, candidates):
     return neighbours, scores
 
 
-def neighbourhood_score(neighbourhood, reference_point, dim):
-    m = len(neighbourhood)
+def neighbourhood_score(
+    neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
+) -> Tuple[float, float]:
+    """
 
-    cand_dist = np.empty((m))
-    min_dist = np.empty((m))
+    Args:
+        neighbor_points_x:
+            n_point x n_dim.
+        reference_point_x:
+            1 x n_dim
 
-    C = 0
-    for i in range(m):
-        C = C + np.linalg.norm(neighbourhood[i, :] - reference_point)
-    C = C / m
+    Returns:
+        Neighborhood score.
+    """
+    # shape the input if not in the right shape, TODO: is this really needed?
+    reference_point_x = reference_point_x.reshape((1, -1))
+    n_dim = reference_point_x.shape[1]
+    neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
 
-    for i in range(m):
-        for j in range(m):
-            if not i == j:
-                cand_dist[i] = np.linalg.norm(neighbourhood[i, :] - neighbourhood[j, :])
-        min_dist[i] = min(cand_dist)
+    # cohesion, Eq(4.3) of [1]
+    cohesion = np.mean(
+        np.sqrt(np.sum((neighbor_points_x - reference_point_x) ** 2, axis=1))
+    )
 
-    if dim > 1:
-        A = 1 / m * sum(min_dist)
-        R = A / (np.sqrt(2) * C)
-    elif dim == 1:  # 1D cases: see Crombecq p.1960
-        pr1 = neighbourhood[0, :]
-        pr2 = neighbourhood[1, :]
-        R = 1 - (np.abs(pr1 + pr2) / (np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)))
+    # cross-polytope resemblance
+    if n_dim == 1:
+        pr1 = neighbor_points_x[0, :]
+        pr2 = neighbor_points_x[1, :]
+        # Eq(4.6) of [1]
+        cross_polytope_ratio = 1 - np.abs(pr1 + pr2) / (
+            np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)
+        )
+    else:
+        # Eq(4.4) of [1]
+        # smallest neighbor distance for each neighbor
+        neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
+        np.fill_diagonal(neighbor_distances, np.inf)
+        min_neighbor_distances = np.min(neighbor_distances, axis=1)
+        adhesion = np.mean(min_neighbor_distances)
+        # Eq(4.5) of [1]
+        cross_polytope_ratio = adhesion / (np.sqrt(2) * cohesion)
 
-    return R / C
+    # Eq(4.7) of [1]
+    return cross_polytope_ratio / cohesion, cross_polytope_ratio
 
 
 def lola_score(
