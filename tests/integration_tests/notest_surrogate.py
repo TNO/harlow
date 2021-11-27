@@ -1,3 +1,5 @@
+"""NOTE: this file is not yet harmonized with the general changes in the packages so
+it is excluded from the testing (see the file name)."""
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import r2_score
@@ -5,7 +7,7 @@ from sklearn.metrics import r2_score
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.plotting import add_samples_to_plot, plot_function_custom
 from harlow.surrogate_model import GaussianProcess
-from tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
+from tests.integration_tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
 
 
 def test_2D():

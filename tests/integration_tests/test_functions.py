@@ -4,6 +4,19 @@ import math
 import numpy as np
 
 
+def peaks_2d(x: np.ndarray):
+    # https://nl.mathworks.com/help/matlab/ref/peaks.html
+    x = np.atleast_2d(x)
+    x1 = x[:, 0]
+    x2 = x[:, 1]
+
+    return (
+        3 * (1 - x1) ** 2 * np.exp(-(x1 ** 2) - (x2 + 1) ** 2)
+        - 10 * (x1 / 5 - x1 ** 3 - x2 ** 5) * np.exp(-(x1 ** 2) - x2 ** 2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2 ** 2)
+    )
+
+
 def ackley_nD(x, a=20, b=0.2, c=2 * math.pi):
 
     sum1 = 0
