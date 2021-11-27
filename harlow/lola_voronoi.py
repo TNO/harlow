@@ -10,14 +10,18 @@ The implementation is based on and inspired by:
 * gitlab.com/energyincities/besos/-/blob/master/besos/
 """
 import itertools
+import time
 from typing import Callable, Tuple
 
 import numpy as np
+from loguru import logger
 from scipy.spatial.distance import cdist, pdist, squareform
 from skopt.sampler import Lhs
 from skopt.space import Space
 
-# TODO add logging
+# TODO
+#  * improve logging
+#  * pretty timedelta: https://gist.github.com/thatalextaylor/7408395
 
 
 # -----------------------------------------------------
@@ -100,7 +104,12 @@ class LolaVoronoi:
         points_y = target_function(points_x)
 
         # fit the surrogate model
+        start_time = time.time()
         self.surrogate_model.fit(points_x, points_y.ravel())
+        logger.info(
+            f"Fitted the first surrogate model in {time.time() - start_time} sec."
+        )
+
         self.fit_points_x = points_x
         self.fit_points_y = points_y
 
@@ -108,13 +117,21 @@ class LolaVoronoi:
         # Iterative improvement (adaptive stage)
         # ..........................................
         for ii in range(n_iter):
-            print(f"{ii+1}/{n_iter}")
+            logger.info(
+                f"Started adaptive iteration step: {ii+1} (max steps:" f" {n_iter})."
+            )
+
+            start_time = time.time()
             new_points_x = best_new_points(
                 points_x=points_x,
                 points_y=points_y,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
                 n_new_point=n_new_point_per_iteration,
+            )
+            logger.info(
+                f"Found the next best {n_new_point_per_iteration} point(s) in "
+                f"{time.time() - start_time} sec."
             )
 
             # evaluate the target function
@@ -125,7 +142,11 @@ class LolaVoronoi:
             points_y = np.vstack((points_y, new_points_y))
 
             # refit the surrogate
+            start_time = time.time()
             self.surrogate_model.update(new_points_x, new_points_y.ravel())
+            logger.info(
+                f"Fitted a new surrogate model in {time.time() - start_time} sec."
+            )
             self.fit_points_x = points_x
             self.fit_points_y = points_y
 
