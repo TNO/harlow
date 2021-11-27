@@ -5,7 +5,7 @@ from lola_voronoi import LolaVoronoi
 from sklearn.metrics import mean_squared_error
 from surrogate_model import NN
 
-from tests.test_functions import shekel
+from tests.integration_tests.test_functions import shekel
 
 
 def shekel_benchmark():

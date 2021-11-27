@@ -184,7 +184,7 @@ class GaussianProcess:
         if new_y.ndim > self.observations.ndim:
             new_y = new_y.flatten()
         self.observations = np.concatenate([self.observations, new_y])
-        self.optimize_parameters(verbose=True)
+        self.optimize_parameters(verbose=False)
 
 
 class NN:
