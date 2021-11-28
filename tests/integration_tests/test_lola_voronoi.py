@@ -3,7 +3,48 @@ import numpy as np
 
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.surrogate_model import GaussianProcess
-from tests.integration_tests.test_functions import peaks_2d
+from tests.integration_tests.test_functions import forrester_1d, peaks_2d
+
+
+def plot_1d_lola_voronoi(
+    lv: LolaVoronoi, n_initial_point: int, n_new_point_per_iteration: int
+):
+    """Utility function for visualizing the results of surrogating 1D functions with
+    LolaVoronoi."""
+    n_iter = int((len(lv.fit_points_y) - n_initial_point) / n_new_point_per_iteration)
+    xx = np.linspace(lv.domain_lower_bound, lv.domain_upper_bound, 100)
+    yy_tf = lv.target_function(xx).ravel()
+    yy_sm = lv.surrogate_model.predict(xx)
+
+    adaptive_points_x = lv.fit_points_x[n_initial_point:]
+    adaptive_points_y = lv.fit_points_y[n_initial_point:]
+
+    fig, ax = plt.subplots()
+    ax.plot(xx, yy_tf, label="target function")
+    ax.plot(xx, yy_sm, "--", label="surrogate function")
+    ax.scatter(
+        lv.fit_points_x[:n_initial_point],
+        lv.fit_points_y[:n_initial_point],
+        label="initial points",
+        alpha=0.5,
+    )
+    ax.scatter(adaptive_points_x, adaptive_points_y, label="adaptive points", alpha=0.5)
+    for ii in range(n_iter):
+        idx_start = ii * n_new_point_per_iteration
+        idx_end = (ii + 1) * n_new_point_per_iteration
+        xs = adaptive_points_x[idx_start:idx_end]
+        ys = adaptive_points_y[idx_start:idx_end]
+
+        for jj, (x, y) in enumerate(zip(xs, ys)):
+            if len(xs) == 1:
+                ax.text(x, y, f"${ii + 1}$")
+            else:
+                ax.text(x, y, f"${ii + 1}^{jj + 1}$")
+
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.legend()
+    return fig, ax
 
 
 def test_sine_1d():
@@ -51,36 +92,60 @@ def test_sine_1d():
         # Plot
         # ............................
         if plot_fig:
-            adaptive_points_x = lv.fit_points_x[n_initial_point:]
-            adaptive_points_y = lv.fit_points_y[n_initial_point:]
-
-            fig, ax = plt.subplots()
-            ax.plot(xx, yy_tf, label="target function")
-            ax.plot(xx, yy_sm, "--", label="surrogate function")
-            ax.scatter(
-                lv.fit_points_x[:n_initial_point],
-                lv.fit_points_y[:n_initial_point],
-                label="initial points",
-                alpha=0.5,
+            plot_1d_lola_voronoi(
+                lv,
+                n_initial_point=n_initial_point,
+                n_new_point_per_iteration=n_new_point_per_iteration,
             )
-            ax.scatter(
-                adaptive_points_x, adaptive_points_y, label="adaptive points", alpha=0.5
-            )
-            for ii in range(n_iter):
-                idx_start = ii * n_new_point_per_iteration
-                idx_end = (ii + 1) * n_new_point_per_iteration
-                xs = adaptive_points_x[idx_start:idx_end]
-                ys = adaptive_points_y[idx_start:idx_end]
 
-                for jj, (x, y) in enumerate(zip(xs, ys)):
-                    if len(xs) == 1:
-                        ax.text(x, y, f"${ii+1}$")
-                    else:
-                        ax.text(x, y, f"${ii + 1}^{jj + 1}$")
 
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-            ax.legend()
+def test_forrester_1d():
+    n_new_point_per_iteration = 1
+    n_initial_point = 5
+    n_iter = 10
+
+    domain_lower_bound = np.array([0])
+    domain_upper_bound = np.array([1])
+    plot_fig = True
+
+    def target_function(x: np.ndarray):
+        return forrester_1d(x).ravel()
+
+    surrogate_model = GaussianProcess()
+
+    # ............................
+    # Surrogating
+    # ............................
+    lv = LolaVoronoi(
+        target_function=target_function,
+        surrogate_model=surrogate_model,
+        domain_lower_bound=domain_lower_bound,
+        domain_upper_bound=domain_upper_bound,
+    )
+    lv.adaptive_surrogating(
+        n_iter=n_iter,
+        n_initial_point=n_initial_point,
+        n_new_point_per_iteration=n_new_point_per_iteration,
+    )
+
+    # ............................
+    # Check accuracy
+    # ............................
+    xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
+    yy_tf = target_function(xx).ravel()
+    yy_sm = lv.surrogate_model.predict(xx)
+
+    np.testing.assert_allclose(yy_tf, yy_sm, atol=1)
+
+    # ............................
+    # Plot
+    # ............................
+    if plot_fig:
+        plot_1d_lola_voronoi(
+            lv,
+            n_initial_point=n_initial_point,
+            n_new_point_per_iteration=n_new_point_per_iteration,
+        )
 
 
 def test_peaks_2d():

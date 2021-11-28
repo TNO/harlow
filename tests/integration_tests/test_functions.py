@@ -62,9 +62,9 @@ def six_hump_camel_2D_2input(x, y):
     return ((4.0 - 2.1 * x2 + (x4 / 3.0)) * x2) + (x * y) + ((-4.0 + 4.0 * y2) * y2)
 
 
-def forresterEtAl(X):
-    term_a = 6 * X - 2
-    term_b = 12 * X - 4
+def forrester_1d(x: np.ndarray) -> np.ndarray:
+    term_a = 6 * x - 2
+    term_b = 12 * x - 4
     return np.power(term_a, 2) * np.sin(term_b)
 
 
