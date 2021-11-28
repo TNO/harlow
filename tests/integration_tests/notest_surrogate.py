@@ -7,7 +7,7 @@ from sklearn.metrics import r2_score
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.plotting import add_samples_to_plot, plot_function_custom
 from harlow.surrogate_model import GaussianProcess
-from tests.integration_tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
+from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 
 
 def test_2D():
@@ -105,7 +105,7 @@ def test_1D():
     n_per_iters = 3
 
     X_range = np.linspace(0, 1, 1000)
-    y_range = forresterEtAl(X_range)
+    y_range = forrester_1d(X_range)
     X = np.random.uniform(domain[0], domain[1], n_points)
 
     indices = np.random.permutation(X.shape[0])
@@ -115,8 +115,8 @@ def test_1D():
     )
     train_X = np.sort(X[train_idx])
     test_X = np.sort(X[test_idx])
-    train_y = forresterEtAl(train_X)
-    test_y = forresterEtAl(test_X)
+    train_y = forrester_1d(train_X)
+    test_y = forrester_1d(test_X)
 
     gp = GaussianProcess()
     gp.fit(train_X.reshape(-1, 1), train_y)
@@ -125,7 +125,7 @@ def test_1D():
     print(f"test R2: {r2_score(test_y, p)}")
 
     plot = plot_function_custom(
-        forresterEtAl,
+        forrester_1d,
         train_X.reshape(-1, 1),
         y=gp.predict(train_X.reshape(-1, 1)),
         plot_sample_locations=True,
@@ -140,7 +140,7 @@ def test_1D():
         test_X.reshape(-1, 1),
         test_y,
         [domain],
-        forresterEtAl,
+        forrester_1d,
         n_iteration=n_iters,
         n_new_point_per_iteration=n_per_iters,
         metric="rmse",
@@ -150,7 +150,7 @@ def test_1D():
     add_samples_to_plot(
         plot,
         lv.train_X[-n_iters * n_per_iters :],
-        forresterEtAl(lv.train_X[-n_iters * n_per_iters :]),
+        forrester_1d(lv.train_X[-n_iters * n_per_iters :]),
         "g",
     )
 
