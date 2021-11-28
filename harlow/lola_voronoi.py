@@ -495,7 +495,7 @@ def latin_hypercube_sampling(
     n_sample: int,
     method="maximin",
 ):
-    domain = np.vstack((domain_lower_bound, domain_upper_bound)).T
+    domain = np.vstack((domain_lower_bound, domain_upper_bound)).astype(float).T
     space = Space(list(map(tuple, domain)))
     lhs = Lhs(criterion=method, iterations=5000)
     samples = lhs.generate(space.dimensions, n_sample)
