@@ -41,6 +41,8 @@ def normal_sp(params):
 
 
 class GaussianProcess:
+    is_probabilistic = True
+
     def __init__(self, normalize_Y=False, train_iterations=1000, **kwargs):
         self.normalize_Y = normalize_Y
         self.model = None
@@ -146,7 +148,7 @@ class GaussianProcess:
         self.observations = y
         self.optimize_parameters()
 
-    def predict(self, X, num_samples=50, return_samples=False):
+    def predict(self, X, iterations=50, return_samples=False):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
             index_points=X,
@@ -156,25 +158,11 @@ class GaussianProcess:
             predictive_noise_variance=0.0,
         )
 
-        samples = gprm.sample(num_samples)
+        samples = gprm.sample(iterations)
 
         if return_samples:
-            return np.mean(samples, axis=0), samples
-        return np.mean(samples, axis=0)
-
-    def predict_uncertainty(self, X, num_samples=50):
-        gprm = tfd.GaussianProcessRegressionModel(
-            kernel=self.kernel,
-            index_points=X,
-            observation_index_points=self.observation_index_points,
-            observations=self.observations,
-            observation_noise_variance=self.observation_noise_variance_var,
-            predictive_noise_variance=0.0,
-        )
-
-        samples = gprm.sample(num_samples)
-
-        return np.std(samples, axis=0)
+            return np.mean(samples, axis=0), np.std(samples, axis=0), samples
+        return np.mean(samples, axis=0), np.std(samples, axis=0)
 
     def update(self, new_X, new_y):
         self.observation_index_points = np.concatenate(
@@ -190,6 +178,7 @@ class GaussianProcess:
 class NN:
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
+    is_probabilistic = False
 
     def __init__(self, normalize_Y=False, **kwargs):
         self.normalize_Y = normalize_Y
@@ -236,6 +225,7 @@ class NN:
 class Prob_NN:
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
+    is_probabilistic = True
 
     def __init__(self, normalize_Y=False, **kwargs):
         self.normalize_Y = normalize_Y
@@ -264,17 +254,20 @@ class Prob_NN:
         self.model.compile(optimizer=optimizer, loss=NLL)
         self.model.fit(X_new, y_new, epochs=10, batch_size=32)
 
-    def predict(self, X, its=10):
+    def predict(self, X, iterations=50, return_samples=False):
         if self.model:
-            preds = np.zeros(shape=(X.shape[0], its))
+            preds = np.zeros(shape=(X.shape[0], iterations))
 
-            for i in range(its):
+            for i in range(iterations):
                 y_ = self.model.predict(X)
                 y__ = np.reshape(y_, (X.shape[0]))
                 preds[:, i] = y__
 
             mean = np.mean(preds, axis=1)
             stdv = np.std(preds, axis=1)
+
+            if return_samples:
+                mean, stdv, preds
 
             return mean, stdv
 
@@ -289,10 +282,12 @@ class Prob_NN:
 class Bayesian_NN:
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
+    is_probabilistic = True
 
     def __init__(self, normalize_Y=False, **kwargs):
         self.normalize_Y = normalize_Y
         self.model = None
+        self.is_probabilistic = True
 
     def create_model(self, x):
         def kernel_divergence_fn(q, p, _):
@@ -362,17 +357,20 @@ class Bayesian_NN:
             self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
             self.model.fit(X_new, y_new, epochs=epochs, batch_size=32, verbose=verbose)
 
-    def predict(self, X, its=10):
+    def predict(self, X, iterations=50, return_samples=False):
         if self.model:
-            preds = np.zeros(shape=(X.shape[0], its))
+            preds = np.zeros(shape=(X.shape[0], iterations))
 
-            for i in range(its):
+            for i in range(iterations):
                 y_ = self.model.predict(X)
                 y__ = np.reshape(y_, (X.shape[0]))
                 preds[:, i] = y__
 
             mean = np.mean(preds, axis=1)
             stdv = np.std(preds, axis=1)
+
+            if return_samples:
+                mean, stdv, preds
 
             return mean, stdv
 
