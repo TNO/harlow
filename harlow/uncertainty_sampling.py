@@ -1,8 +1,6 @@
 """
 Adaptive sampling based on uncertainty heuristics.
 """
-# import itertools
-# import time
 from typing import Callable
 
 import numpy as np
