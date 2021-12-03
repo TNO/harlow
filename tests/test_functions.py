@@ -1,23 +1,33 @@
 """Target functions for testing."""
-import math
 
 import numpy as np
 
 
-def ackley_nD(x, a=20, b=0.2, c=2 * math.pi):
+def ackley_nd(
+    x_mx: np.ndarray, a: float = 20.0, b: float = 0.2, c: float = 2 * np.pi
+) -> np.ndarray:
+    """
+    n-dimensional Ackley function based on https://www.sfu.ca/~ssurjano/ackley.html.
 
-    sum1 = 0
-    sum2 = 0
+    Args:
+        x_mx:
+            Independent variable values, [x1, x2, ..., xd], vectorized input is
+            supported (provide them along the row dimension).
+        a:
+            Constant/parameter in the function.
+        b:
+            Constant/parameter in the function.
+        c:
+            Constant/parameter in the function.
 
-    for i in range(0, len(x)):
-        xi = x[i]
-        sum1 = sum1 + (xi * xi)
-        sum2 = sum2 + np.cos(c * xi)
+    Returns:
+        Dependent variable values.
+    """
+    x_mx = np.atleast_2d(x_mx)
+    t1 = -a * np.exp(-b * np.sqrt(np.mean(x_mx ** 2, axis=1)))
+    t2 = -np.exp(np.mean(np.cos(c * x_mx), axis=1))
 
-    t1 = -a * np.exp(-b * np.sqrt(sum1 / len(x)))
-    t2 = -np.exp(sum2 / len(x))
-
-    return t1 + t2 + a + math.exp(1)
+    return t1 + t2 + a + np.exp(1)
 
 
 def six_hump_camel_2D(X):
@@ -51,8 +61,8 @@ def bohachevsky_2D(X):
 
     t1 = np.power(x1, 2)
     t2 = 2 * np.power(x2, 2)
-    t3 = -0.3 * np.cos(3 * math.pi * x1)
-    t4 = -0.4 * np.cos(4 * math.pi * x2)
+    t3 = -0.3 * np.cos(3 * np.pi * x1)
+    t4 = -0.4 * np.cos(4 * np.pi * x2)
 
     return t1 + t2 + t3 + t4 + 0.7
 
