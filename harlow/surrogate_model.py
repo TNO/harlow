@@ -8,6 +8,7 @@ The main requirements towards each surrogate model are that they:
 
 """
 import re
+from abc import ABC, abstractmethod
 
 import numpy as np
 import tensorflow as tf
@@ -42,9 +43,25 @@ def normal_sp(params):
 
 
 # TODO add superclass (abstract) check enforcing methods at subclassing
+class Surrogate(ABC):
+    @abstractmethod
+    def create_model(self):
+        pass
+
+    @abstractmethod
+    def fit(self, X, y):
+        pass
+
+    @abstractmethod
+    def predict(self, X):
+        pass
+
+    @abstractmethod
+    def update(self, new_X, new_y):
+        pass
 
 
-class GaussianProcess:
+class GaussianProcess(Surrogate):
     is_probabilistic = True
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
@@ -52,9 +69,13 @@ class GaussianProcess:
         self.model = None
         self.train_restarts = train_restarts
         self.noise_std = None
+        self.kernel = kernel
 
+        self.create_model()
+
+    def create_model(self):
         self.model = GaussianProcessRegressor(
-            kernel=kernel, n_restarts_optimizer=self.train_restarts
+            kernel=self.kernel, n_restarts_optimizer=self.train_restarts
         )
 
     def fit(self, X, y):
@@ -101,13 +122,16 @@ class GaussianProcess:
         self.fit(X, y)
 
 
-class GaussianProcessTFP:
+class GaussianProcessTFP(Surrogate):
     is_probabilistic = True
 
     def __init__(self, train_iterations=50, **kwargs):
         self.model = None
         self.train_iterations = train_iterations
 
+        self.create_model()
+
+    def create_model(self):
         def _build_gp(amplitude, length_scale, observation_noise_variance):
             kernel = tfk.ExponentiatedQuadratic(amplitude, length_scale)
 
@@ -235,13 +259,15 @@ class GaussianProcessTFP:
         self.optimize_parameters(verbose=True)
 
 
-class NN:
+class NN(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = False
 
     def __init__(self, **kwargs):
         self.model = None
+
+        self.create_model()
 
     def create_model(self, input_dim=(2,)):
         inputs = Input(shape=input_dim)
@@ -277,13 +303,15 @@ class NN:
         return self.model.predict(self.X).min()
 
 
-class Prob_NN:
+class Prob_NN(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
 
     def __init__(self, **kwargs):
         self.model = None
+
+        self.create_model()
 
     def create_model(self):
         inputs = Input(shape=(2,))
@@ -329,14 +357,16 @@ class Prob_NN:
         return self.model.predict(self.X).min()
 
 
-class Bayesian_NN:
+class Bayesian_NN(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, **kwargs):
+    def __init__(self, X, **kwargs):
         self.model = None
         self.is_probabilistic = True
+
+        self.create_model(X)
 
     def create_model(self, x):
         def kernel_divergence_fn(q, p, _):
