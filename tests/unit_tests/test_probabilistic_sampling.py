@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
-from surrogate_model import GaussianProcess, GaussianProcessTFP
 
 from harlow.plotting import add_samples_to_plot, plot_function_custom
 from harlow.probabilistic_sampling import Probabilistic_sampler
+from harlow.surrogate_model import GaussianProcess, GaussianProcessTFP
 from tests.test_functions import forresterEtAl
 
 
