@@ -12,8 +12,9 @@ Adapted from implementation in Prob_Taralli:
 from typing import Callable
 
 import numpy as np
-from helper_functions import latin_hypercube_sampling
 from scipy.optimize import differential_evolution
+
+from harlow.helper_functions import latin_hypercube_sampling
 
 
 class Probabilistic_sampler:
