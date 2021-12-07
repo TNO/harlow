@@ -47,7 +47,7 @@ def test_tfdGP():
     plt.show()
 
 
-def test_1D():
+def visual_test_1D():
     domain = np.array([0.0, 1.0])
     n_points = 10
     X_range = np.linspace(0, 1, 1000)
@@ -99,14 +99,14 @@ def test_1D():
 
     add_samples_to_plot(
         plot,
-        points_x[0 : -(lv.iterations * lv.new_samples_per_iteration)],
-        forresterEtAl(points_x[0 : -(lv.iterations * lv.new_samples_per_iteration)]),
+        points_x[0 : -(lv.iterations * 1)],
+        forresterEtAl(points_x[0 : -(lv.iterations * 1)]),
         "r",
     )
     add_samples_to_plot(
         plot,
-        points_x[-(lv.iterations * lv.new_samples_per_iteration) :],
-        forresterEtAl(points_x[-(lv.iterations * lv.new_samples_per_iteration) :]),
+        points_x[-(lv.iterations * 1) :],
+        forresterEtAl(points_x[-(lv.iterations * 1) :]),
         "g",
     )
 
@@ -114,4 +114,4 @@ def test_1D():
 
 
 if __name__ == "__main__":
-    test_1D()
+    visual_test_1D()
