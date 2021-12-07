@@ -7,9 +7,13 @@ The main requirements towards each surrogate model are that they:
 * can make predictions at user selected points.
 
 """
+import re
+
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
@@ -42,8 +46,66 @@ def normal_sp(params):
 
 class GaussianProcess:
     is_probabilistic = True
+    kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
-    def __init__(self, normalize_Y=False, train_iterations=1000, **kwargs):
+    def __init__(self, normalize_Y=False, train_restarts=10, kernel=kernel, **kwargs):
+        self.normalize_Y = normalize_Y
+        self.model = None
+        self.train_restarts = train_restarts
+        self.noise_std = None
+
+        self.model = GaussianProcessRegressor(
+            kernel=kernel, n_restarts_optimizer=self.train_restarts
+        )
+
+    def fit(self, X, y):
+        self.model.fit(X, y)
+        self.noise_std = self.get_noise()
+
+    def get_noise(self):
+        attrs = list(vars(GaussianProcess.kernel).keys())
+
+        white_kernel_attr = []
+        for attr in attrs:
+            if re.match(pattern="^k[0-9]", string=attr):
+                attr_val = getattr(GaussianProcess.kernel, attr)
+                if re.match(pattern="^WhiteKernel", string=str(attr_val)):
+                    white_kernel_attr.append(attr)
+
+        if len(white_kernel_attr) == 0:
+            raise ValueError(
+                "The used kernel should have an additive WhiteKernel component but it was not \
+                provided."
+            )
+
+        if len(white_kernel_attr) > 1:
+            raise ValueError(
+                f"The used kernel should have only one additive WhiteKernel component, \
+                {len(white_kernel_attr)} components were provided."
+            )
+
+        return getattr(self.model.kernel, white_kernel_attr[0]).noise_level ** 0.5
+
+    def predict(self, X):
+
+        samples, std = self.model.predict(X, return_std=True)
+
+        return samples, std
+
+    def update(self, new_X, new_y):
+        X = np.concatenate([self.observation_index_points, new_X])
+
+        if new_y.ndim > self.observations.ndim:
+            new_y = new_y.flatten()
+        y = np.concatenate([self.observations, new_y])
+
+        self.fit(X, y)
+
+
+class GaussianProcessTFP:
+    is_probabilistic = True
+
+    def __init__(self, normalize_Y=False, train_iterations=50, **kwargs):
         self.normalize_Y = normalize_Y
         self.model = None
         self.train_iterations = train_iterations
@@ -148,7 +210,7 @@ class GaussianProcess:
         self.observations = y
         self.optimize_parameters()
 
-    def predict(self, X, iterations=50, return_samples=False):
+    def predict(self, X, iterations=10, return_samples=False):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
             index_points=X,

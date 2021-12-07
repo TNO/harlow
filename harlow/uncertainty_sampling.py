@@ -22,6 +22,7 @@ class UncertaintySampler:
         epsilon: float = 0.005,
         metric: str = "r2",
         verbose: bool = False,
+        new_samples_per_iteration=1,  # TODO: support more samples per iteration
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -34,6 +35,9 @@ class UncertaintySampler:
         self.epsilon = epsilon
         self.metric = metric
         self.verbose = verbose
+        self.new_samples_per_iteration = new_samples_per_iteration
+
+        self.iterations = 0
 
     def adaptive_surrogating(
         self, n_initial_point: int = None, n_new_point_per_iteration: int = 1
@@ -65,36 +69,35 @@ class UncertaintySampler:
             points_y = self.fit_points_y
 
         while convergence is False:
-            y_range = np.max(points_y.flatten()) - np.min(points_y.flatten())
-            self.surrogate_model = self.surrogate_model()
-            self.surrogate_model.fit(points_x, points_y)
 
             bounds = [
                 (domain_lower_bound[i], domain_upper_bound[i])
                 for i in range(len(domain_lower_bound))
             ]
 
+            self.surrogate_model.fit(points_x, points_y)
+
             diff_evolution_result = differential_evolution(
                 self.prediction_std, bounds=bounds
             )
-            std_max = diff_evolution_result.fun
+            std_max = -diff_evolution_result.fun
 
-            if (
-                std_max - self.surrogate_model.observation_noise_variance_var
-                <= self.epsilon * y_range
-            ):
+            if std_max <= self.epsilon:
                 convergence = True
             else:
                 x_new = diff_evolution_result.x
                 y_new = self.target_function(x_new)
-                points_x = np.concatenate(points_x, x_new)
-                points_y = np.concatenate(points_y, y_new)
+                points_x = np.concatenate((points_x, np.expand_dims(x_new, axis=0)))
+                points_y = np.concatenate((points_y, y_new.flatten()))
+
+            self.iterations += 1
+
+        return points_x, points_y
 
     def prediction_std(self, x):
-
         if x.ndim == 1:
             x = np.reshape(x, (-1, 1))
-        # noise = self.surrogate_model.observation_noise_variance_var
-        noise = 0
-        std = self.surrogate_model.predict(x)[1] - noise
+
+        std = -(self.surrogate_model.predict(x)[1] - self.surrogate_model.noise_std)
+
         return std

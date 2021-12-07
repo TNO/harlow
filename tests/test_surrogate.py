@@ -4,7 +4,7 @@ from sklearn.metrics import r2_score
 
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.plotting import add_samples_to_plot, plot_function_custom
-from harlow.surrogate_model import GaussianProcess
+from harlow.surrogate_model import GaussianProcessTFP
 from tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
 
 
@@ -29,9 +29,9 @@ def test_2D():
     train_y = bohachevsky_2D(train_X)
     test_y = bohachevsky_2D(test_X)
 
-    gp = GaussianProcess()
+    gp = GaussianProcessTFP()
     gp.fit(train_X, train_y)
-    gp_copy = GaussianProcess()
+    gp_copy = GaussianProcessTFP()
     gp_copy.fit(train_X, train_y)
 
     p = gp.predict(test_X)
@@ -116,7 +116,7 @@ def test_1D():
     train_y = forresterEtAl(train_X)
     test_y = forresterEtAl(test_X)
 
-    gp = GaussianProcess()
+    gp = GaussianProcessTFP()
     gp.fit(train_X.reshape(-1, 1), train_y)
 
     p = gp.predict(test_X.reshape(-1, 1))
@@ -161,7 +161,7 @@ def test_tfdGP():
         loc=0, scale=np.sqrt(0.1), size=(num_training_points)
     )
 
-    gp = GaussianProcess()
+    gp = GaussianProcessTFP()
     gp.fit(index_points_, observations_)
 
     predictive_index_points_ = np.linspace(-1.2, 1.2, 200, dtype=np.float64)
