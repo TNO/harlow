@@ -48,8 +48,7 @@ class GaussianProcess:
     is_probabilistic = True
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
-    def __init__(self, normalize_Y=False, train_restarts=10, kernel=kernel, **kwargs):
-        self.normalize_Y = normalize_Y
+    def __init__(self, train_restarts=10, kernel=kernel, **kwargs):
         self.model = None
         self.train_restarts = train_restarts
         self.noise_std = None
@@ -105,8 +104,7 @@ class GaussianProcess:
 class GaussianProcessTFP:
     is_probabilistic = True
 
-    def __init__(self, normalize_Y=False, train_iterations=50, **kwargs):
-        self.normalize_Y = normalize_Y
+    def __init__(self, train_iterations=50, **kwargs):
         self.model = None
         self.train_iterations = train_iterations
 
@@ -242,8 +240,7 @@ class NN:
     learning_rate_update = 0.001
     is_probabilistic = False
 
-    def __init__(self, normalize_Y=False, **kwargs):
-        self.normalize_Y = normalize_Y
+    def __init__(self, **kwargs):
         self.model = None
 
     def create_model(self, input_dim=(2,)):
@@ -260,10 +257,6 @@ class NN:
         self.model.fit(X, y, epochs=epochs, batch_size=32)
 
     def update(self, X_new, y_new):
-
-        if self.normalize_Y:
-            y_new = (y_new - y_new.mean()) / (y_new.std())
-
         optimizer = Adam(learning_rate=self.learning_rate_update)
         self.model.compile(optimizer=optimizer, loss=root_mean_squared_error)
         self.model.fit(X_new, y_new, epochs=10, batch_size=32, verbose=False)
@@ -289,8 +282,7 @@ class Prob_NN:
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, normalize_Y=False, **kwargs):
-        self.normalize_Y = normalize_Y
+    def __init__(self, **kwargs):
         self.model = None
 
     def create_model(self):
@@ -308,10 +300,6 @@ class Prob_NN:
         self.model.fit(X, y, epochs=epochs, batch_size=32)
 
     def update(self, X_new, y_new):
-
-        if self.normalize_Y:
-            y_new = (y_new - y_new.mean()) / (y_new.std())
-
         optimizer = Adam(learning_rate=self.learning_rate_update)
         self.model.compile(optimizer=optimizer, loss=NLL)
         self.model.fit(X_new, y_new, epochs=10, batch_size=32)
@@ -346,8 +334,7 @@ class Bayesian_NN:
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, normalize_Y=False, **kwargs):
-        self.normalize_Y = normalize_Y
+    def __init__(self, **kwargs):
         self.model = None
         self.is_probabilistic = True
 
@@ -410,9 +397,6 @@ class Bayesian_NN:
         self.model.fit(X, y, epochs=epochs, batch_size=32, verbose=verbose)
 
     def update(self, X_new, y_new, epochs=25, verbose=0):
-        if self.normalize_Y:
-            y_new = (y_new - y_new.mean()) / (y_new.std())
-
         if self.model is None:
             self._create_model()
         else:

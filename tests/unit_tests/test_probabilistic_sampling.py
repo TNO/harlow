@@ -5,7 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 from surrogate_model import GaussianProcess, GaussianProcessTFP
 
 from harlow.plotting import add_samples_to_plot, plot_function_custom
-from harlow.uncertainty_sampling import UncertaintySampler
+from harlow.probabilistic_sampling import Probabilistic_sampler
 from tests.test_functions import forresterEtAl
 
 
@@ -84,7 +84,7 @@ def test_1D():
     plot.plot(X_range, y_range, "r")
 
     gpr = GaussianProcess()
-    lv = UncertaintySampler(
+    lv = Probabilistic_sampler(
         target_function=forresterEtAl,
         surrogate_model=gpr,
         domain_lower_bound=np.array([0.0]),

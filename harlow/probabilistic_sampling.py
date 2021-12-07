@@ -1,5 +1,13 @@
 """
 Adaptive sampling based on uncertainty heuristics.
+This algorithm is from:
+    Xuzheng Chai (2019) Probabilistic system identification and reliability updating
+    for hydraulic structures - Application to sheet pile walls
+
+Adapted from implementation in Prob_Taralli:
+    https://gitlab.com/tno-bim/taralli/-/blob/d82a5f42e918f4864d4d6f18f0dbdf8c1f2799c6/
+    prob_taralli/surrogating/adaptive_infill_gpr.py
+
 """
 from typing import Callable
 
@@ -8,7 +16,7 @@ from helper_functions import latin_hypercube_sampling
 from scipy.optimize import differential_evolution
 
 
-class UncertaintySampler:
+class Probabilistic_sampler:
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
@@ -19,10 +27,10 @@ class UncertaintySampler:
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
+        n_initial_points: int = None,
         epsilon: float = 0.005,
         metric: str = "r2",
         verbose: bool = False,
-        new_samples_per_iteration=1,  # TODO: support more samples per iteration
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -32,24 +40,21 @@ class UncertaintySampler:
         self.fit_points_y = fit_points_y
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
+        self.n_initial_points = n_initial_points
         self.epsilon = epsilon
         self.metric = metric
         self.verbose = verbose
-        self.new_samples_per_iteration = new_samples_per_iteration
 
         self.iterations = 0
 
-    def adaptive_surrogating(
-        self, n_initial_point: int = None, n_new_point_per_iteration: int = 1
-    ):
-        # target_function = self.target_function
+    def adaptive_surrogating(self):
         domain_lower_bound = self.domain_lower_bound
         domain_upper_bound = self.domain_upper_bound
         n_dim = len(domain_lower_bound)
         convergence = False
 
-        if n_initial_point is None:
-            n_initial_point = 5 * n_dim
+        if self.n_initial_points is None:
+            self.n_initial_point = 5 * n_dim
 
         if not self.surrogate_model.is_probabilistic:
             raise NotImplementedError(
@@ -59,7 +64,7 @@ class UncertaintySampler:
 
         if self.fit_points_x is None:
             points_x = latin_hypercube_sampling(
-                n_sample=n_initial_point,
+                n_sample=self.n_initial_point,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
             )
