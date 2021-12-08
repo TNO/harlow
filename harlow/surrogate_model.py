@@ -106,11 +106,13 @@ class GaussianProcess(Surrogate):
 
         return getattr(self.model.kernel, white_kernel_attr[0]).noise_level ** 0.5
 
-    def predict(self, X):
-
+    def predict(self, X, return_std=False):
         samples, std = self.model.predict(X, return_std=True)
 
-        return samples, std
+        if return_std:
+            return samples, std
+        else:
+            return samples
 
     def update(self, new_X, new_y):
         X = np.concatenate([self.observation_index_points, new_X])
@@ -232,7 +234,7 @@ class GaussianProcessTFP(Surrogate):
         self.observations = y
         self.optimize_parameters()
 
-    def predict(self, X, iterations=10, return_samples=False):
+    def predict(self, X, iterations=50, return_std=False, return_samples=False):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
             index_points=X,
@@ -245,8 +247,18 @@ class GaussianProcessTFP(Surrogate):
         samples = gprm.sample(iterations)
 
         if return_samples:
-            return np.mean(samples, axis=0), np.std(samples, axis=0), samples
-        return np.mean(samples, axis=0), np.std(samples, axis=0)
+            if return_std:
+                return (
+                    np.mean(samples, axis=0),
+                    np.std(samples, axis=0),
+                    samples.numpy(),
+                )
+            else:
+                return np.mean(samples, axis=0), samples.numpy()
+        if return_std:
+            return np.mean(samples, axis=0), np.std(samples, axis=0)
+        else:
+            return np.mean(samples, axis=0)
 
     def update(self, new_X, new_y):
         self.observation_index_points = np.concatenate(

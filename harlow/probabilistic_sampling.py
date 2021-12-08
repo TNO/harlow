@@ -104,6 +104,9 @@ class Probabilistic_sampler:
         if x.ndim == 1:
             x = np.reshape(x, (-1, 1))
 
-        std = -(self.surrogate_model.predict(x)[1] - self.surrogate_model.noise_std)
+        std = -(
+            self.surrogate_model.predict(x, return_std=True)[1]
+            - self.surrogate_model.noise_std
+        )
 
         return std
