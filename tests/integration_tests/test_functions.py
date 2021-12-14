@@ -3,7 +3,23 @@
 import numpy as np
 
 
-def peaks_2d(x: np.ndarray):
+def lldeh_1d(x: np.ndarray, a: float) -> np.ndarray:
+    """
+    An interesting 1D non-linear function.
+
+    Source: https://www.reddit.com/r/math/comments/5mwr9g/what_are_your_favourite_or_most_interesting/  # noqa E301
+    Args:
+        x:
+        a: parameter to control the shape, interesting variants: a=0, a=2.1
+
+    Returns:
+
+    """
+    g = np.tan(0.5 * a)
+    return 2 * x ** 2 / (x ** 2 + g * x + 1)
+
+
+def peaks_2d(x: np.ndarray) -> np.ndarray:
     # https://nl.mathworks.com/help/matlab/ref/peaks.html
     x = np.atleast_2d(x)
     x1 = x[:, 0]

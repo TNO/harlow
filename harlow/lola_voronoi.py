@@ -5,23 +5,31 @@ The algorithm is proposed and described in this paper:
 surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
 (2011): 1948-1974.
 
-The implementation is based on and inspired by:
-* https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+The implementation is influenced by:
 * gitlab.com/energyincities/besos/-/blob/master/besos/
+* https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+
 """
 import itertools
 import time
 from typing import Callable, Tuple
 
+import numba as nb
 import numpy as np
 from loguru import logger
-from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.spatial.distance import cdist
 from skopt.sampler import Lhs
 from skopt.space import Space
+
+from harlow.distance import pdist_full_matrix
+from harlow.numba_utils import np_all, np_argmax, np_min
 
 # TODO
 #  * improve logging
 #  * pretty timedelta: https://gist.github.com/thatalextaylor/7408395
+
+nopython = True
+fastmath = True
 
 
 # -----------------------------------------------------
@@ -94,14 +102,21 @@ class LolaVoronoi:
         # ..........................................
         # Initial sample of points
         # ..........................................
-        # latin hypercube sampling to get the initial sample of points
-        points_x = latin_hypercube_sampling(
-            n_sample=n_initial_point,
-            domain_lower_bound=domain_lower_bound,
-            domain_upper_bound=domain_upper_bound,
-        )
-        # evaluate the target function
-        points_y = target_function(points_x)
+        if self.fit_points_x is None:
+            # latin hypercube sampling to get the initial sample of points
+            points_x = latin_hypercube_sampling(
+                n_sample=n_initial_point,
+                domain_lower_bound=domain_lower_bound,
+                domain_upper_bound=domain_upper_bound,
+            )
+            # evaluate the target function
+            points_y = target_function(points_x)
+
+            self.fit_points_x = points_x
+            self.fit_points_y = points_y
+        else:
+            points_x = self.fit_points_x
+            points_y = self.fit_points_y
 
         # fit the surrogate model
         start_time = time.time()
@@ -109,9 +124,6 @@ class LolaVoronoi:
         logger.info(
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
-
-        self.fit_points_x = points_x
-        self.fit_points_y = points_y
 
         # ..........................................
         # Iterative improvement (adaptive stage)
@@ -161,6 +173,11 @@ def best_new_points(
     domain_upper_bound: np.ndarray,
     n_new_point: int = 1,
 ):
+    # shape the input if not in the right shape
+    n_dim = len(domain_lower_bound)
+    points_x = points_x.reshape((-1, n_dim))
+    points_y = points_y.reshape((-1, 1))
+
     # Find the best neighborhoods for each row of `points_x`
     (
         _,
@@ -245,9 +262,41 @@ def best_new_points_with_neighbors(
     return new_reference_points_x
 
 
-def best_neighborhoods(
+def best_neighborhoods(points_x: np.ndarray):
+    """Find the best neighborhood for each row of `points_x`. This function is expected
+    to be used with the initial sample of `points_x`, when no best neighborhoods yet
+    available from preceding iteration steps. This function exists to separate numba
+    compatible code from non-compatible one."""
+
+    # n-choose-k, all possible neighbor combinations, the elements of the matrix are
+    # `points_x` indices
+    n_point, n_dim = points_x.shape
+    n_neighbor = 2 * n_dim
+
+    all_neighbor_point_idxs_combinations = np.array(
+        list(itertools.combinations(np.arange(n_point), n_neighbor))
+    )
+    (
+        best_neighborhood_scores,
+        best_neighborhood_idxs,
+        all_neighborhood_scores,
+    ) = best_neighborhoods_numba(
+        points_x=points_x,
+        all_neighbor_point_idxs_combinations=all_neighbor_point_idxs_combinations,
+    )
+    return (
+        best_neighborhood_scores,
+        best_neighborhood_idxs,
+        all_neighborhood_scores,
+        all_neighbor_point_idxs_combinations,
+    )
+
+
+@nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
+def best_neighborhoods_numba(
     points_x: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    all_neighbor_point_idxs_combinations: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Find the best neighborhood for each row of `points_x`. This function is expected
     to be used with the initial sample of `points_x`, when no best neighborhoods yet
@@ -256,31 +305,25 @@ def best_neighborhoods(
     Args:
         points_x:
             n_point x n_dim.
+        all_neighbor_point_idxs_combinations:
     Returns:
 
     """
     n_point, n_dim = points_x.shape
-    n_neighbor = 2 * n_dim
-
-    # n-choose-k, all possible neighbor combinations, the elements of the matrix are
-    # `points_x` indices
-    all_neighbor_point_idxs_combinations = np.array(
-        list(itertools.combinations(np.arange(n_point), n_neighbor))
-    )
     n_neighborhood = all_neighbor_point_idxs_combinations.shape[0]
 
-    # each column belong to one point, same order as points_x (reference_point)
-    all_neighborhood_scores = np.empty((n_neighborhood, n_point))
     # this matrix contains neighborhoods that contain the reference point as well, these
-    # will be assigned np.nan and the rest will get a neighborhood score
-    all_neighborhood_scores[:] = np.nan
+    # will be assigned -1 and the rest will get a neighborhood score
+    # each column belong to one point, same order as points_x (reference_point)
+    all_neighborhood_scores = -np.ones((n_neighborhood, n_point))
 
     # TODO: both loops are completely independent hence parallelizable
-    for ii, reference_point_x in enumerate(points_x):
+    for ii in nb.prange(n_point):
+        reference_point_x = np.expand_dims(points_x[ii], 0)
         # consider only the valid neighborhoods: the ones that do not contain
         # `reference_point_x`
         idx_valid_neighborhoods = np.where(
-            np.all(all_neighbor_point_idxs_combinations != ii, axis=1)
+            np_all(all_neighbor_point_idxs_combinations != ii, axis=1)
         )[0]
 
         # TODO: consider only the new neighborhoods that are not too far away
@@ -291,26 +334,27 @@ def best_neighborhoods(
         #     ]
 
         # compute the neighbourhood_score (`ns`) for each neighborhood
-        for idx_valid_neighborhood in idx_valid_neighborhoods:
+        for jj in nb.prange(len(idx_valid_neighborhoods)):
+            idx_valid_neighborhood = idx_valid_neighborhoods[jj]
             neighbor_points_x = points_x[
                 all_neighbor_point_idxs_combinations[idx_valid_neighborhood], :
             ]
             # this is a time consuming function
-            ns = neighbourhood_score(
+            ns = neighborhood_score(
                 neighbor_points_x=neighbor_points_x, reference_point_x=reference_point_x
             )[0]
             all_neighborhood_scores[idx_valid_neighborhood, ii] = ns
 
     # best neighborhoods, the order is the same as in `points_x`
-    best_neighborhood_idxs = np.nanargmax(all_neighborhood_scores, axis=0)
-    best_neighborhood_scores = all_neighborhood_scores[
-        best_neighborhood_idxs, np.arange(n_point)
+    best_neighborhood_idxs = np_argmax(all_neighborhood_scores, axis=0)
+    flat_idxs = n_point * best_neighborhood_idxs + np.arange(n_point)
+    best_neighborhood_scores = all_neighborhood_scores.ravel()[
+        flat_idxs.astype(nb.int_)
     ]
     return (
         best_neighborhood_scores,
         best_neighborhood_idxs,
         all_neighborhood_scores,
-        all_neighbor_point_idxs_combinations,
     )
 
 
@@ -321,7 +365,8 @@ def lola_voronoi_score(
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
 
 
-def neighbourhood_score(
+@nb.jit(nopython=nopython, fastmath=fastmath, cache=False)
+def neighborhood_score(
     neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
 ) -> Tuple[float, float]:
     """
@@ -335,10 +380,11 @@ def neighbourhood_score(
     Returns:
         Neighborhood score.
     """
+    # shapes are not checked!
     # shape the input if not in the right shape, TODO: is this really needed?
-    reference_point_x = reference_point_x.reshape((1, -1))
+    # reference_point_x = reference_point_x.reshape((1, -1))
     n_dim = reference_point_x.shape[1]
-    neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
+    # neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
 
     # cohesion, Eq(4.3) of [1]
     cohesion = np.mean(
@@ -347,8 +393,8 @@ def neighbourhood_score(
 
     # cross-polytope ratio
     if n_dim == 1:
-        pr1 = neighbor_points_x[0, :]
-        pr2 = neighbor_points_x[1, :]
+        pr1 = neighbor_points_x[0, 0]
+        pr2 = neighbor_points_x[1, 0]
         # Eq(4.6) of [1]
         cross_polytope_ratio = 1 - np.abs(pr1 + pr2) / (
             np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)
@@ -356,9 +402,13 @@ def neighbourhood_score(
     else:
         # Eq(4.4) of [1]
         # smallest neighbor distance for each neighbor
-        neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
-        np.fill_diagonal(neighbor_distances, np.inf)
-        min_neighbor_distances = np.min(neighbor_distances, axis=1)
+        # neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
+        # np.fill_diagonal(neighbor_distances, np.inf)
+        # min_neighbor_distances = np.min(neighbor_distances, axis=1)
+        neighbor_distances = pdist_full_matrix(neighbor_points_x)
+        # TODO: would be good to avoid np.max
+        np.fill_diagonal(neighbor_distances, np.max(neighbor_distances))
+        min_neighbor_distances = np_min(neighbor_distances, axis=1)
         adhesion = np.mean(min_neighbor_distances)
         # Eq(4.5) of [1]
         cross_polytope_ratio = adhesion / (np.sqrt(2) * cohesion)

@@ -1,3 +1,4 @@
+"""Test components of the implementation of the LOLA-Voronoi algorithm."""
 import warnings
 
 import matplotlib.pyplot as plt
@@ -7,7 +8,7 @@ from scipy.spatial import ConvexHull
 from harlow.lola_voronoi import (
     best_neighborhoods,
     gradient_estimate,
-    neighbourhood_score,
+    neighborhood_score,
     voronoi_volume_estimate,
 )
 from tests.unit_tests.bounded_voronoi_2d import bounded_voronoi_2d
@@ -18,7 +19,6 @@ from tests.unit_tests.bounded_voronoi_2d import bounded_voronoi_2d
 # .......................................
 def test_visually_2d_best_neighborhoods():
     """This test is to be checked by humans. Plot a few best neighborhoods in 2D."""
-
     # number of points to be used
     n_point = 10
 
@@ -92,7 +92,7 @@ def test_example_of_section_4_2_3():
     cpr_vec = np.empty(n_grid ** 2)
     for ii, added_neighbor_point_x in enumerate(added_neighbor_points_x):
         neighbor_points_x = np.vstack((base_neighbor_points_x, added_neighbor_point_x))
-        ns, cpr = neighbourhood_score(
+        ns, cpr = neighborhood_score(
             neighbor_points_x=neighbor_points_x, reference_point_x=reference_point_x
         )
         ns_vec[ii] = ns
@@ -176,7 +176,7 @@ def test_circle_cross_polytope_ratio():
         x2 = reference_point_x[1] + radius * np.sin(np.pi / n_neighbor * (1 + 2 * ii))
         neighbor_points_x = np.vstack((x1, x2)).T
 
-        _, cpr = neighbourhood_score(
+        _, cpr = neighborhood_score(
             neighbor_points_x=neighbor_points_x, reference_point_x=reference_point_x
         )
 
@@ -194,7 +194,7 @@ def test_imperfect_polytope_ratio():
 
         neighbor_points_x = np.random.rand(n_neighbor, n_dim) + reference_point_x
 
-        _, cpr = neighbourhood_score(
+        _, cpr = neighborhood_score(
             neighbor_points_x=neighbor_points_x, reference_point_x=reference_point_x
         )
 
@@ -214,7 +214,7 @@ def test_worst_polytope_ratio():
             np.tile(np.random.rand(1, n_dim), (n_neighbor, 1)) + reference_point_x
         )
 
-        _, cpr = neighbourhood_score(
+        _, cpr = neighborhood_score(
             neighbor_points_x=neighbor_points_x, reference_point_x=reference_point_x
         )
 
