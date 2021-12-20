@@ -3,11 +3,16 @@ it is excluded from the testing (see the file name)."""
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.metrics import r2_score
+from sklearn.preprocessing import MinMaxScaler
 
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.surrogate_model import GaussianProcess
 from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
 from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
+from harlow.plotting import add_samples_to_plot, plot_function_custom
+from harlow.probabilistic_sampling import Probabilistic_sampler
+from harlow.surrogate_model import GaussianProcess, GaussianProcessTFP
+from tests.test_functions import bohachevsky_2D, forresterEtAl, shekel
 
 
 def test_2D():
@@ -31,9 +36,9 @@ def test_2D():
     train_y = bohachevsky_2D(train_X)
     test_y = bohachevsky_2D(test_X)
 
-    gp = GaussianProcess()
+    gp = GaussianProcessTFP()
     gp.fit(train_X, train_y)
-    gp_copy = GaussianProcess()
+    gp_copy = GaussianProcessTFP()
     gp_copy.fit(train_X, train_y)
 
     p = gp.predict(test_X)
@@ -118,7 +123,7 @@ def test_1D():
     train_y = forrester_1d(train_X)
     test_y = forrester_1d(test_X)
 
-    gp = GaussianProcess()
+    gp = GaussianProcessTFP()
     gp.fit(train_X.reshape(-1, 1), train_y)
 
     p = gp.predict(test_X.reshape(-1, 1))
@@ -163,7 +168,7 @@ def test_tfdGP():
         loc=0, scale=np.sqrt(0.1), size=(num_training_points)
     )
 
-    gp = GaussianProcess()
+    gp = GaussianProcessTFP()
     gp.fit(index_points_, observations_)
 
     predictive_index_points_ = np.linspace(-1.2, 1.2, 200, dtype=np.float64)
@@ -212,3 +217,69 @@ def test_shekel():
     y = shekel(X)
 
     print(y)
+
+
+def visual_test_probSampling_1D():
+    domain = np.array([0.0, 1.0])
+    n_points = 10
+    X_range = np.linspace(0, 1, 1000)
+    y_range = forresterEtAl(X_range)
+    X = np.random.uniform(domain[0], domain[1], n_points)
+
+    indices = np.random.permutation(X.shape[0])
+    train_idx, test_idx = (
+        indices[: round(len(indices) * 0.5)],
+        indices[round(len(indices) * 0.5) :],
+    )
+    train_X = np.sort(X[train_idx])
+    test_X = np.sort(X[test_idx])
+    train_y = forresterEtAl(train_X)
+    test_y = forresterEtAl(test_X)
+
+    scaler = MinMaxScaler()
+    train_X = scaler.fit_transform(train_X.reshape(-1, 1))
+    test_X = scaler.transform(test_X.reshape(-1, 1))
+
+    gp = GaussianProcessTFP()
+    gp.fit(train_X, train_y)
+
+    p = gp.predict(test_X)
+    print(f"test R2: {r2_score(test_y, p)}")
+
+    plot = plot_function_custom(
+        forresterEtAl,
+        train_X.reshape(-1, 1),
+        y=gp.predict(train_X.reshape(-1, 1)),
+        plot_sample_locations=True,
+        show=False,
+    )
+    plot.plot(X_range, y_range, "r")
+
+    gpr = GaussianProcess()
+    lv = Probabilistic_sampler(
+        target_function=forresterEtAl,
+        surrogate_model=gpr,
+        domain_lower_bound=np.array([0.0]),
+        domain_upper_bound=np.array([1.0]),
+        fit_points_x=train_X.reshape(-1, 1),
+        fit_points_y=train_y,
+        test_points_x=test_X.reshape(-1, 1),
+        test_points_y=test_y,
+    )
+
+    points_x, points_y = lv.adaptive_surrogating()
+
+    add_samples_to_plot(
+        plot,
+        points_x[0 : -(lv.iterations * 1)],
+        forresterEtAl(points_x[0 : -(lv.iterations * 1)]),
+        "r",
+    )
+    add_samples_to_plot(
+        plot,
+        points_x[-(lv.iterations * 1) :],
+        forresterEtAl(points_x[-(lv.iterations * 1) :]),
+        "g",
+    )
+
+    plt.show()
