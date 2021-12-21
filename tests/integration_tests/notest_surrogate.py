@@ -6,10 +6,10 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
 from harlow.lola_voronoi import LolaVoronoi
-from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
-from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 from harlow.probabilistic_sampling import Probabilistic_sampler
 from harlow.surrogate_model import GaussianProcess, GaussianProcessTFP
+from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
+from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 
 
 def test_2D():
@@ -145,7 +145,7 @@ def test_1D():
         forrester_1d,
         n_iteration=n_iters,
         n_new_point_per_iteration=n_per_iters,
-        metric="rmse",
+        evaluation_metric="rmse",
     )
     lv.run_sequential_design()
 

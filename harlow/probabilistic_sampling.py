@@ -30,7 +30,7 @@ class Probabilistic_sampler:
         test_points_y: np.ndarray = None,
         n_initial_points: int = None,
         epsilon: float = 0.005,
-        metric: str = "r2",
+        metric: Callable = None,
         verbose: bool = False,
     ):
         self.domain_lower_bound = domain_lower_bound

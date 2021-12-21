@@ -75,11 +75,13 @@ class GaussianProcess(Surrogate):
 
     def create_model(self):
         self.model = GaussianProcessRegressor(
-            kernel=self.kernel, n_restarts_optimizer=self.train_restarts
+            kernel=self.kernel, n_restarts_optimizer=self.train_restarts, random_state=0
         )
 
     def fit(self, X, y):
-        self.model.fit(X, y)
+        self.X = X
+        self.y = y
+        self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
 
     def get_noise(self):
@@ -115,11 +117,14 @@ class GaussianProcess(Surrogate):
             return samples
 
     def update(self, new_X, new_y):
-        X = np.concatenate([self.observation_index_points, new_X])
+        X = np.concatenate([self.X, new_X])
 
-        if new_y.ndim > self.observations.ndim:
+        if new_y.ndim > self.y.ndim:
             new_y = new_y.flatten()
-        y = np.concatenate([self.observations, new_y])
+        y = np.concatenate([self.y, new_y])
+
+        self.kernel.set_params(**(self.model.kernel_.get_params()))
+        self.create_model()
 
         self.fit(X, y)
 

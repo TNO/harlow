@@ -11,6 +11,7 @@ The implementation is influenced by:
 
 """
 import itertools
+import math
 import time
 from typing import Callable, Tuple
 
@@ -18,10 +19,10 @@ import numba as nb
 import numpy as np
 from loguru import logger
 from scipy.spatial.distance import cdist
-from skopt.sampler import Lhs
-from skopt.space import Space
+from sklearn.metrics import mean_squared_error
 
 from harlow.distance import pdist_full_matrix
+from harlow.helper_functions import latin_hypercube_sampling
 from harlow.numba_utils import np_all, np_argmax, np_min
 
 # TODO
@@ -48,7 +49,7 @@ class LolaVoronoi:
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
-        metric: str = "r2",
+        evaluation_metric: Callable = None,
         verbose: bool = False,
     ):
         self.domain_lower_bound = domain_lower_bound
@@ -59,21 +60,21 @@ class LolaVoronoi:
         self.fit_points_y = fit_points_y
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
-        self.metric = metric
+        self.metric = evaluation_metric
         self.verbose = verbose
 
         # TODO:
         #  * add a cleaned up metric (see below)
         #  * add input consistency check & formatting input if needed
-        # if metric == "r2":
+        # if evaluation_metric == "r2":
         #     self.metric = r2_score
-        # elif metric == "mse":
+        # elif evaluation_metric == "mse":
         #     self.metric = mean_squared_error
-        # elif metric == "rmse":
-        #     self.metric = lambda x, y: sqrt(mean_squared_error(x, y))
+        # elif evaluation_metric == "rmse":
+        #     self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
         #
         # if np.ndim(self.test_X) == 1:
-        #     self.score[0] = self.metric(
+        #     self.score[0] = (self.metric
         #         self.test_y, self.surrogate_model.predict(self.test_X.reshape(-1, 1))
         #     )
         # else:
@@ -86,6 +87,7 @@ class LolaVoronoi:
         n_initial_point: int = None,
         n_iter: int = 20,
         n_new_point_per_iteration: int = 1,
+        stopping_criterium: bool = False,
     ):
         """TODO: allow for providing starting points"""
         # ..........................................
@@ -98,6 +100,12 @@ class LolaVoronoi:
 
         if n_initial_point is None:
             n_initial_point = 5 * n_dim
+
+        if stopping_criterium:
+            n_iter = 1000
+
+        if stopping_criterium and not self.metric:
+            self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
 
         # ..........................................
         # Initial sample of points
@@ -159,8 +167,19 @@ class LolaVoronoi:
             logger.info(
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
             )
+
             self.fit_points_x = points_x
             self.fit_points_y = points_y
+
+            if stopping_criterium:
+                score = self.metric(
+                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
+                )
+                logger.info(f"Evaluation metric score on provided testset: {score}")
+                if score <= stopping_criterium:
+                    self.number_of_iterations_at_convergence = ii
+                    logger.info(f"Algorithm converged in {ii} iterations")
+                    break
 
 
 # -----------------------------------------------------
@@ -537,20 +556,6 @@ def voronoi_volume_estimate(
     relative_volumes = closest_counts / n_simulation
 
     return relative_volumes, random_points, distance_mx, closest_indicator_mx
-
-
-def latin_hypercube_sampling(
-    domain_lower_bound: np.ndarray,
-    domain_upper_bound: np.ndarray,
-    n_sample: int,
-    method="maximin",
-):
-    domain = np.vstack((domain_lower_bound, domain_upper_bound)).astype(float).T
-    space = Space(list(map(tuple, domain)))
-    lhs = Lhs(criterion=method, iterations=5000)
-    samples = lhs.generate(space.dimensions, n_sample)
-
-    return np.array(samples, dtype=float)
 
 
 def gradient_estimate(
