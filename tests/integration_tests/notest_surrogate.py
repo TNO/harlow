@@ -230,7 +230,7 @@ def visual_test_probSampling_1D():
     )
     train_X = np.sort(X[train_idx])
     test_X = np.sort(X[test_idx])
-    train_y = forrester_1d(train_X)
+    train_y = forrester_1d(train_X).reshape((-1, 1))
     test_y = forrester_1d(test_X)
 
     scaler = MinMaxScaler()
@@ -246,7 +246,7 @@ def visual_test_probSampling_1D():
     plot = plot_function_custom(
         forrester_1d,
         train_X.reshape(-1, 1),
-        y=gp.predict(train_X.reshape(-1, 1)),
+        y_vec=gp.predict(train_X.reshape(-1, 1)),
         plot_sample_locations=True,
         show=False,
     )
@@ -268,8 +268,8 @@ def visual_test_probSampling_1D():
 
     add_samples_to_plot(
         plot,
-        points_x[0 : -(lv.iterations * 1)],
-        forrester_1d(points_x[0 : -(lv.iterations * 1)]),
+        points_x[0 : len(train_X)],
+        forrester_1d(points_x[0 : len(train_X)]),
         "r",
     )
     add_samples_to_plot(
@@ -280,3 +280,7 @@ def visual_test_probSampling_1D():
     )
 
     plt.show()
+
+
+if __name__ == "__main__":
+    visual_test_probSampling_1D()

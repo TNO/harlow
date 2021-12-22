@@ -177,7 +177,3 @@ def test_peaks_2d():
         ax2.set_title("Surrogate function")
         # TODO: apply the same color range to both contourf plots
         plt.colorbar(cs, ax=axs)
-
-
-if __name__ == "__main__":
-    test_peaks_2d()

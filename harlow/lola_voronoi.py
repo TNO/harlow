@@ -87,7 +87,7 @@ class LolaVoronoi:
         n_initial_point: int = None,
         n_iter: int = 20,
         n_new_point_per_iteration: int = 1,
-        stopping_criterium: bool = False,
+        stopping_criterium: float = None,
     ):
         """TODO: allow for providing starting points"""
         # ..........................................
@@ -180,6 +180,8 @@ class LolaVoronoi:
                     self.number_of_iterations_at_convergence = ii
                     logger.info(f"Algorithm converged in {ii} iterations")
                     break
+
+        return self.fit_points_x, self.fit_points_y
 
 
 # -----------------------------------------------------
