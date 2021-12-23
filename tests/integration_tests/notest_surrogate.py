@@ -280,7 +280,3 @@ def visual_test_probSampling_1D():
     )
 
     plt.show()
-
-
-if __name__ == "__main__":
-    visual_test_probSampling_1D()

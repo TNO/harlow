@@ -177,7 +177,8 @@ class LolaVoronoi:
                 )
                 logger.info(f"Evaluation metric score on provided testset: {score}")
                 if score <= stopping_criterium:
-                    self.number_of_iterations_at_convergence = ii
+                    self.score = score
+                    self.iterations = ii
                     logger.info(f"Algorithm converged in {ii} iterations")
                     break
 

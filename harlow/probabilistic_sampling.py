@@ -129,6 +129,7 @@ class Probabilistic_sampler:
             points_x = np.concatenate((points_x, np.expand_dims(x_new, axis=0)))
             points_y = np.concatenate((points_y, y_new))
 
+            self.score = score
             self.iterations += 1
 
         return points_x, points_y
