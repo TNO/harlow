@@ -49,7 +49,7 @@ def test_forrester_1d_against_sumo():
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
     )
-    lv.adaptive_surrogating(
+    lv.sample(
         n_iter=n_iter,
         n_new_point_per_iteration=n_new_point_per_iteration,
     )
@@ -98,7 +98,7 @@ def test_lldeh_1d_against_sumo():
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
     )
-    lv.adaptive_surrogating(
+    lv.sample(
         n_iter=n_iter,
         n_new_point_per_iteration=n_new_point_per_iteration,
     )

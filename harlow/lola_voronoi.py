@@ -24,6 +24,8 @@ from sklearn.metrics import mean_squared_error
 from harlow.distance import pdist_full_matrix
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.numba_utils import np_all, np_argmax, np_min
+from harlow.sampling_baseclass import Sampler
+from harlow.surrogate_model import Surrogate
 
 # TODO
 #  * improve logging
@@ -38,11 +40,11 @@ fastmath = True
 # -----------------------------------------------------
 # TODO: is this class really needed or just an unnecessary complication? it has a
 #  single method
-class LolaVoronoi:
+class LolaVoronoi(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model,  # TODO: should be a class from `surrogate_model.py`
+        surrogate_model: Surrogate,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -82,7 +84,7 @@ class LolaVoronoi:
         #         self.test_y, self.surrogate_model.predict(self.test_X)
         #     )
 
-    def adaptive_surrogating(
+    def sample(
         self,
         n_initial_point: int = None,
         n_iter: int = 20,
@@ -183,6 +185,9 @@ class LolaVoronoi:
                     break
 
         return self.fit_points_x, self.fit_points_y
+
+    def result_as_dict(self):
+        pass
 
 
 # -----------------------------------------------------

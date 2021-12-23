@@ -34,7 +34,7 @@ def test_sine_1d():
             domain_lower_bound=domain_lower_bound,
             domain_upper_bound=domain_upper_bound,
         )
-        lv.adaptive_surrogating(
+        lv.sample(
             n_iter=n_iter,
             n_initial_point=n_initial_point,
             n_new_point_per_iteration=n_new_point_per_iteration,
@@ -83,7 +83,7 @@ def test_forrester_1d():
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
     )
-    lv.adaptive_surrogating(
+    lv.sample(
         n_iter=n_iter,
         n_initial_point=n_initial_point,
         n_new_point_per_iteration=n_new_point_per_iteration,
@@ -135,7 +135,7 @@ def test_peaks_2d():
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
     )
-    lv.adaptive_surrogating(
+    lv.sample(
         n_iter=n_iter,
         n_initial_point=n_initial_point,
         n_new_point_per_iteration=n_new_point_per_iteration,

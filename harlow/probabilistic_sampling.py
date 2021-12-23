@@ -19,13 +19,14 @@ from scipy.optimize import differential_evolution
 from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
+from harlow.surrogate_model import Surrogate
 
 
 class Probabilistic_sampler:
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model,  # TODO: should be a class from `surrogate_model.py`
+        surrogate_model: Surrogate,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -48,7 +49,7 @@ class Probabilistic_sampler:
 
         self.iterations = 0
 
-    def adaptive_surrogating(
+    def sample(
         self,
         n_initial_point: int = None,
         n_iter: int = 20,
@@ -133,6 +134,9 @@ class Probabilistic_sampler:
             self.iterations += 1
 
         return points_x, points_y
+
+    def result_as_dict(self):
+        pass
 
     def prediction_std(self, x):
         if x.ndim == 1:

@@ -116,7 +116,7 @@ def test_LV_sampling(
         evaluation_metric=rmse,
     )
     main_start = time.time()
-    lv.adaptive_surrogating(
+    lv.sample(
         n_iter=None,
         n_initial_point=n_initial_point,
         n_new_point_per_iteration=n_new_points_per_iteration,
@@ -158,7 +158,7 @@ def test_probabilistic_sampling(
         evaluation_metric=rmse,
     )
     main_start = time.time()
-    ps.adaptive_surrogating(
+    ps.sample(
         n_iter=None,
         n_initial_point=n_initial_point,
         stopping_criterium=rmse_criterium,

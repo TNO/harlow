@@ -264,7 +264,7 @@ def visual_test_probSampling_1D():
         test_points_y=test_y,
     )
 
-    points_x, points_y = lv.adaptive_surrogating()
+    points_x, points_y = lv.sample()
 
     add_samples_to_plot(
         plot,
