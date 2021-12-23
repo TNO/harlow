@@ -124,8 +124,8 @@ def test_LV_sampling(
     )
 
     return {
-        "domain_lower_bound": domain_lower_bound,
-        "domain_upper_bound": domain_upper_bound,
+        "domain_lower_bound": domain_lower_bound.tolist(),
+        "domain_upper_bound": domain_upper_bound.tolist(),
         "iterations": lv.iterations,
         "score": lv.score,
         "elapsed_time": time.time() - main_start,
@@ -165,8 +165,8 @@ def test_probabilistic_sampling(
     )
 
     return {
-        "domain_lower_bound": domain_lower_bound,
-        "domain_upper_bound": domain_upper_bound,
+        "domain_lower_bound": domain_lower_bound.tolist(),
+        "domain_upper_bound": domain_upper_bound.tolist(),
         "iterations": ps.iterations,
         "score": ps.score,
         "elapsed_time": time.time() - main_start,
@@ -208,9 +208,13 @@ def test_random_sampling(
     logger.info(f"Algorithm converged with score {score}")
 
     return {
-        "domain_lower_bound": domain_lower_bound,
-        "domain_upper_bound": domain_upper_bound,
+        "domain_lower_bound": domain_lower_bound.tolist(),
+        "domain_upper_bound": domain_upper_bound.tolist(),
         "iterations": iteration,
         "score": score,
         "elapsed_time": time.time() - main_start,
     }
+
+
+if __name__ == "__main__":
+    run_benchmark()
