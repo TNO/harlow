@@ -83,7 +83,7 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
             shekel,
             n_iteration=i,
             n_new_point_per_iteration=n_per_iter,
-            metric="rmse",
+            evaluation_metric="rmse",
         )
         lv.run_sequential_design()
         y_hat = lv.surrogate_model.predict(test_X)
