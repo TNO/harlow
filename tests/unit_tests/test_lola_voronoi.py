@@ -229,7 +229,7 @@ def test_voronoi_volume_2d():
     solution."""
     domain_lower_bound = np.array([-0.1, -1])
     domain_upper_bound = np.array([1.1, 2])
-    n_simulation = int(1e6)
+    n_simulation = int(1e7)
     plot_fig = False
 
     n_points = [2, 3, 5, 10, 20]

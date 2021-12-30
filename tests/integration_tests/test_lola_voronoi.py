@@ -61,7 +61,7 @@ def test_sine_1d():
 
 
 def test_forrester_1d():
-    n_new_point_per_iteration = 1
+    n_new_point_per_iteration = 2
     n_initial_point = 5
     n_iter = 10
 
@@ -109,7 +109,8 @@ def test_forrester_1d():
         )
 
 
-def test_peaks_2d():
+# remove from tests for now
+def _test_peaks_2d():
     """Work in progress."""
     # section 6.2.3 of [1]
     n_iter = 6

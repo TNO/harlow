@@ -14,22 +14,22 @@ import itertools
 import time
 from typing import Callable, Tuple
 
-import numba as nb
+# import numba as nb
 import numpy as np
 from loguru import logger
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import cdist, pdist, squareform
 from skopt.sampler import Lhs
 from skopt.space import Space
 
-from harlow.distance import pdist_full_matrix
-from harlow.numba_utils import np_all, np_argmax, np_min
+# from harlow.distance import pdist_full_matrix
+# from harlow.numba_utils import np_all, np_argmax, np_min
 
 # TODO
 #  * improve logging
 #  * pretty timedelta: https://gist.github.com/thatalextaylor/7408395
 
-nopython = True
-fastmath = True
+# nopython = True
+# fastmath = True
 
 
 # -----------------------------------------------------
@@ -292,7 +292,7 @@ def best_neighborhoods(points_x: np.ndarray):
     )
 
 
-@nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
+# @nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
 def best_neighborhoods_numba(
     points_x: np.ndarray,
     all_neighbor_point_idxs_combinations: np.ndarray,
@@ -318,12 +318,14 @@ def best_neighborhoods_numba(
     all_neighborhood_scores = -np.ones((n_neighborhood, n_point))
 
     # TODO: both loops are completely independent hence parallelizable
-    for ii in nb.prange(n_point):
+    # for ii in nb.prange(n_point):
+    for ii in range(n_point):
         reference_point_x = np.expand_dims(points_x[ii], 0)
         # consider only the valid neighborhoods: the ones that do not contain
         # `reference_point_x`
         idx_valid_neighborhoods = np.where(
-            np_all(all_neighbor_point_idxs_combinations != ii, axis=1)
+            # np_all(all_neighbor_point_idxs_combinations != ii, axis=1)
+            np.all(all_neighbor_point_idxs_combinations != ii, axis=1)
         )[0]
 
         # TODO: consider only the new neighborhoods that are not too far away
@@ -334,7 +336,8 @@ def best_neighborhoods_numba(
         #     ]
 
         # compute the neighbourhood_score (`ns`) for each neighborhood
-        for jj in nb.prange(len(idx_valid_neighborhoods)):
+        # for jj in nb.prange(len(idx_valid_neighborhoods)):
+        for jj in range(len(idx_valid_neighborhoods)):
             idx_valid_neighborhood = idx_valid_neighborhoods[jj]
             neighbor_points_x = points_x[
                 all_neighbor_point_idxs_combinations[idx_valid_neighborhood], :
@@ -346,11 +349,13 @@ def best_neighborhoods_numba(
             all_neighborhood_scores[idx_valid_neighborhood, ii] = ns
 
     # best neighborhoods, the order is the same as in `points_x`
-    best_neighborhood_idxs = np_argmax(all_neighborhood_scores, axis=0)
+    # best_neighborhood_idxs = np_argmax(all_neighborhood_scores, axis=0)
+    best_neighborhood_idxs = np.argmax(all_neighborhood_scores, axis=0)
     flat_idxs = n_point * best_neighborhood_idxs + np.arange(n_point)
-    best_neighborhood_scores = all_neighborhood_scores.ravel()[
-        flat_idxs.astype(nb.int_)
-    ]
+    # best_neighborhood_scores = all_neighborhood_scores.ravel()[
+    #     flat_idxs.astype(nb.int_)
+    # ]
+    best_neighborhood_scores = all_neighborhood_scores.ravel()[flat_idxs.astype(np.int)]
     return (
         best_neighborhood_scores,
         best_neighborhood_idxs,
@@ -365,7 +370,7 @@ def lola_voronoi_score(
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
 
 
-@nb.jit(nopython=nopython, fastmath=fastmath, cache=False)
+# @nb.jit(nopython=nopython, fastmath=fastmath, cache=False)
 def neighborhood_score(
     neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
 ) -> Tuple[float, float]:
@@ -382,7 +387,7 @@ def neighborhood_score(
     """
     # shapes are not checked!
     # shape the input if not in the right shape, TODO: is this really needed?
-    # reference_point_x = reference_point_x.reshape((1, -1))
+    reference_point_x = reference_point_x.reshape((1, -1))
     n_dim = reference_point_x.shape[1]
     # neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
 
@@ -405,10 +410,12 @@ def neighborhood_score(
         # neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
         # np.fill_diagonal(neighbor_distances, np.inf)
         # min_neighbor_distances = np.min(neighbor_distances, axis=1)
-        neighbor_distances = pdist_full_matrix(neighbor_points_x)
+        # neighbor_distances = pdist_full_matrix(neighbor_points_x)
+        neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
         # TODO: would be good to avoid np.max
         np.fill_diagonal(neighbor_distances, np.max(neighbor_distances))
-        min_neighbor_distances = np_min(neighbor_distances, axis=1)
+        # min_neighbor_distances = np_min(neighbor_distances, axis=1)
+        min_neighbor_distances = np.min(neighbor_distances, axis=1)
         adhesion = np.mean(min_neighbor_distances)
         # Eq(4.5) of [1]
         cross_polytope_ratio = adhesion / (np.sqrt(2) * cohesion)
