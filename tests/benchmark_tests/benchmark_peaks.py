@@ -214,7 +214,3 @@ def test_random_sampling(
         "score": score,
         "elapsed_time": time.time() - main_start,
     }
-
-
-if __name__ == "__main__":
-    run_benchmark()

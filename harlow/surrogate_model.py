@@ -123,6 +123,8 @@ class GaussianProcess(Surrogate):
             new_y = new_y.flatten()
         y = np.concatenate([self.y, new_y])
 
+        # TODO check if this the best way to use for incremental
+        #  learning/online learning
         self.kernel.set_params(**(self.model.kernel_.get_params()))
         self.create_model()
 

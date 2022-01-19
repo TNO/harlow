@@ -355,12 +355,22 @@ def best_neighborhoods_numba(
             np.all(all_neighbor_point_idxs_combinations != ii, axis=1)
         )[0]
 
-        # TODO: consider only the new neighborhoods that are not too far away
-        # ignore_far_neighborhoods = True
-        # if ignore_far_neighborhoods:
-        #     all_neighbor_points_x = points_x[
-        #         all_neighbor_point_idxs_combinations[idx_valid_neighborhoods], :
-        #     ]
+        # consider only the new neighborhoods that are not too far away.
+        # neighborhoods that contain a point farther away the median Euclidean distance
+        # are dismissed.
+        # section [5] of the paper
+        # TODO: Check and discuss whether this 'treshold' defined by the median of
+        #  distances is the best heuristic.
+        ignore_far_neighborhoods = True
+        if ignore_far_neighborhoods:
+            all_neighbor_points_x = points_x[
+                all_neighbor_point_idxs_combinations[idx_valid_neighborhoods], :
+            ]
+            dists = np.linalg.norm(all_neighbor_points_x - reference_point_x, axis=-1)
+            med = np.median(dists)
+            idx_valid_neighborhoods = idx_valid_neighborhoods[
+                np.all(dists <= med, axis=-1)
+            ]
 
         # compute the neighbourhood_score (`ns`) for each neighborhood
         # for jj in nb.prange(len(idx_valid_neighborhoods)):
