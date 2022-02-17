@@ -3,7 +3,7 @@ import math
 import numpy as np
 from lola_voronoi import LolaVoronoi
 from sklearn.metrics import mean_squared_error
-from surrogate_model import NN
+from surrogate_model import Vanilla_NN
 
 from tests.integration_tests.test_functions import shekel
 
@@ -24,7 +24,7 @@ def shekel_benchmark():
     train_y = shekel(train_X)
     test_y = shekel(test_X)
 
-    nn = NN()
+    nn = Vanilla_NN()
     nn.create_model(input_dim=(4,))
     nn.fit(train_X, train_y)
     y_hat = nn.predict(test_X)

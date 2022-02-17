@@ -24,8 +24,7 @@ tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
 
 # TODO make architectures configurable through API
-# TODO chech if class structure is appropriate for all sampling techniques
-# TODO add retrainingn strategies
+# TODO add retraining strategies
 
 
 def NLL(y, distr):
@@ -42,8 +41,13 @@ def normal_sp(params):
     )  # both parameters are learnable
 
 
-# TODO add superclass (abstract) check enforcing methods at subclassing
 class Surrogate(ABC):
+    """
+    Abstract base class for the surrogate models.
+    Each surrogate model must implement methods for model creation, model fitting,
+    model prediction and model updating.
+    """
+
     @abstractmethod
     def create_model(self):
         pass
@@ -65,7 +69,7 @@ class GaussianProcess(Surrogate):
     is_probabilistic = True
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
-    def __init__(self, train_restarts=10, kernel=kernel, **kwargs):
+    def __init__(self, train_restarts=10, kernel=kernel, noise_std=None):
         self.model = None
         self.train_restarts = train_restarts
         self.noise_std = None
@@ -278,25 +282,35 @@ class GaussianProcessTFP(Surrogate):
         self.optimize_parameters(verbose=False)
 
 
-class NN(Surrogate):
+class Vanilla_NN(Surrogate):
+    """
+    Class for Neural Networks.
+    The class takes an uncompiled tensorflow Model, e.g.
+
+
+    """
+
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, input_dim=(2,)):
         self.model = None
+        self.input_dim = input_dim
 
         self.create_model()
 
-    def create_model(self, input_dim=(2,)):
-        inputs = Input(shape=input_dim)
+    def create_model(self):
+        inputs = Input(shape=self.input_dim)
         hidden = Dense(64, activation="relu")(inputs)
         hidden = Dense(32, activation="relu")(hidden)
         hidden = Dense(16, activation="relu")(hidden)
         out = Dense(1)(hidden)
-        optimizer = Adam(learning_rate=self.learning_rate_initial)
+
         self.model = Model(inputs=inputs, outputs=out)
-        self.model.compile(optimizer=optimizer, loss="mse")
+        self.model.compile(
+            optimizer=Adam(learning_rate=self.learning_rate_initial), loss="mse"
+        )
 
     def fit(self, X, y, epochs=10):
         self.model.fit(X, y, epochs=epochs, batch_size=32)
@@ -314,26 +328,20 @@ class NN(Surrogate):
 
             return preds
 
-    def get_model_parameters(self):
-        if self.model is not None:
-            return self.model.get_weights()
 
-    def get_fmin(self):
-        return self.model.predict(self.X).min()
-
-
+# TODO decide whether to keep the Prob_NN. What use it has?
 class Prob_NN(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, **kwargs):
+    def __init__(self, input_dim=(2,)):
         self.model = None
-
+        self.input_dim = input_dim
         self.create_model()
 
     def create_model(self):
-        inputs = Input(shape=(2,))
+        inputs = Input(shape=self.input_dim)
         hidden = Dense(20, activation="relu")(inputs)
         hidden = Dense(50, activation="relu")(hidden)
         hidden = Dense(20, activation="relu")(hidden)
@@ -368,22 +376,15 @@ class Prob_NN(Surrogate):
 
             return mean, stdv
 
-    def get_model_parameters(self):
-        if self.model is not None:
-            return self.model.get_weights()
 
-    def get_fmin(self):
-        return self.model.predict(self.X).min()
-
-
-class Bayesian_NN(Surrogate):
+class Vanilla_BayesianNN(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, X, **kwargs):
+    def __init__(self, X, input_dim=(2,)):
         self.model = None
-        self.is_probabilistic = True
+        self.input_dim = input_dim
 
         self.create_model(X)
 
@@ -394,7 +395,7 @@ class Bayesian_NN(Surrogate):
         def bias_divergence_fn(q, p, _):
             return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
 
-        inputs = Input(shape=(2,))
+        inputs = Input(shape=self.input_dim)
 
         hidden = tfp.layers.DenseFlipout(
             128,
@@ -468,10 +469,3 @@ class Bayesian_NN(Surrogate):
                 mean, stdv, preds
 
             return mean, stdv
-
-    def get_model_parameters(self):
-        if self.model is not None:
-            return self.model.get_weights()
-
-    def get_fmin(self):
-        return self.model.predict(self.X).min()
