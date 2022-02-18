@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogate_model import GaussianProcess, GaussianProcessTFP
+from harlow.surrogate_model import GaussianProcessTFP, VanillaGaussianProcess
 from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
 from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 
@@ -237,7 +237,7 @@ def visual_test_probSampling_1D():
     train_X = scaler.fit_transform(train_X.reshape(-1, 1))
     test_X = scaler.transform(test_X.reshape(-1, 1))
 
-    gp = GaussianProcess()
+    gp = VanillaGaussianProcess()
     gp.fit(train_X, train_y)
 
     p = gp.predict(test_X)
@@ -252,7 +252,7 @@ def visual_test_probSampling_1D():
     )
     plot.plot(X_range, y_range, "r")
 
-    gpr = GaussianProcess()
+    gpr = VanillaGaussianProcess()
     lv = Probabilistic_sampler(
         target_function=forrester_1d,
         surrogate_model=gpr,

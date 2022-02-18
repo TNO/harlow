@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from harlow.lola_voronoi import LolaVoronoi
-from harlow.surrogate_model import GaussianProcess
+from harlow.surrogate_model import VanillaGaussianProcess
 from tests.integration_tests.test_functions import forrester_1d, peaks_2d
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
@@ -23,7 +23,7 @@ def test_sine_1d():
 
         n_iter = int(10 / n_new_point_per_iteration)
 
-        surrogate_model = GaussianProcess()
+        surrogate_model = VanillaGaussianProcess()
 
         # ............................
         # Surrogating
@@ -72,7 +72,7 @@ def test_forrester_1d():
     def target_function(x: np.ndarray):
         return forrester_1d(x).ravel()
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -125,7 +125,7 @@ def _test_peaks_2d():
         x = np.atleast_2d(x)
         return peaks_2d(x)
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating

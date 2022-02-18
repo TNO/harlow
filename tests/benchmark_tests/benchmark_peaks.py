@@ -11,7 +11,7 @@ from sklearn.metrics import mean_squared_error
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogate_model import GaussianProcess
+from harlow.surrogate_model import VanillaGaussianProcess
 from tests.integration_tests.test_functions import peaks_2d
 
 domains_lower_bound = [np.array([-3, -3]), np.array([-5, -5]), np.array([-8, -8])]
@@ -99,7 +99,7 @@ def test_LV_sampling(
     test_y,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -141,7 +141,7 @@ def test_probabilistic_sampling(
     test_y,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -180,7 +180,7 @@ def test_random_sampling(
     main_start = time.time()
 
     start_time = time.time()
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
     surrogate_model.fit(points_x, points_y)
     logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
 

@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+from helper_functions import NLL, normal_sp
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from tensorflow.keras.layers import Dense, Input
@@ -23,22 +24,7 @@ tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
 
-# TODO make architectures configurable through API
 # TODO add retraining strategies
-
-
-def NLL(y, distr):
-    return -distr.log_prob(y)
-
-
-def root_mean_squared_error(y_true, y_pred):
-    return tf.sqrt(tf.reduce_mean(tf.square(y_pred - y_true), axis=1))
-
-
-def normal_sp(params):
-    return tfd.Normal(
-        loc=params[:, 0:1], scale=1e-3 + tf.math.softplus(0.05 * params[:, 1:2])
-    )  # both parameters are learnable
 
 
 class Surrogate(ABC):
@@ -47,6 +33,11 @@ class Surrogate(ABC):
     Each surrogate model must implement methods for model creation, model fitting,
     model prediction and model updating.
     """
+
+    @property
+    @abstractmethod
+    def is_probabilistic(self):
+        pass
 
     @abstractmethod
     def create_model(self):
@@ -65,7 +56,7 @@ class Surrogate(ABC):
         pass
 
 
-class GaussianProcess(Surrogate):
+class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
@@ -89,12 +80,12 @@ class GaussianProcess(Surrogate):
         self.noise_std = self.get_noise()
 
     def get_noise(self):
-        attrs = list(vars(GaussianProcess.kernel).keys())
+        attrs = list(vars(VanillaGaussianProcess.kernel).keys())
 
         white_kernel_attr = []
         for attr in attrs:
             if re.match(pattern="^k[0-9]", string=attr):
-                attr_val = getattr(GaussianProcess.kernel, attr)
+                attr_val = getattr(VanillaGaussianProcess.kernel, attr)
                 if re.match(pattern="^WhiteKernel", string=str(attr_val)):
                     white_kernel_attr.append(attr)
 
@@ -138,11 +129,9 @@ class GaussianProcess(Surrogate):
 class GaussianProcessTFP(Surrogate):
     is_probabilistic = True
 
-    def __init__(self, train_iterations=50, **kwargs):
+    def __init__(self, train_iterations=50):
         self.model = None
         self.train_iterations = train_iterations
-
-        self.create_model()
 
     def create_model(self):
         def _build_gp(amplitude, length_scale, observation_noise_variance):
@@ -290,91 +279,43 @@ class Vanilla_NN(Surrogate):
 
     """
 
-    learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = False
 
-    def __init__(self, input_dim=(2,)):
+    def __init__(self, epochs=10, batch_size=32, loss="mse"):
         self.model = None
-        self.input_dim = input_dim
 
-        self.create_model()
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.loss = loss
 
-    def create_model(self):
-        inputs = Input(shape=self.input_dim)
-        hidden = Dense(64, activation="relu")(inputs)
-        hidden = Dense(32, activation="relu")(hidden)
-        hidden = Dense(16, activation="relu")(hidden)
+    def create_model(self, input_dim=(2,), activation="relu", learning_rate=0.01):
+        inputs = Input(shape=input_dim)
+        hidden = Dense(64, activation=activation)(inputs)
+        hidden = Dense(32, activation=activation)(hidden)
+        hidden = Dense(16, activation=activation)(hidden)
         out = Dense(1)(hidden)
 
         self.model = Model(inputs=inputs, outputs=out)
-        self.model.compile(
-            optimizer=Adam(learning_rate=self.learning_rate_initial), loss="mse"
-        )
+        self.model.compile(optimizer=Adam(learning_rate=learning_rate), loss="mse")
 
-    def fit(self, X, y, epochs=10):
-        self.model.fit(X, y, epochs=epochs, batch_size=32)
+    def fit(self, X, y):
+        self.model.fit(X, y, epochs=self.epochs, batch_size=self.batch_size)
 
     def update(self, X_new, y_new):
         optimizer = Adam(learning_rate=self.learning_rate_update)
-        self.model.compile(optimizer=optimizer, loss=root_mean_squared_error)
-        self.model.fit(X_new, y_new, epochs=10, batch_size=32, verbose=False)
+        self.model.compile(optimizer=optimizer, loss=self.loss)
+        self.model.fit(
+            X_new, y_new, epochs=self.epochs, batch_size=self.batch_size, verbose=False
+        )
 
     def predict(self, X):
         if self.model:
             if len(X.shape) == 1:
                 X = np.expand_dims(X, axis=0)
-            preds = self.model.predict(X)
+            self.preds = self.model.predict(X)
 
-            return preds
-
-
-# TODO decide whether to keep the Prob_NN. What use it has?
-class Prob_NN(Surrogate):
-    learning_rate_initial = 0.01
-    learning_rate_update = 0.001
-    is_probabilistic = True
-
-    def __init__(self, input_dim=(2,)):
-        self.model = None
-        self.input_dim = input_dim
-        self.create_model()
-
-    def create_model(self):
-        inputs = Input(shape=self.input_dim)
-        hidden = Dense(20, activation="relu")(inputs)
-        hidden = Dense(50, activation="relu")(hidden)
-        hidden = Dense(20, activation="relu")(hidden)
-        params = Dense(2)(hidden)
-        dist = tfp.layers.DistributionLambda(normal_sp)(params)
-        optimizer = Adam(learning_rate=self.learning_rate_initial)
-        self.model = Model(inputs=inputs, outputs=dist)
-        self.model.compile(optimizer=optimizer, loss=NLL)
-
-    def fit(self, X, y, epochs=10):
-        self.model.fit(X, y, epochs=epochs, batch_size=32)
-
-    def update(self, X_new, y_new):
-        optimizer = Adam(learning_rate=self.learning_rate_update)
-        self.model.compile(optimizer=optimizer, loss=NLL)
-        self.model.fit(X_new, y_new, epochs=10, batch_size=32)
-
-    def predict(self, X, iterations=50, return_samples=False):
-        if self.model:
-            preds = np.zeros(shape=(X.shape[0], iterations))
-
-            for i in range(iterations):
-                y_ = self.model.predict(X)
-                y__ = np.reshape(y_, (X.shape[0]))
-                preds[:, i] = y__
-
-            mean = np.mean(preds, axis=1)
-            stdv = np.std(preds, axis=1)
-
-            if return_samples:
-                mean, stdv, preds
-
-            return mean, stdv
+            return self.preds
 
 
 class Vanilla_BayesianNN(Surrogate):
@@ -382,78 +323,79 @@ class Vanilla_BayesianNN(Surrogate):
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, X, input_dim=(2,)):
+    def __init__(self, epochs=10, batch_size=32):
         self.model = None
-        self.input_dim = input_dim
+        self.epochs = epochs
+        self.batch_size = batch_size
 
-        self.create_model(X)
+    def kernel_divergence_fn(self, q, p, _):
+        return tfp.distributions.kl_divergence(q, p) / (self.X.shape[0] * 1.0)
 
-    def create_model(self, x):
-        def kernel_divergence_fn(q, p, _):
-            return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
+    def bias_divergence_fn(self, q, p, _):
+        return tfp.distributions.kl_divergence(q, p) / (self.X.shape[0] * 1.0)
 
-        def bias_divergence_fn(q, p, _):
-            return tfp.distributions.kl_divergence(q, p) / (x.shape[0] * 1.0)
-
-        inputs = Input(shape=self.input_dim)
+    def create_model(self, input_dim=(2,), activation="relu", learning_rate=0.01):
+        inputs = Input(shape=input_dim)
 
         hidden = tfp.layers.DenseFlipout(
             128,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
-            kernel_divergence_fn=kernel_divergence_fn,
-            bias_divergence_fn=bias_divergence_fn,
-            activation="relu",
+            kernel_divergence_fn=self.kernel_divergence_fn,
+            bias_divergence_fn=self.bias_divergence_fn,
+            activation=activation,
         )(inputs)
         hidden = tfp.layers.DenseFlipout(
             64,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
-            kernel_divergence_fn=kernel_divergence_fn,
-            bias_divergence_fn=bias_divergence_fn,
-            activation="relu",
+            kernel_divergence_fn=self.kernel_divergence_fn,
+            bias_divergence_fn=self.bias_divergence_fn,
+            activation=activation,
         )(hidden)
         hidden = tfp.layers.DenseFlipout(
             32,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
-            kernel_divergence_fn=kernel_divergence_fn,
-            bias_divergence_fn=bias_divergence_fn,
-            activation="relu",
+            kernel_divergence_fn=self.kernel_divergence_fn,
+            bias_divergence_fn=self.bias_divergence_fn,
+            activation=activation,
         )(hidden)
         hidden = tfp.layers.DenseFlipout(
             16,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
-            kernel_divergence_fn=kernel_divergence_fn,
-            bias_divergence_fn=bias_divergence_fn,
-            activation="relu",
+            kernel_divergence_fn=self.kernel_divergence_fn,
+            bias_divergence_fn=self.bias_divergence_fn,
+            activation=activation,
         )(hidden)
         params = tfp.layers.DenseFlipout(
             2,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
-            kernel_divergence_fn=kernel_divergence_fn,
-            bias_divergence_fn=bias_divergence_fn,
+            kernel_divergence_fn=self.kernel_divergence_fn,
+            bias_divergence_fn=self.bias_divergence_fn,
         )(hidden)
         dist = tfp.layers.DistributionLambda(normal_sp)(params)
 
         self.model = Model(inputs=inputs, outputs=dist)
         self.model.compile(Adam(learning_rate=self.learning_rate_initial), loss=NLL)
 
-    def fit(self, X, y, epochs=25, verbose=0):
+    def fit(self, X, y):
         self.X = X
         self.y = y
-        self.model.fit(X, y, epochs=epochs, batch_size=32, verbose=verbose)
+        self.model.fit(
+            X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=True
+        )
 
-    def update(self, X_new, y_new, epochs=25, verbose=0):
+    def update(self, X_new, y_new):
         if self.model is None:
             self._create_model()
         else:
             self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
-            self.model.fit(X_new, y_new, epochs=epochs, batch_size=32, verbose=verbose)
+            self.model.fit(X_new, y_new, epochs=self.epochs, batch_size=self.batch_size)
 
-    def predict(self, X, iterations=50, return_samples=False):
+    def predict(self, X, iterations=50):
         if self.model:
             preds = np.zeros(shape=(X.shape[0], iterations))
 
@@ -465,7 +407,9 @@ class Vanilla_BayesianNN(Surrogate):
             mean = np.mean(preds, axis=1)
             stdv = np.std(preds, axis=1)
 
-            if return_samples:
-                mean, stdv, preds
+            self.predictions = preds
 
             return mean, stdv
+
+    def get_predictions(self):
+        return self.predictions
