@@ -1,5 +1,5 @@
 """
-Adaptive sampling based on uncertainty heuristics.
+Adaptive sampling based on model uncertainty.
 This algorithm is from:
     Xuzheng Chai (2019) Probabilistic system identification and reliability updating
     for hydraulic structures - Application to sheet pile walls
