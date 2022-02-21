@@ -65,25 +65,6 @@ class LolaVoronoi(Sampler):
         self.metric = evaluation_metric
         self.verbose = verbose
 
-        # TODO:
-        #  * add a cleaned up metric (see below)
-        #  * add input consistency check & formatting input if needed
-        # if evaluation_metric == "r2":
-        #     self.metric = r2_score
-        # elif evaluation_metric == "mse":
-        #     self.metric = mean_squared_error
-        # elif evaluation_metric == "rmse":
-        #     self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
-        #
-        # if np.ndim(self.test_X) == 1:
-        #     self.score[0] = (self.metric
-        #         self.test_y, self.surrogate_model.predict(self.test_X.reshape(-1, 1))
-        #     )
-        # else:
-        #     self.score[0] = self.metric(
-        #         self.test_y, self.surrogate_model.predict(self.test_X)
-        #     )
-
     def sample(
         self,
         n_initial_point: int = None,
@@ -107,7 +88,9 @@ class LolaVoronoi(Sampler):
             n_iter = 1000
 
         if stopping_criterium and not self.metric:
-            self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
+            self.metric = lambda true, predict: math.sqrt(
+                mean_squared_error(true, predict)
+            )
 
         # ..........................................
         # Initial sample of points
@@ -175,7 +158,7 @@ class LolaVoronoi(Sampler):
 
             if stopping_criterium:
                 score = self.metric(
-                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
+                    self.test_points_y, self.surrogate_model.predict(self.test_points_x)
                 )
                 logger.info(f"Evaluation metric score on provided testset: {score}")
                 if score <= stopping_criterium:
