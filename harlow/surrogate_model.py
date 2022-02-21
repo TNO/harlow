@@ -13,12 +13,13 @@ from abc import ABC, abstractmethod
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from helper_functions import NLL, normal_sp
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+
+from harlow.helper_functions import NLL, normal_sp
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
