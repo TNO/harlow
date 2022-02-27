@@ -3,6 +3,35 @@
 import numpy as np
 
 
+def lldeh_1d(x: np.ndarray, a: float) -> np.ndarray:
+    """
+    An interesting 1D non-linear function.
+
+    Source: https://www.reddit.com/r/math/comments/5mwr9g/what_are_your_favourite_or_most_interesting/  # noqa E301
+    Args:
+        x:
+        a: parameter to control the shape, interesting variants: a=0, a=2.1
+
+    Returns:
+
+    """
+    g = np.tan(0.5 * a)
+    return 2 * x ** 2 / (x ** 2 + g * x + 1)
+
+
+def peaks_2d(x: np.ndarray) -> np.ndarray:
+    # https://nl.mathworks.com/help/matlab/ref/peaks.html
+    x = np.atleast_2d(x)
+    x1 = x[:, 0]
+    x2 = x[:, 1]
+
+    return (
+        3 * (1 - x1) ** 2 * np.exp(-(x1 ** 2) - (x2 + 1) ** 2)
+        - 10 * (x1 / 5 - x1 ** 3 - x2 ** 5) * np.exp(-(x1 ** 2) - x2 ** 2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2 ** 2)
+    )
+
+
 def ackley_nd(
     x_mx: np.ndarray, a: float = 20.0, b: float = 0.2, c: float = 2 * np.pi
 ) -> np.ndarray:
@@ -49,9 +78,9 @@ def six_hump_camel_2D_2input(x, y):
     return ((4.0 - 2.1 * x2 + (x4 / 3.0)) * x2) + (x * y) + ((-4.0 + 4.0 * y2) * y2)
 
 
-def forresterEtAl(X):
-    term_a = 6 * X - 2
-    term_b = 12 * X - 4
+def forrester_1d(x: np.ndarray) -> np.ndarray:
+    term_a = 6 * x - 2
+    term_b = 12 * x - 4
     return np.power(term_a, 2) * np.sin(term_b)
 
 

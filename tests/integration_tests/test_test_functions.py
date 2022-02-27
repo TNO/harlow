@@ -1,6 +1,6 @@
 import numpy as np
 
-from tests.test_functions import ackley_nd
+from tests.integration_tests.test_functions import ackley_nd
 
 
 def test_ackley_nd():
@@ -25,7 +25,7 @@ def test_ackley_nd():
     y = ackley_nd(x_mx=x_mx, a=a, b=b, c=c)
     np.testing.assert_almost_equal(y_expected, y)
 
-    # points that has the same value irrespective of the dimension, against the same
+    # points that have the same value irrespective of the dimension, against the same
     # Matlab implementation
     y_expected = np.array([3.625384938440363, 6.593599079287213, 11.013420717655567])
     for ii in range(n_max_dim):
