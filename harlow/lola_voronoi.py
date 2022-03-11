@@ -384,7 +384,7 @@ def best_neighborhoods(
     )
 
 
-@nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
+# @nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
 def best_neighborhoods_numba(
     points_x: np.ndarray,
     all_neighbor_point_idxs_combinations: np.ndarray,
