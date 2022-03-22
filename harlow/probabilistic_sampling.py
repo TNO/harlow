@@ -1,5 +1,5 @@
 """
-Adaptive sampling based on model uncertainty.
+Adaptive sampling based on uncertainty heuristics.
 This algorithm is from:
     Xuzheng Chai (2019) Probabilistic system identification and reliability updating
     for hydraulic structures - Application to sheet pile walls
@@ -19,11 +19,10 @@ from scipy.optimize import differential_evolution
 from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
-from harlow.sampling_baseclass import Sampler
 from harlow.surrogate_model import Surrogate
 
 
-class Probabilistic_sampler(Sampler):
+class Probabilistic_sampler:
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
