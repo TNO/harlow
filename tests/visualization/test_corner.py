@@ -4,7 +4,7 @@ a human."""
 import numpy as np
 
 from harlow.visualization.corner import corner
-from tests.test_functions import ackley_nd
+from tests.integration_tests.test_functions import ackley_nd
 
 
 def func_nd(x: np.ndarray):
