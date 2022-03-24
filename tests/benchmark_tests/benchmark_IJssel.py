@@ -224,7 +224,9 @@ def test_LV_sampling(
         n_iter=N_iter,
         n_initial_point=n_initial_point,
         n_new_point_per_iteration=n_new_points_per_iteration,
-        stopping_criterium=rmse_criterium,
+        # stopping_criterium=rmse_criterium,
+        ignore_old_neighborhoods=True,
+        ignore_far_neighborhoods=True,
     )
 
     return {

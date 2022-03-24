@@ -13,6 +13,8 @@ The implementation is influenced by:
 import itertools
 import math
 import time
+from copy import deepcopy
+from timeit import default_timer as timer
 from typing import Callable, Optional, Tuple
 
 import numba as nb
@@ -22,7 +24,7 @@ from scipy.spatial.distance import cdist
 from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
-from harlow.numba_utils import euclidean_distance, np_all, np_any, np_min
+from harlow.numba_utils import euclidean_distance, np_any, np_min
 from harlow.sampling_baseclass import Sampler
 from harlow.surrogate_model import Surrogate
 
@@ -266,6 +268,7 @@ def best_new_points(
     ) = best_neighborhoods(
         points_x,
         n_point_last_iter,
+        n_new_point,
         ignore_far_neighborhoods=ignore_far_neighborhoods,
         ignore_old_neighborhoods=ignore_old_neighborhoods,
     )
@@ -349,6 +352,7 @@ def best_new_points_with_neighbors(
 def best_neighborhoods(
     points_x: np.ndarray,
     n_point_last_iter: np.ndarray,
+    n_new_point_per_iter,
     ignore_far_neighborhoods: Optional[bool] = True,
     ignore_old_neighborhoods: Optional[bool] = True,
 ):
@@ -362,20 +366,29 @@ def best_neighborhoods(
     n_point, n_dim = points_x.shape
     n_neighbor = 2 * n_dim
 
+    # All neighborhoods
     all_neighbor_point_idxs_combinations = np.array(
         list(itertools.combinations(np.arange(n_point), n_neighbor))
     )
+
+    # Neighborhoods considering one less point
+    neighbor_point_combinations = np.array(
+        list(itertools.combinations(np.arange(n_point - 1), n_neighbor))
+    )
+
     (
         best_neighborhood_scores,
         best_neighborhood_idxs,
         all_neighborhood_scores,
     ) = best_neighborhoods_numba(
         points_x,
-        all_neighbor_point_idxs_combinations,
+        neighbor_point_combinations,
         n_point_last_iter,
+        n_new_point_per_iter,
         ignore_far_neighborhoods=ignore_far_neighborhoods,
         ignore_old_neighborhoods=ignore_old_neighborhoods,
     )
+
     return (
         best_neighborhood_scores,
         best_neighborhood_idxs,
@@ -387,8 +400,9 @@ def best_neighborhoods(
 # @nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
 def best_neighborhoods_numba(
     points_x: np.ndarray,
-    all_neighbor_point_idxs_combinations: np.ndarray,
+    neighbor_point_combinations: np.ndarray,
     n_point_last_iter: int,
+    n_new_point_per_iter,
     ignore_far_neighborhoods: Optional[bool] = True,
     ignore_old_neighborhoods: Optional[bool] = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -399,11 +413,24 @@ def best_neighborhoods_numba(
 
     Args:
         points_x: n_point x n_dim.
-        all_neighbor_point_idxs_combinations:
+        neighbor_point_combinations:
         n_point_last_iter:
         ignore_far_neighborhoods:
         ignore_old_neighborhoods:
     Returns:
+
+    TODO:
+     * It may be possible to refactor this part. Instead of creating the
+     array of all valid combinations for N points, create the array for
+     N-1 points. At each iteration of this loop we ignore the reference
+     point, meaning that every time we can use the same combination of
+     N-1 points, but with different indices. The indices in the array of
+     combinations can be considered as 'labels'. Instead of excluding all
+     combinations with the reference point at each iteration (which is costly),
+     we can simply change the mapping between 'labels' and points.
+     * The neighborhood score for a given reference point can not decrease
+      between iterations. This allows us to only store a single best score
+      for each point, instead of a n_neighborhood x n_point array of scores.
 
     """
 
@@ -412,7 +439,8 @@ def best_neighborhoods_numba(
     # too far away. This will reduce storage requirements
     # and the computational cost of obtaining all combinations.
     n_point, n_dim = points_x.shape
-    n_neighborhood = all_neighbor_point_idxs_combinations.shape[0]
+    n_neighborhood = neighbor_point_combinations.shape[0]
+    idx_valid_neighborhoods = np.arange(n_neighborhood)
 
     # Number of new points
     n_new_points = points_x.shape[0] - n_point_last_iter
@@ -425,44 +453,76 @@ def best_neighborhoods_numba(
     # TODO: both loops are completely independent hence parallelizable
     # for ii in nb.prange(n_point):
     # This loop is executed for each point in the domain
-    for ii in range(n_point):
-        reference_point_x = np.expand_dims(points_x[ii], 0)
-        # consider only the valid neighborhoods: the ones that do not contain
-        # `reference_point_x`
-        idx_valid_neighborhoods = np.where(
-            np_all(all_neighbor_point_idxs_combinations != ii, axis=1)
-        )[0]
+    t_neighbour = []
+    t_test = []
+    t_ignore_far = []
+    t1_full = timer()
 
+    # Array of labels
+    arr_labels = np.arange(n_point - 1)
+
+    # Array of new point indices
+    arr_new_point_no = np.arange(n_point_last_iter, n_point_last_iter + n_new_points)
+
+    for ii in range(n_point):
+
+        reference_point_x = np.expand_dims(points_x[ii], 0)
+
+        # # consider only the valid neighborhoods: the ones that do not contain
+        # # `reference_point_x`
+        # idx_valid_neighborhoods = np.where(
+        #     np_all(all_neighbor_point_idxs_combinations != ii, axis=1)
+        # )[0]
+        #
+        # arr_valid_neighbourhoods = all_neighbor_point_idxs_combinations[
+        #     idx_valid_neighborhoods
+        # ]
+
+        # Array containing all point indices except for reference point
+        arr_points = np.arange(n_point - 1)
+        arr_points[ii:] = arr_points[ii:] + 1
+
+        # Coordinates of all points except reference point
+        arr_x = points_x[arr_points]
+
+        # Make a copy of the array of neighborhoods
+        arr_valid_neighbourhoods = deepcopy(neighbor_point_combinations)
+
+        t1_test = timer()
         if ignore_old_neighborhoods:
-            # Find index of old points
-            arr_valid_neighbourhoods = all_neighbor_point_idxs_combinations[
-                idx_valid_neighborhoods
-            ]
-            arr_new_point_no = np.arange(
-                n_point_last_iter, n_point_last_iter + n_new_points
+
+            # Get array of labels of new points
+            arr_new_point_labels = get_point_labels(
+                arr_new_point_no, arr_labels, arr_points
             )
 
             # Remove entries from valid neighborhoods that
             # do not contain a new point
             arr_valid_neighbourhoods_mask = np.repeat(
-                False, len(arr_valid_neighbourhoods)
+                False, len(neighbor_point_combinations)
             )
-            for _idx_pt, pt in enumerate(arr_new_point_no):
+
+            # Iterate over the new point labels and find all neighborhoods
+            # that contain a new point
+            for _idx_pt, pt in enumerate(arr_new_point_labels):
 
                 # Mask valid neighbourhoods (i.e. neighbourhoods that contain
                 # the current new point). Terminate early if all elements
                 # in mask array are true.
                 arr_valid_neighbourhoods_mask = np.bitwise_or(
                     arr_valid_neighbourhoods_mask,
-                    np_any(arr_valid_neighbourhoods == pt, axis=1),
+                    np_any(neighbor_point_combinations == pt, axis=1),
                 )
                 if np.all(arr_valid_neighbourhoods_mask):
                     break
-            arr_valid_neighbourhoods = arr_valid_neighbourhoods[
+            arr_valid_neighbourhoods = neighbor_point_combinations[
                 arr_valid_neighbourhoods_mask
             ]
             idx_valid_neighborhoods = np.where(arr_valid_neighbourhoods_mask)[0]
+        t2_test = timer()
+        t_test.append(t2_test - t1_test)
 
+        t1_ignore_far = timer()
         # consider only the new neighborhoods that are not too far away.
         # neighborhoods that contain a point farther away the median Euclidean distance
         # are dismissed.
@@ -471,10 +531,8 @@ def best_neighborhoods_numba(
         #  distances is the best heuristic.
         if np.where(idx_valid_neighborhoods)[0].size:
             if ignore_far_neighborhoods:
-                valid_pts_combinations = all_neighbor_point_idxs_combinations[
-                    idx_valid_neighborhoods
-                ]
-                all_neighbor_points_x = points_x[valid_pts_combinations, :]
+
+                all_neighbor_points_x = arr_x[arr_valid_neighbourhoods, :]
                 dists = np.linalg.norm(
                     all_neighbor_points_x - reference_point_x, axis=-1
                 )
@@ -482,14 +540,16 @@ def best_neighborhoods_numba(
                 idx_valid_neighborhoods = idx_valid_neighborhoods[
                     np.all(dists <= med, axis=-1)
                 ]
+        t2_ignore_far = timer()
+        t_ignore_far.append(t2_ignore_far - t1_ignore_far)
 
         # compute the neighbourhood_score (`ns`) for each neighborhood
-        #
+        t1_n = timer()
         if np.where(idx_valid_neighborhoods)[0].size:
-            for jj in range(len(idx_valid_neighborhoods)):
-                idx_valid_neighborhood = idx_valid_neighborhoods[jj]
-                neighbor_points_x = points_x[
-                    all_neighbor_point_idxs_combinations[idx_valid_neighborhood], :
+            for idx_valid_neighborhood in idx_valid_neighborhoods:
+
+                neighbor_points_x = arr_x[
+                    neighbor_point_combinations[idx_valid_neighborhood], :
                 ]
                 # this is a time consuming function
                 ns = neighborhood_score(
@@ -497,7 +557,14 @@ def best_neighborhoods_numba(
                     reference_point_x=reference_point_x,
                 )[0]
                 all_neighborhood_scores[idx_valid_neighborhood, ii] = ns
+        t2_n = timer()
+        t_neighbour.append(t2_n - t1_n)
+    t2_full = timer()
 
+    print(f"Time for neighbourhood scores = {np.sum(t_neighbour)}")
+    print(f"Test time = {np.sum(t_test)}")
+    print(f"Ignore time = {np.sum(t_ignore_far)}")
+    print(f"Full time = {t2_full - t1_full}")
     # best neighborhoods, the order is the same as in `points_x`
     # best_neighborhood_idxs = np_argmax(all_neighborhood_scores, axis=0)
     best_neighborhood_idxs = np.argmax(all_neighborhood_scores, axis=0)
@@ -511,6 +578,18 @@ def best_neighborhoods_numba(
         best_neighborhood_idxs,
         all_neighborhood_scores,
     )
+
+
+def get_point_labels(points, label_array, point_array):
+    """
+    Get the labels of a set of points given two arrays that
+    define a mapping between labels and points.
+
+    WARNING: This function will not work correctly if there are
+    elements in `points` that do not exist in `point_array`.
+    """
+
+    return label_array[np.nonzero(np.isin(point_array, points))]
 
 
 def lola_voronoi_score(
