@@ -348,7 +348,7 @@ def best_new_points_with_neighbors(
 
 def best_neighborhoods(
     points_x: np.ndarray,
-    n_point_last_iter: np.ndarray,
+    n_point_last_iter: int,
     ignore_far_neighborhoods: Optional[bool] = True,
     ignore_old_neighborhoods: Optional[bool] = True,
 ):
