@@ -3,8 +3,26 @@ Helper functions for the adaptive sampling strategies.
 """
 
 import numpy as np
+import tensorflow as tf
+import tensorflow_probability as tfp
 from skopt.sampler import Lhs
 from skopt.space import Space
+
+tfd = tfp.distributions
+
+
+def NLL(y, distr):
+    return -distr.log_prob(y)
+
+
+def root_mean_squared_error(y_true, y_pred):
+    return tf.sqrt(tf.reduce_mean(tf.square(y_pred - y_true), axis=1))
+
+
+def normal_sp(params):
+    return tfd.Normal(
+        loc=params[:, 0:1], scale=1e-3 + tf.math.softplus(0.05 * params[:, 1:2])
+    )  # both parameters are learnable
 
 
 def latin_hypercube_sampling(
