@@ -8,11 +8,15 @@ The main requirements towards each surrogate model are that they:
 
 """
 import re
+import warnings
 from abc import ABC, abstractmethod
 
+import gpytorch
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
+import torch
+from gpytorch.mlls import SumMarginalLogLikelihood
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from tensorflow.keras.layers import Dense, Input
@@ -274,6 +278,237 @@ class GaussianProcessTFP(Surrogate):
             new_y = new_y.flatten()
         self.observations = np.concatenate([self.observations, new_y])
         self.optimize_parameters(verbose=False)
+
+
+class ExactGPModel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood):
+        super().__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+
+class ModelListGaussianProcess(Surrogate):
+    """
+    Utility class to generate a surrogate composed of multiple independent
+    Gaussian processes. Currently uses GPyTorch.
+
+    It is assumed that the training inputs are common between the N_task GPs,
+    but not all features are used in each GP.
+
+    Notes:
+        * This model must be initialized with data
+        * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+        with its arguments every time it is called.
+        * The `.update(X, y)` method will append the new X and y training tensors
+        to the existing `train_X`, `train_y` and perform the fitting.
+        * Both `.fit()` and `.update()` will re-instantiate a new model. There
+        is likely a better solution to this.
+
+    TODO:
+    * Could this be extended so that the input features for each GP are
+    determined based on an information-theory approach (e.g. using the Fisher
+    information matrix approximation)? The training points could be jointly
+    determined for all GPs to minimize the number of FE model evaluations
+    needed for surrogating.
+    * GpyTorch probably has existing functionality for updating and refitting
+    models. This is likely the prefered approach and should replace the current
+    approach where the model is redefined at each call to `fit()` or `.update()`.
+    * Rewrite to use the existing Gaussian process surrogate class
+    """
+
+    is_probabilistic = True
+
+    def __init__(
+        self,
+        train_X,
+        train_y,
+        model_names,
+        training_iter=100,
+        learning_rate=0.1,
+        optimizer=None,
+        mean=None,
+        covar=None,
+        list_params=None,
+        show_progress=True,
+        **kwargs,
+    ):
+
+        self.model_names = model_names
+        self.model = None
+        self.train_X = train_X
+        self.train_y = train_y
+        self.training_iter = training_iter
+        self.noise_std = None
+        self.likelihood = None
+        self.mll = None
+        self.learning_rate = learning_rate
+        self.mean_module = mean
+        self.covar_module = covar
+        self.list_params = list_params
+        self.optimizer = optimizer
+        self.show_progress = show_progress
+        self.predictions = None
+
+        # Check input consistency
+        if self.model_names is None:
+            raise ValueError("An iterable of model names must be specified")
+
+        if self.list_params is None:
+            raise ValueError(
+                "An iterable of parameter indices per model must" "be specified"
+            )
+
+        if self.optimizer is None:
+            warnings.warn("No optimizer specified, using default.", UserWarning)
+
+        # Initialize model
+        self.create_model()
+
+    def create_model(self):
+
+        # Check input consistency
+        if self.train_y.shape[0] != self.train_X.shape[0]:
+            raise ValueError(
+                f"Dim 0 of `train_y` must be equal to the number of training"
+                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
+            )
+
+        if self.train_y.shape[1] != len(self.model_names):
+            raise ValueError(
+                f"Dim 1 of `train_y` must be equal to the number of models"
+                f"but is {self.train_y.shape[0]} != {len(self.model_names)}"
+            )
+
+        # Assemble the models and likelihoods
+        list_likelihoods = []
+        list_surrogates = []
+        for i, _name in enumerate(self.model_names):
+
+            # Initialize list of GP surrogates
+            list_likelihoods.append(gpytorch.likelihoods.GaussianLikelihood())
+            list_surrogates.append(
+                ExactGPModel(
+                    self.train_X[:, self.list_params[i]],
+                    self.train_y[:, i],
+                    list_likelihoods[i],
+                )
+            )
+
+            # Collect the independent GPs in ModelList and LikelihoodList objects
+            self.model = gpytorch.models.IndependentModelList(*list_surrogates)
+            self.likelihood = gpytorch.likelihoods.LikelihoodList(*list_likelihoods)
+
+    def fit(self, train_X=None, train_y=None):
+
+        # If arguments are passed, delete the previously storred `train_X` and `train_y`
+        if (train_X is None) or (train_y is None):
+            warnings.warn(
+                "Calling `.fit()` with no input argumentss will re-instantiate "
+                "and fit the model for the currently stored training data."
+            )
+        else:
+            self.train_X = torch.atleast_2d(torch.tensor(train_X).float())
+            self.train_y = torch.atleast_2d(torch.tensor(train_y).float())
+
+        # Create model
+        self.create_model()
+
+        # Switch the model to train mode
+        self.model.train()
+        self.likelihood.train()
+
+        # Define optimizer
+        if self.optimizer is None:
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(), lr=self.learning_rate
+            )  # Includes GaussianLikelihood parameters
+
+        # Define marginal loglikelihood
+        self.mll = SumMarginalLogLikelihood(self.likelihood, self.model)
+
+        # Train
+        self.vec_loss = torch.zeros(self.training_iter)
+        for i in range(self.training_iter):
+            self.optimizer.zero_grad()
+            output = self.model(*self.model.train_inputs)
+            loss = -self.mll(output, self.model.train_targets)
+            loss.backward()
+            print("Iter %d/%d - Loss: %.3f" % (i + 1, self.training_iter, loss.item()))
+            self.vec_loss[i] = loss.item()
+            self.optimizer.step()
+
+        # Get noise value
+        self.noise_std = self.get_noise()
+
+    def predict(self, X_pred, return_std=False):
+
+        # Cast input to tensor for compatibility with sampling algorithms
+        X_pred = torch.atleast_2d(torch.tensor(X_pred).float())
+
+        # Switch the model to eval mode
+        self.model.eval()
+        self.likelihood.eval()
+
+        # Get input features per model
+        X_list = [X_pred[:, prm_list] for prm_list in self.list_params]
+
+        # Make predictions
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            self.predictions = self.likelihood(*self.model(*X_list))
+
+        # Generate output for each model
+        self.mean = []
+        self.lower = []
+        self.upper = []
+        self.std = []
+        self.var = []
+        sample = []
+        for _submodel, prediction in zip(self.model.models, self.predictions):
+
+            # Get mean, variance and std. dev per model
+            self.mean.append(prediction.mean)
+            self.var.append(prediction.variance)
+            self.std.append(prediction.variance.sqrt())
+
+            # Get posterior predictive samples per model
+            sample.append(prediction.sample())
+
+            # Get confidence intervals per model
+            l_cr, u_cr = prediction.confidence_region()
+            self.lower.append(l_cr)
+            self.upper.append(u_cr)
+
+        if return_std:
+            return sample, self.std
+        else:
+            return sample
+
+    def sample_posterior(self, n_samples=1):
+        sample = []
+        for prediction in self.predictions:
+            sample.append(prediction.n_sample(n_samples))
+
+        return sample
+
+    def update(self, new_X, new_y):
+        full_X = torch.cat([self.train_X, new_X], dim=0)
+        full_y = torch.cat([self.train_y, new_y], dim=0)
+
+        self.optimizer = None
+        self.fit(full_X, full_y)
+
+    def get_noise(self):
+
+        noise_std = []
+        for likelihood in self.model.likelihood.likelihoods:
+            noise_std.append(likelihood.noise.sqrt())
+
+        return noise_std
 
 
 class NN(Surrogate):
