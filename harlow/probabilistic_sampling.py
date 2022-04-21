@@ -128,7 +128,9 @@ class Probabilistic_sampler:
             x_new = diff_evolution_result.x
             y_new = self.target_function(x_new)
             points_x = np.concatenate((points_x, np.expand_dims(x_new, axis=0)))
-            points_y = np.concatenate((points_y, y_new))
+
+            # TODO: This part should be generalized to work with list models
+            points_y = np.concatenate((points_y, y_new.T))
 
             self.score = score
             self.iterations += 1
@@ -142,9 +144,19 @@ class Probabilistic_sampler:
         if x.ndim == 1:
             x = np.expand_dims(x, axis=0)
 
-        std = -(
-            self.surrogate_model.predict(x, return_std=True)[1]
-            - self.surrogate_model.noise_std
-        )
+        # Return minimum across all models
+        std_model = np.atleast_1d(self.surrogate_model.predict(x, return_std=True)[1])
 
-        return std
+        # TODO: This part should be improved
+        try:
+            std_noise = np.atleast_1d(self.surrogate_model.noise_std)
+        except:  # noqa: E722,B001
+            std_noise = [
+                std_i.detach().numpy() for std_i in self.surrogate_model.noise_std
+            ]
+
+        std = [
+            -(std_model_i - std_noise[idx]) for idx, std_model_i in enumerate(std_model)
+        ]
+
+        return np.min(std)

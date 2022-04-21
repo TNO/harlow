@@ -328,13 +328,15 @@ class ModelListGaussianProcess(Surrogate):
         train_X,
         train_y,
         model_names,
-        training_iter=100,
+        training_max_iter=100,
         learning_rate=0.1,
+        min_loss_rate=0.01,
         optimizer=None,
         mean=None,
         covar=None,
         list_params=None,
         show_progress=True,
+        silence_warnings=False,
         **kwargs,
     ):
 
@@ -342,11 +344,12 @@ class ModelListGaussianProcess(Surrogate):
         self.model = None
         self.train_X = train_X
         self.train_y = train_y
-        self.training_iter = training_iter
+        self.training_max_iter = training_max_iter
         self.noise_std = None
         self.likelihood = None
         self.mll = None
         self.learning_rate = learning_rate
+        self.min_loss_rate = min_loss_rate
         self.mean_module = mean
         self.covar_module = covar
         self.list_params = list_params
@@ -366,10 +369,20 @@ class ModelListGaussianProcess(Surrogate):
         if self.optimizer is None:
             warnings.warn("No optimizer specified, using default.", UserWarning)
 
-        # Initialize model
+        # Silence torch and numpy warnings (related to converting
+        # between np.arrays and torch.tensors).
+        if silence_warnings:
+            warnings.filterwarnings("once", category=DeprecationWarning)
+            warnings.filterwarnings("once", category=UserWarning)
+            warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+
+            # Initialize model
         self.create_model()
 
     def create_model(self):
+
+        # Reset optimizer
+        self.optimizer = None
 
         # Check input consistency
         if self.train_y.shape[0] != self.train_X.shape[0]:
@@ -432,18 +445,37 @@ class ModelListGaussianProcess(Surrogate):
         self.mll = SumMarginalLogLikelihood(self.likelihood, self.model)
 
         # Train
-        self.vec_loss = torch.zeros(self.training_iter)
-        for i in range(self.training_iter):
+        vec_loss = []
+        loss_0 = np.inf
+        for _i in range(self.training_max_iter):
+
             self.optimizer.zero_grad()
             output = self.model(*self.model.train_inputs)
             loss = -self.mll(output, self.model.train_targets)
             loss.backward()
-            print("Iter %d/%d - Loss: %.3f" % (i + 1, self.training_iter, loss.item()))
-            self.vec_loss[i] = loss.item()
+            vec_loss.append(loss.item())
             self.optimizer.step()
 
-        # Get noise value
-        self.noise_std = self.get_noise()
+            # TODO: Will this work for negative losss? CHECK
+            loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+            # From https://stackoverflow.com/questions/5290994
+            # /remove-and-replace-printed-items
+            if self.show_progress:
+                print(
+                    f"Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
+                    end="\r",
+                    flush=True,
+                )
+
+            # Get noise value
+            self.noise_std = self.get_noise()
+
+            # Check criterion and break if true
+            if loss_ratio < 0.0:
+                break
+
+            # Set previous iter loss to current
+            loss_0 = loss.item()
 
     def predict(self, X_pred, return_std=False):
 
@@ -489,6 +521,11 @@ class ModelListGaussianProcess(Surrogate):
             return sample
 
     def sample_posterior(self, n_samples=1):
+
+        # Switch the model to eval mode
+        self.model.eval()
+        self.likelihood.eval()
+
         sample = []
         for prediction in self.predictions:
             sample.append(prediction.n_sample(n_samples))
