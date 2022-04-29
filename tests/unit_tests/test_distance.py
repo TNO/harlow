@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import distance
 
-from harlow.distance import pdist_condensed, pdist_full_matrix
+from harlow.utils.distance import pdist_condensed, pdist_full_matrix
 
 
 def test_pdist_condensed():

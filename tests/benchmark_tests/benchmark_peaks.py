@@ -8,10 +8,10 @@ import numpy as np
 from loguru import logger
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.lola_voronoi import LolaVoronoi
-from harlow.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogate_model import GaussianProcess
+from harlow.sampling.lola_voronoi import LolaVoronoi
+from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
+from harlow.surrogating.surrogate_model import GaussianProcess
+from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.integration_tests.test_functions import peaks_2d
 
 domains_lower_bound = [np.array([-3, -3]), np.array([-5, -5]), np.array([-8, -8])]
