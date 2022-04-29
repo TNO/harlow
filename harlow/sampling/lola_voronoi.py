@@ -1,15 +1,3 @@
-"""Lola-Vornoi adaptive design strategy for global surrogate modelling.
-
-The algorithm is proposed and described in this paper:
-[1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
-surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
-(2011): 1948-1974.
-
-The implementation is influenced by:
-* gitlab.com/energyincities/besos/-/blob/master/besos/
-* https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
-
-"""
 import itertools
 import math
 import time
@@ -21,10 +9,10 @@ from loguru import logger
 from scipy.spatial.distance import cdist
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.numba_utils import euclidean_distance, np_all, np_any, np_min
-from harlow.sampling_baseclass import Sampler
-from harlow.surrogate_model import Surrogate
+from harlow.sampling.sampling_baseclass import Sampler
+from harlow.surrogating.surrogate_model import Surrogate
+from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
 
 # from harlow.distance import pdist_full_matrix
 
@@ -42,6 +30,19 @@ fastmath = True
 # TODO: is this class really needed or just an unnecessary complication? it has a
 #  single method
 class LolaVoronoi(Sampler):
+    """Lola-Vornoi adaptive design strategy for global surrogate modelling.
+
+    The algorithm is proposed and described in this paper:
+    [1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
+    surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
+    (2011): 1948-1974.
+
+    The implementation is influenced by:
+    * gitlab.com/energyincities/besos/-/blob/master/besos/
+    * https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+
+    """
+
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],

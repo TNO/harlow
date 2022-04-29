@@ -19,7 +19,7 @@ from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
-from harlow.helper_functions import NLL, normal_sp
+from harlow.utils.helper_functions import NLL, normal_sp
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
