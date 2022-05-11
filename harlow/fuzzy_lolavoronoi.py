@@ -1,3 +1,15 @@
+"""Fuzzy Lola-Vornoi adaptive design strategy for global surrogate modelling.
+
+The algorithm is proposed and described in this paper:
+[1] J. van der Herten, I. Couckuyt, D. Deschrijver, T. Dhaene (2015) A Fuzzy Hybrid Sequential Design Strategy for
+Global Surrogate Modeling of High-Dimensional Computer Experiments. SIAM Journal on Scientific Computing,
+vol 37, no. 2, pp. A1020–A1039, April 2015.
+
+The implementation is influenced by:
+* gitlab.com/energyincities/besos/-/blob/master/besos/
+* https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+
+"""
 import itertools
 import math
 import time
@@ -6,13 +18,15 @@ from typing import Callable, Optional, Tuple
 # import numba as nb
 import numpy as np
 from loguru import logger
-from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.spatial.distance import cdist
 from sklearn.metrics import mean_squared_error
 
-from harlow.sampling.sampling_baseclass import Sampler
-from harlow.surrogating.surrogate_model import Surrogate
-from harlow.utils.helper_functions import latin_hypercube_sampling
-from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
+from harlow.helper_functions import latin_hypercube_sampling
+from harlow.numba_utils import euclidean_distance, np_all, np_any, np_min
+from harlow.sampling_baseclass import Sampler
+from harlow.surrogate_model import Surrogate
+
+# from harlow.distance import pdist_full_matrix
 
 # TODO
 #  * improve logging
@@ -25,22 +39,7 @@ fastmath = True
 # -----------------------------------------------------
 # USER FACING API (class)
 # -----------------------------------------------------
-# TODO: is this class really needed or just an unnecessary complication? it has a
-#  single method
-class LolaVoronoi(Sampler):
-    """Lola-Vornoi adaptive design strategy for global surrogate modelling.
-
-    The algorithm is proposed and described in this paper:
-    [1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
-    surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
-    (2011): 1948-1974.
-
-    The implementation is influenced by:
-    * gitlab.com/energyincities/besos/-/blob/master/besos/
-    * https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
-
-    """
-
+class FuzzyLolaVoronoi(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
@@ -101,7 +100,6 @@ class LolaVoronoi(Sampler):
         ignore_far_neighborhoods: Optional[bool] = True,
         ignore_old_neighborhoods: Optional[bool] = True,
     ):
-        """TODO: allow for providing starting points"""
         # ..........................................
         # Initialize
         # ..........................................
@@ -256,84 +254,35 @@ def best_new_points(
     points_x = points_x.reshape((-1, n_dim))
     points_y = points_y.reshape((-1, 1))
 
-    # Calculate distance matrix P
-    distance_matrix = calculate_distance_matrix(points_x, n_dim)
-
-    best_neighborhoods_scores, best_neighborhoods_idxs = FLV_best_neighbourhoods(
-        points_x, distance_matrix
+    # Find the best neighborhoods for each row of `points_x`
+    (
+        best_neighborhood_scores,
+        best_neighborhood_idxs,
+        all_neighborhood_scores,
+        all_neighbor_point_idxs_combinations,
+    ) = best_neighborhoods(
+        points_x,
+        n_point_last_iter,
+        ignore_far_neighborhoods=ignore_far_neighborhoods,
+        ignore_old_neighborhoods=ignore_old_neighborhoods,
     )
 
-    # # Find the best neighborhoods for each row of `points_x`
-    # (
-    #     best_neighborhood_scores,
-    #     best_neighborhood_idxs,
-    #     all_neighborhood_scores,
-    #     all_neighbor_point_idxs_combinations,
-    # ) = best_neighborhoods(
-    #     points_x,
-    #     n_point_last_iter,
-    #     ignore_far_neighborhoods=ignore_far_neighborhoods,
-    #     ignore_old_neighborhoods=ignore_old_neighborhoods,
-    # )
-    #
-    # # Find the `n_new_point_per_step` best next/new point(s)
-    # idx = all_neighbor_point_idxs_combinations[best_neighborhood_idxs]
-    # all_best_neighbor_points_x = points_x[idx, :]
-    # all_best_neighbor_points_y = points_y[idx, :]
-    #
-    # new_points_x = best_new_points_with_neighbors(
-    #     reference_points_x=points_x,
-    #     reference_points_y=points_y,
-    #     all_neighbor_points_x=all_best_neighbor_points_x,
-    #     all_neighbor_points_y=all_best_neighbor_points_y,
-    #     domain_lower_bound=domain_lower_bound,
-    #     domain_upper_bound=domain_upper_bound,
-    #     n_next_point=n_new_point,
-    # )
+    # Find the `n_new_point_per_step` best next/new point(s)
+    idx = all_neighbor_point_idxs_combinations[best_neighborhood_idxs]
+    all_best_neighbor_points_x = points_x[idx, :]
+    all_best_neighbor_points_y = points_y[idx, :]
 
-    # return new_points_x
+    new_points_x = best_new_points_with_neighbors(
+        reference_points_x=points_x,
+        reference_points_y=points_y,
+        all_neighbor_points_x=all_best_neighbor_points_x,
+        all_neighbor_points_y=all_best_neighbor_points_y,
+        domain_lower_bound=domain_lower_bound,
+        domain_upper_bound=domain_upper_bound,
+        n_next_point=n_new_point,
+    )
 
-
-def FLV_best_neighbourhoods(points_x, distance_matrix):
-    n_point, n_dim = points_x.shape
-
-    K = 4 * n_dim
-    if K >= n_point:
-        K = n_point - 2
-
-    for ii in range(n_point):
-        alpha = calculate_alpha(ii, K, distance_matrix)
-        get_neighbourhood(points_x, ii, alpha)
-
-
-def get_neighbourhood(points_x: np.ndarray, ii: int, alpha: float):
-    pass
-
-
-def calculate_alpha(Pr_idx, K: int, distance_matrix: np.ndarray):
-    distances_prIdx = distance_matrix[Pr_idx, :]
-    neares_k_idxs = np.argpartition(np.delete(distances_prIdx, Pr_idx), K)
-    vals_closest_K = distances_prIdx[neares_k_idxs[:K]]
-
-    return np.mean(vals_closest_K) * 2
-
-
-def calculate_distance_matrix(
-    points_x: np.ndarray, n_dim: int, fractional: bool = False
-):
-    """
-    This function calculates the distance matrix for the points P.
-     Instead of calculating the distance for alpha, A and
-     C for Pr in the loop, this function is meant to be called once,
-      prior to the main for loop iterating over all Pr.
-
-    :param points_x: The set of point P
-    :return: A distance matrix for P
-    """
-    if not fractional:
-        return squareform(pdist(points_x, "euclidean"))
-    else:
-        return squareform(pdist(points_x, "minkowsky", p=n_dim))
+    return new_points_x
 
 
 def best_new_points_with_neighbors(

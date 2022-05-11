@@ -21,7 +21,7 @@ from tests.integration_tests.test_functions import peaks_2d
 
 domains_lower_bound = np.array([-8, -8])
 domains_upper_bound = np.array([8, 8])
-n_initial_point = 5
+n_initial_point = 15
 n_new_points_per_iteration = 1
 rmse_criterium = 0.001
 np.random.seed(123)
@@ -120,7 +120,7 @@ def test_sampling_full(
     n_iter,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -165,7 +165,7 @@ def test_sampling_median(
     n_iter,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -210,7 +210,7 @@ def test_sampling_new(
     n_iter,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -255,7 +255,7 @@ def test_sampling_both(
     n_iter,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
