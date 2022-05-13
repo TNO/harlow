@@ -375,7 +375,7 @@ def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray):
     nearest_k_idxs = np.argpartition(np.delete(distances_prIdx, Pr_idx), K)
     vals_closest_K = distances_prIdx[nearest_k_idxs[:K]]
 
-    return np.mean(vals_closest_K) * 2
+    return np.sum(vals_closest_K) * (2 / K)
 
 
 def calculate_distance_matrix(
