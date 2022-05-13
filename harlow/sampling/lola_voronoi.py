@@ -6,13 +6,15 @@ from typing import Callable, Optional, Tuple
 # import numba as nb
 import numpy as np
 from loguru import logger
-from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.spatial.distance import cdist
 from sklearn.metrics import mean_squared_error
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
+
+# from harlow.distance import pdist_full_matrix
 
 # TODO
 #  * improve logging
@@ -256,84 +258,35 @@ def best_new_points(
     points_x = points_x.reshape((-1, n_dim))
     points_y = points_y.reshape((-1, 1))
 
-    # Calculate distance matrix P
-    distance_matrix = calculate_distance_matrix(points_x, n_dim)
-
-    best_neighborhoods_scores, best_neighborhoods_idxs = FLV_best_neighbourhoods(
-        points_x, distance_matrix
+    # Find the best neighborhoods for each row of `points_x`
+    (
+        best_neighborhood_scores,
+        best_neighborhood_idxs,
+        all_neighborhood_scores,
+        all_neighbor_point_idxs_combinations,
+    ) = best_neighborhoods(
+        points_x,
+        n_point_last_iter,
+        ignore_far_neighborhoods=ignore_far_neighborhoods,
+        ignore_old_neighborhoods=ignore_old_neighborhoods,
     )
 
-    # # Find the best neighborhoods for each row of `points_x`
-    # (
-    #     best_neighborhood_scores,
-    #     best_neighborhood_idxs,
-    #     all_neighborhood_scores,
-    #     all_neighbor_point_idxs_combinations,
-    # ) = best_neighborhoods(
-    #     points_x,
-    #     n_point_last_iter,
-    #     ignore_far_neighborhoods=ignore_far_neighborhoods,
-    #     ignore_old_neighborhoods=ignore_old_neighborhoods,
-    # )
-    #
-    # # Find the `n_new_point_per_step` best next/new point(s)
-    # idx = all_neighbor_point_idxs_combinations[best_neighborhood_idxs]
-    # all_best_neighbor_points_x = points_x[idx, :]
-    # all_best_neighbor_points_y = points_y[idx, :]
-    #
-    # new_points_x = best_new_points_with_neighbors(
-    #     reference_points_x=points_x,
-    #     reference_points_y=points_y,
-    #     all_neighbor_points_x=all_best_neighbor_points_x,
-    #     all_neighbor_points_y=all_best_neighbor_points_y,
-    #     domain_lower_bound=domain_lower_bound,
-    #     domain_upper_bound=domain_upper_bound,
-    #     n_next_point=n_new_point,
-    # )
+    # Find the `n_new_point_per_step` best next/new point(s)
+    idx = all_neighbor_point_idxs_combinations[best_neighborhood_idxs]
+    all_best_neighbor_points_x = points_x[idx, :]
+    all_best_neighbor_points_y = points_y[idx, :]
 
-    # return new_points_x
+    new_points_x = best_new_points_with_neighbors(
+        reference_points_x=points_x,
+        reference_points_y=points_y,
+        all_neighbor_points_x=all_best_neighbor_points_x,
+        all_neighbor_points_y=all_best_neighbor_points_y,
+        domain_lower_bound=domain_lower_bound,
+        domain_upper_bound=domain_upper_bound,
+        n_next_point=n_new_point,
+    )
 
-
-def FLV_best_neighbourhoods(points_x, distance_matrix):
-    n_point, n_dim = points_x.shape
-
-    K = 4 * n_dim
-    if K >= n_point:
-        K = n_point - 2
-
-    for ii in range(n_point):
-        alpha = calculate_alpha(ii, K, distance_matrix)
-        get_neighbourhood(points_x, ii, alpha)
-
-
-def get_neighbourhood(points_x: np.ndarray, ii: int, alpha: float):
-    pass
-
-
-def calculate_alpha(Pr_idx, K: int, distance_matrix: np.ndarray):
-    distances_prIdx = distance_matrix[Pr_idx, :]
-    neares_k_idxs = np.argpartition(np.delete(distances_prIdx, Pr_idx), K)
-    vals_closest_K = distances_prIdx[neares_k_idxs[:K]]
-
-    return np.mean(vals_closest_K) * 2
-
-
-def calculate_distance_matrix(
-    points_x: np.ndarray, n_dim: int, fractional: bool = False
-):
-    """
-    This function calculates the distance matrix for the points P.
-     Instead of calculating the distance for alpha, A and
-     C for Pr in the loop, this function is meant to be called once,
-      prior to the main for loop iterating over all Pr.
-
-    :param points_x: The set of point P
-    :return: A distance matrix for P
-    """
-    if not fractional:
-        return squareform(pdist(points_x, "euclidean"))
-    else:
-        return squareform(pdist(points_x, "minkowsky", p=n_dim))
+    return new_points_x
 
 
 def best_new_points_with_neighbors(

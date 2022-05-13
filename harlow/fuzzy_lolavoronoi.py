@@ -302,17 +302,78 @@ def FLV_best_neighbourhoods(points_x, distance_matrix):
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
-        get_neighbourhood(points_x, ii, alpha)
+        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
+        adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
+        assign_weights(adhesion, cohesion)
 
 
-def get_neighbourhood(points_x: np.ndarray, ii: int, alpha: float):
+# TODO here the Fuzzy will take place
+def assign_weights():
     pass
 
 
-def calculate_alpha(Pr_idx, K: int, distance_matrix: np.ndarray):
+def get_adhesion_cohesion(
+    Pr_index: int, P_neigbors_idxs: np.ndarray, distance_matix: np.ndarray
+):
+    """
+    Calculation of adhesion and cohesion values for the neighbors of P_r.
+    According to equations 4.1 and 4.2
+
+    :param Pr_index: Index of reference point
+    :param P_neigbors_idxs: neighbour indexes for point Pr
+    :param distance_matix: The precalculated distance matrix for all p in P
+    :return: Adhesion and Cohesion arrays for N
+    """
+    A = distance_matix[Pr_index, P_neigbors_idxs]
+    C = np.zeros((len(P_neigbors_idxs)))
+
+    for i in range(len(P_neigbors_idxs)):
+        neighbor_dists = distance_matix[P_neigbors_idxs[i], :]
+        r = np.delete(neighbor_dists, P_neigbors_idxs[i])
+        C[i] = np.min(r)
+
+    return A, C
+
+
+def get_neighbourhood(
+    Pr_idx: int, distance_matrix: np.ndarray, alpha: float, n_dim: int
+):
+    """
+    Calculate the neighbourhood for point Pr.
+    Equation 3.3
+
+    :param Pr_idx: Index of reference point
+    :param distance_matrix: The precalculated distance matrix for all p in P
+    :param alpha: Distance parameter (equation 3.4)
+    :param n_dim: Number of dimensions
+    :return: ndarray with neighbour indexes for point Pr
+    """
     distances_prIdx = distance_matrix[Pr_idx, :]
-    neares_k_idxs = np.argpartition(np.delete(distances_prIdx, Pr_idx), K)
-    vals_closest_K = distances_prIdx[neares_k_idxs[:K]]
+    neighbors_idx = np.where(distances_prIdx < alpha)[0]
+    neighbors_idx = neighbors_idx[neighbors_idx != Pr_idx]
+
+    # If number of neighbors is smaller than ndim equation 3.1 will be undertermined.
+    # Then, take ndim nearest neighbors.
+    if len(neighbors_idx) < n_dim:
+        nearest_ndim_idx = np.argpartition(np.delete(distances_prIdx, Pr_idx), n_dim)
+        neighbors_idx = distances_prIdx[nearest_ndim_idx[:n_dim]]
+
+    return neighbors_idx
+
+
+def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray):
+    """
+    Calculate distance parameter alpha.
+    Equation 3.4
+
+    :param Pr_idx: Index of reference point
+    :param K: Parameter K = 4d
+    :param distance_matrix: The precalculated distance matrix for all p in P
+    :return: alpha as float
+    """
+    distances_prIdx = distance_matrix[Pr_idx, :]
+    nearest_k_idxs = np.argpartition(np.delete(distances_prIdx, Pr_idx), K)
+    vals_closest_K = distances_prIdx[nearest_k_idxs[:K]]
 
     return np.mean(vals_closest_K) * 2
 
