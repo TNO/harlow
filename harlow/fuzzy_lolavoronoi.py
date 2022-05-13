@@ -5,6 +5,10 @@ The algorithm is proposed and described in this paper:
 surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
 (2011): 1948-1974.
 
+[2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015). 
+A fuzzy hybrid sequential design strategy for global surrogate modeling of high-dimensional computer experiments. 
+SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
+
 The implementation is influenced by:
 * gitlab.com/energyincities/besos/-/blob/master/besos/
 * https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
@@ -20,6 +24,9 @@ import numpy as np
 from loguru import logger
 from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.metrics import mean_squared_error
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+
 
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.numba_utils import euclidean_distance, np_all, np_any, np_min
@@ -294,6 +301,9 @@ def best_new_points(
 
 
 def FLV_best_neighbourhoods(points_x, distance_matrix):
+    """
+    Alg. (1) [2]
+    """
     n_point, n_dim = points_x.shape
 
     K = 4 * n_dim
@@ -304,12 +314,76 @@ def FLV_best_neighbourhoods(points_x, distance_matrix):
         alpha = calculate_alpha(ii, K, distance_matrix)
         neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
-        assign_weights(adhesion, cohesion)
+        assign_weights(points_x, adhesion, cohesion)
 
 
-# TODO here the Fuzzy will take place
-def assign_weights():
-    pass
+# TODO time it if needed
+def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, adhesion:np.ndarray):
+    """
+    Weight calculation of data_points based on cohesion & adhesion values between 
+    the data points; Section 4 [2]
+    :param data_points: Nxd-dimensional input vector of N data points with d dimensions
+    :param cohesion: The Nxd-dimensional cohesion values of the neighbors of P_r
+    :param adhesion: The Nxd-dimensional adhesion values of the neighbors of P_r
+    :return: weight: THe Nxd-dimensional values returned by the evaluation of FIS S 
+    """
+    a = data_points
+    dims = data_points.shape
+    A_max = np.max(adhesion)
+    weights = np.zeros_like(data_points)
+
+    coh = ctrl.Antecedent(a, 'cohesion')
+    adh = ctrl.Antecedent(a, 'adhesion')
+    wei = ctrl.Consequent(a, 'weight')
+
+    # Define the membership functions & populate the space
+    coh['high'] = coh_high(coh.universe)
+    adh['low'] = adh_low(adh.universe, A_max)
+    adh['high'] = adh_high(adh.universe, A_max)
+
+    # construct triangular output/weight member functions.
+    wei['low'] = fuzz.trimf(wei.universe, [0, 0, 0.13])
+    wei['average'] = fuzz.trimf(wei.universe, [0.16, 0.33, 0.5])
+    wei['high'] = fuzz.trimf(wei.universe, [0.6, 1.01, 1.01])
+
+    #Define the rules of the System 
+    rule1 = ctrl.Rule(coh['high'] & adh['low'], wei['high'])
+    rule2 = ctrl.Rule(coh['high'] & adh['high'], wei['average'])
+    rule3 = ctrl.Rule(~coh['high'] & adh['low'], wei['average'])
+    rule4 = ctrl.Rule(~coh['high'] & adh['high'], wei['low'])
+    #Setup the FIS
+    FLOLA_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4])
+    flola_sim = ctrl.ControlSystemSimulation(FLOLA_ctrl)
+
+    #Get the weights
+    for i in range(dims[0]):
+        for j in range(dims[1]):
+            flola_sim.input['cohesion'] = cohesion[i,j]
+            flola_sim.input['adhesion'] = adhesion[i,j]
+            flola_sim.compute()
+            weights[i,j] = flola_sim.output['weight']
+
+    return weights
+
+
+def coh_high(x, s_c=0.3):
+    """
+    Cohesion High membership function
+    """
+    return 1 / (1 + np.exp(-s_c * x))
+
+def adh_high(x, A_max, s_ah=0.3):
+    """
+    Adhesion High membership function
+    """
+    return np.exp( ( (-x**2) / 2*((A_max*s_ah)**2) ) )
+
+def adh_low(x, A_max, s_al=0.27):
+    """
+    Adhesion Low membership function
+    """
+    res = (-(x-A_max)**2) / 2*((A_max*s_al)**2)
+    return np.exp(res)
 
 
 def get_adhesion_cohesion(
@@ -317,7 +391,7 @@ def get_adhesion_cohesion(
 ):
     """
     Calculation of adhesion and cohesion values for the neighbors of P_r.
-    According to equations 4.1 and 4.2
+    According to Eq. (4.1) and (4.2) [2]
 
     :param Pr_index: Index of reference point
     :param P_neigbors_idxs: neighbour indexes for point Pr
@@ -334,13 +408,12 @@ def get_adhesion_cohesion(
 
     return A, C
 
-
 def get_neighbourhood(
     Pr_idx: int, distance_matrix: np.ndarray, alpha: float, n_dim: int
 ):
     """
     Calculate the neighbourhood for point Pr.
-    Equation 3.3
+    Eq. (3.3) [2]
 
     :param Pr_idx: Index of reference point
     :param distance_matrix: The precalculated distance matrix for all p in P
@@ -364,7 +437,7 @@ def get_neighbourhood(
 def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray):
     """
     Calculate distance parameter alpha.
-    Equation 3.4
+    Eq. (3.4) [2]
 
     :param Pr_idx: Index of reference point
     :param K: Parameter K = 4d
@@ -814,6 +887,15 @@ def voronoi_volume_estimate(
 
     return relative_volumes, random_points, distance_mx, closest_indicator_mx
 
+#TODO THE FLOLA 
+def flola_gradient_estimate():
+    """
+    Estimate the gradient Eq.(3.2) [2] wrt to weights
+    """
+    pass
+
+#TODO
+
 
 def gradient_estimate(
     reference_point_x: np.ndarray,
@@ -831,6 +913,7 @@ def gradient_estimate(
     `-p_reference` should be dropped if the formulation is in line with this:
     "Without loss of generality, we assume that pr lies in the origin."
     section 4.2.1 of [1].
+    This stands as of [2] Eq. (3.1) thus the implementation is correct!
 
     Args:
         reference_point_x:
