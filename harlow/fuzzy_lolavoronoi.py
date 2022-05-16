@@ -940,25 +940,6 @@ def flola_score(
     return es
 
 
-def nonlinearity_measure(
-    reference_point_x: np.ndarray,
-    reference_point_y: float,
-    reference_point_gradient: np.ndarray,
-    neighbor_points_x: np.ndarray,
-    neighbor_points_y: np.ndarray,
-) -> float:
-    # Eq.(4.9) of [1]
-    e = np.sum(
-        np.abs(
-            neighbor_points_y
-            - (
-                reference_point_y
-                + reference_point_gradient * (neighbor_points_x - reference_point_x)
-            )
-        )
-    )
-    return float(e)
-
 def flola_gradient_estimate(
     reference_point_x: np.ndarray,
     reference_point_y: float,
