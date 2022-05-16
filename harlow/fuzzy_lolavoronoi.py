@@ -314,8 +314,14 @@ def FLV_best_neighbourhoods(points_x, distance_matrix):
         alpha = calculate_alpha(ii, K, distance_matrix)
         neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
-        assign_weights(points_x, adhesion, cohesion)
-
+        #TODO update the inputs. Currently follows the lola neighbors handling
+        w = assign_weights(ii, adhesion, cohesion)
+        score = flola_score(ii, w)
+    
+    #TODO 
+    # Pick Nnew samples with highest nonlinearity score
+    # Pnew = new samples in the neighborhood of these samples
+    # P = P ∪ Pnew
 
 # TODO time it if needed
 def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, adhesion:np.ndarray):
@@ -887,15 +893,103 @@ def voronoi_volume_estimate(
 
     return relative_volumes, random_points, distance_mx, closest_indicator_mx
 
-#TODO THE FLOLA 
-def flola_gradient_estimate():
-    """
-    Estimate the gradient Eq.(3.2) [2] wrt to weights
-    """
-    pass
+def flola_score(
+    all_neighbor_points_x: np.ndarray,
+    all_neighbor_points_y: np.ndarray,
+    reference_points_x: np.ndarray,
+    reference_points_y: np.ndarray,
+    fis_weights: np.ndarray
+) -> np.ndarray:
+    """Non-linearity measure for each point and its neighbor. Measures how much a
+    neighborhood deviates from a hyperplane."""
+    n_reference_point = len(reference_points_y)
+    es = np.empty(n_reference_point)
 
-#TODO
+    for (
+        ii,
+        (
+            neighbor_points_x,
+            neighbor_points_y,
+            reference_point_x,
+            reference_point_y,
+        ),
+    ) in enumerate(
+        zip(
+            all_neighbor_points_x,
+            all_neighbor_points_y,
+            reference_points_x,
+            reference_points_y,
+        )
+    ):
 
+        reference_point_gradient = flola_gradient_estimate(
+            reference_point_x=reference_point_x,
+            reference_point_y=reference_point_y,
+            neighbor_points_x=neighbor_points_x,
+            neighbor_points_y=neighbor_points_y,
+            weights= fis_weights,
+        )[0]
+        es[ii] = nonlinearity_measure(
+            reference_point_x=reference_point_x,
+            reference_point_y=reference_point_y,
+            reference_point_gradient=reference_point_gradient,
+            neighbor_points_x=neighbor_points_x,
+            neighbor_points_y=neighbor_points_y,
+        )
+
+    return es
+
+
+def nonlinearity_measure(
+    reference_point_x: np.ndarray,
+    reference_point_y: float,
+    reference_point_gradient: np.ndarray,
+    neighbor_points_x: np.ndarray,
+    neighbor_points_y: np.ndarray,
+) -> float:
+    # Eq.(4.9) of [1]
+    e = np.sum(
+        np.abs(
+            neighbor_points_y
+            - (
+                reference_point_y
+                + reference_point_gradient * (neighbor_points_x - reference_point_x)
+            )
+        )
+    )
+    return float(e)
+
+def flola_gradient_estimate(
+    reference_point_x: np.ndarray,
+    reference_point_y: float,
+    neighbor_points_x: np.ndarray,
+    neighbor_points_y: np.ndarray,
+    weights: np.ndarray,
+) -> np.ndarray:
+    """
+    Estimate the gradient at `reference_point` by fitting a hyperplane to
+    `neighbor_points` in a least-square sense. A hyperplane that goes exactly
+    through the `reference_point`. Eq.(3.2) [2] wrt to weights obtained from solving FIS S
+    """
+    
+    # shape the input if not in the right shape, 
+    # TODO: is this really needed? Check shapes when on TEST
+    reference_point_x = reference_point_x.reshape((1, -1))
+    n_dim = reference_point_x.shape[1]
+    neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
+    neighbor_points_y = neighbor_points_y.reshape((-1, 1))
+
+    # to ensure that we hyperplane goes through `reference_point`
+    neighbor_points_x_diff = neighbor_points_x - reference_point_x
+    neighbor_points_y_diff = neighbor_points_y - reference_point_y
+
+    # Solve weighted Least Squares
+    # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
+    Aw = neighbor_points_x_diff * np.sqrt(weights[:,np.newaxis])
+    Bw = neighbor_points_y * np.sqrt(weights)
+    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape((1, n_dim))
+
+    return gradient
 
 def gradient_estimate(
     reference_point_x: np.ndarray,
