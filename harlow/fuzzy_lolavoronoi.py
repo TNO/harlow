@@ -5,8 +5,8 @@ The algorithm is proposed and described in this paper:
 surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
 (2011): 1948-1974.
 
-[2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015). 
-A fuzzy hybrid sequential design strategy for global surrogate modeling of high-dimensional computer experiments. 
+[2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015).
+A fuzzy hybrid sequential design strategy for global surrogate modeling of high-dimensional computer experiments.
 SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
 
 The implementation is influenced by:
@@ -21,12 +21,11 @@ from typing import Callable, Optional, Tuple
 
 # import numba as nb
 import numpy as np
+import skfuzzy as fuzz
 from loguru import logger
 from scipy.spatial.distance import cdist, pdist, squareform
-from sklearn.metrics import mean_squared_error
-import skfuzzy as fuzz
 from skfuzzy import control as ctrl
-
+from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.numba_utils import euclidean_distance, np_all, np_any, np_min
@@ -265,52 +264,48 @@ def best_new_points(
     # Calculate distance matrix P
     distance_matrix = calculate_distance_matrix(points_x, n_dim)
 
-    best_neighborhoods_scores, best_neighborhoods_idxs = FLV_best_neighbourhoods(
+    # TODO this function returns the FLOLA scores of Pr. Perhaps this
+    # function and its return variables can be renamed to better match what
+    # it does
+    neighborhoods_scores, neighborhoods_idxs = FLV_best_neighbourhoods(
         points_x, points_y, distance_matrix
     )
-
-    # # Find the best neighborhoods for each row of `points_x`
+    # TODO calculate the V for every Pr. We can reuse from LV:
     # (
-    #     best_neighborhood_scores,
-    #     best_neighborhood_idxs,
-    #     all_neighborhood_scores,
-    #     all_neighbor_point_idxs_combinations,
-    # ) = best_neighborhoods(
-    #     points_x,
-    #     n_point_last_iter,
-    #     ignore_far_neighborhoods=ignore_far_neighborhoods,
-    #     ignore_old_neighborhoods=ignore_old_neighborhoods,
+    #    relative_volumes,
+    #    random_points,
+    #    distance_mx,
+    #    closest_indicator_mx,
+    # ) = voronoi_volume_estimate(
+    #    points=reference_points_x,
+    #    domain_lower_bound=domain_lower_bound,
+    #    domain_upper_bound=domain_upper_bound,
     # )
-    #
-    # # Find the `n_new_point_per_step` best next/new point(s)
-    # idx = all_neighbor_point_idxs_combinations[best_neighborhood_idxs]
-    # all_best_neighbor_points_x = points_x[idx, :]
-    # all_best_neighbor_points_y = points_y[idx, :]
-    #
-    # new_points_x = best_new_points_with_neighbors(
-    #     reference_points_x=points_x,
-    #     reference_points_y=points_y,
-    #     all_neighbor_points_x=all_best_neighbor_points_x,
-    #     all_neighbor_points_y=all_best_neighbor_points_y,
-    #     domain_lower_bound=domain_lower_bound,
-    #     domain_upper_bound=domain_upper_bound,
-    #     n_next_point=n_new_point,
-    # )
+
+    # TODO then we calculate the Hfuzzy score
+    # hybrid_score = fuzzy_lola_voronoi_score(neighborhoods_scores,
+    # relative_volumes)
+
+    # TODO sort P the hybrid score
+    # pick new samples from random points from the Voronoi estimate based on
+    # the p and neighbors. maximizing the distance to the neighbors. In the
+    # old algoritm this is in line 329 - 344
 
     # return new_points_x
 
-#TODO
-# We are missing 1 point out of the points_x 
+
+# TODO
+# We are missing 1 point out of the points_x
 # neighbors_idx : returns 1 les point - fix it
 def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
     """
     Alg. (1) [2]
     """
     n_point, n_dim = points_x.shape
-    #Init FIS S
-    #It should be done before the for loop BUT
-    #requires adhesion MAX value, that is computed inside the LOOP
-    #TODO CHeck it later.
+    # Init FIS S
+    # It should be done before the for loop BUT
+    # requires adhesion MAX value, that is computed inside the LOOP
+    # TODO CHeck it later.
     # FIS = init_FIS()
     K = 4 * n_dim
     if K >= n_point:
@@ -325,17 +320,22 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
 
-        print('Points_x shape {}'.format(points_x.shape))
+        print("Points_x shape {}".format(points_x.shape))
         FIS = init_FIS(neighbors_coords, adhesion)
         w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
 
-    #TODO update the inputs. Currently follows the lola neighbors handling
-    # Continuation of Alg. (1) [2] 
-    score = flola_score(points_x, points_y, w)
-    
-    #TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking.
+    # TODO update the inputs. Currently follows the lola neighbors handling
+    # Continuation of Alg. (1) [2]
 
-def init_FIS(data_points: np.ndarray, adhesion:np.ndarray):
+    # TODO I think score should be an 1D array containing the FLOLA score for
+    # each Pr. That array with scores will be returned by this function.
+    # Also the neighbourhoods are returned
+    score = flola_score(points_x, points_y, w)
+
+    # TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking.
+
+
+def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
     """
     Initialize the Fuzzy Inference System S; Section 4 [2]
     :param data_points: Nxd-dimensional input vector of N data points with d dimensions
@@ -346,53 +346,55 @@ def init_FIS(data_points: np.ndarray, adhesion:np.ndarray):
     a = np.sort(data_points, axis=None)
     a_w = np.linspace(0, 1, 100, endpoint=True)
     A_max = np.max(adhesion)
-    coh = ctrl.Antecedent(a, 'cohesion')
-    adh = ctrl.Antecedent(a, 'adhesion')
-    wei = ctrl.Consequent(a_w, 'weight')
+    coh = ctrl.Antecedent(a, "cohesion")
+    adh = ctrl.Antecedent(a, "adhesion")
+    wei = ctrl.Consequent(a_w, "weight")
 
     # Define the membership functions & populate the space
-    coh['high'] = coh_high(coh.universe)
-    adh['low'] = adh_low(adh.universe, A_max)
-    adh['high'] = adh_high(adh.universe, A_max)
+    coh["high"] = coh_high(coh.universe)
+    adh["low"] = adh_low(adh.universe, A_max)
+    adh["high"] = adh_high(adh.universe, A_max)
 
     # construct triangular output/weight member functions.
-    wei['low'] = fuzz.trimf(wei.universe, [0, 0, 0.13])
-    wei['average'] = fuzz.trimf(wei.universe, [0.16, 0.33, 0.5])
-    wei['high'] = fuzz.trimf(wei.universe, [0.6, 1.01, 1.01])
-    #Define the rules of the System 
-    rule1 = ctrl.Rule(coh['high'] & adh['low'], wei['high'])
-    rule2 = ctrl.Rule(coh['high'] & adh['high'], wei['average'])
-    rule3 = ctrl.Rule(~coh['high'] & adh['low'], wei['average'])
-    rule4 = ctrl.Rule(~coh['high'] & adh['high'], wei['low'])
-    #Setup the FIS
+    wei["low"] = fuzz.trimf(wei.universe, [0, 0, 0.13])
+    wei["average"] = fuzz.trimf(wei.universe, [0.16, 0.33, 0.5])
+    wei["high"] = fuzz.trimf(wei.universe, [0.6, 1.01, 1.01])
+    # Define the rules of the System
+    rule1 = ctrl.Rule(coh["high"] & adh["low"], wei["high"])
+    rule2 = ctrl.Rule(coh["high"] & adh["high"], wei["average"])
+    rule3 = ctrl.Rule(~coh["high"] & adh["low"], wei["average"])
+    rule4 = ctrl.Rule(~coh["high"] & adh["high"], wei["low"])
+    # Setup the FIS
     FLOLA_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4])
     flola_sim = ctrl.ControlSystemSimulation(FLOLA_ctrl)
 
     return flola_sim
 
+
 # TODO time it if needed
-def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, 
-    adhesion:np.ndarray, flola_sim) -> np.ndarray:
+def assign_weights(
+    data_points: np.ndarray, cohesion: np.ndarray, adhesion: np.ndarray, flola_sim
+) -> np.ndarray:
     """
-    Weight calculation of data_points based on cohesion & adhesion values between 
+    Weight calculation of data_points based on cohesion & adhesion values between
     the data points; Section 4 [2]
     :param data_points: Nxd-dimensional input vector of N data points with d dimensions
     :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
     :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
     :param flola_sim: The Fuzzy Inference System S
-    :return weight: THe Nxd-dimensional values returned by the evaluation of FIS S 
+    :return weight: THe Nxd-dimensional values returned by the evaluation of FIS S
     """
     S = flola_sim
     dims = data_points.shape
     # print("Dims {}".format(dims))
     weights = np.zeros(dims[0])
 
-    #Get the weights for each neighbor
+    # Get the weights for each neighbor
     for i in range(dims[0]):
-        S.input['cohesion'] = cohesion[i]
-        S.input['adhesion'] = adhesion[i]
+        S.input["cohesion"] = cohesion[i]
+        S.input["adhesion"] = adhesion[i]
         S.compute()
-        weights[i] = S.output['weight']
+        weights[i] = S.output["weight"]
 
     # print('Final weights {} with shape {}'.format(weights, weights.shape))
     return weights
@@ -404,17 +406,19 @@ def coh_high(x, s_c=0.3):
     """
     return 1 / (1 + np.exp(-s_c * x))
 
+
 def adh_high(x, A_max, s_ah=0.3):
     """
     Adhesion High membership function
     """
-    return np.exp( ( (-x**2) / 2*((A_max*s_ah)**2) ) )
+    return np.exp(((-(x ** 2)) / 2 * ((A_max * s_ah) ** 2)))
+
 
 def adh_low(x, A_max, s_al=0.27):
     """
     Adhesion Low membership function
     """
-    res = (-(x-A_max)**2) / 2*((A_max*s_al)**2)
+    res = (-((x - A_max) ** 2)) / 2 * ((A_max * s_al) ** 2)
     return np.exp(res)
 
 
@@ -439,6 +443,7 @@ def get_adhesion_cohesion(
         A[i] = np.min(r)
 
     return A, C
+
 
 def get_neighbourhood(
     Pr_idx: int, distance_matrix: np.ndarray, alpha: float, n_dim: int
@@ -919,12 +924,13 @@ def voronoi_volume_estimate(
 
     return relative_volumes, random_points, distance_mx, closest_indicator_mx
 
+
 def flola_score(
     all_neighbor_points_x: np.ndarray,
     all_neighbor_points_y: np.ndarray,
     reference_points_x: np.ndarray,
     reference_points_y: np.ndarray,
-    fis_weights: np.ndarray
+    fis_weights: np.ndarray,
 ) -> np.ndarray:
     """Non-linearity measure for each point and its neighbor. Measures how much a
     neighborhood deviates from a hyperplane."""
@@ -953,7 +959,7 @@ def flola_score(
             reference_point_y=reference_point_y,
             neighbor_points_x=neighbor_points_x,
             neighbor_points_y=neighbor_points_y,
-            weights= fis_weights,
+            weights=fis_weights,
         )[0]
         es[ii] = nonlinearity_measure(
             reference_point_x=reference_point_x,
@@ -978,8 +984,8 @@ def flola_gradient_estimate(
     `neighbor_points` in a least-square sense. A hyperplane that goes exactly
     through the `reference_point`. Eq.(3.2) [2] wrt to weights obtained from solving FIS S
     """
-    
-    # shape the input if not in the right shape, 
+
+    # shape the input if not in the right shape,
     # TODO: is this really needed? Check shapes when on TEST
     reference_point_x = reference_point_x.reshape((1, -1))
     n_dim = reference_point_x.shape[1]
@@ -992,11 +998,12 @@ def flola_gradient_estimate(
 
     # Solve weighted Least Squares
     # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
-    Aw = neighbor_points_x_diff * np.sqrt(weights[:,np.newaxis])
+    Aw = neighbor_points_x_diff * np.sqrt(weights[:, np.newaxis])
     Bw = neighbor_points_y * np.sqrt(weights)
     gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape((1, n_dim))
 
     return gradient
+
 
 def gradient_estimate(
     reference_point_x: np.ndarray,
