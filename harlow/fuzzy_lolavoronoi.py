@@ -266,7 +266,7 @@ def best_new_points(
     distance_matrix = calculate_distance_matrix(points_x, n_dim)
 
     best_neighborhoods_scores, best_neighborhoods_idxs = FLV_best_neighbourhoods(
-        points_x, distance_matrix
+        points_x, points_y, distance_matrix
     )
 
     # # Find the best neighborhoods for each row of `points_x`
@@ -299,13 +299,19 @@ def best_new_points(
 
     # return new_points_x
 
-
-def FLV_best_neighbourhoods(points_x, distance_matrix):
+#TODO
+# We are missing 1 point out of the points_x 
+# neighbors_idx : returns 1 les point - fix it
+def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
     """
     Alg. (1) [2]
     """
     n_point, n_dim = points_x.shape
-
+    #Init FIS S
+    #It should be done before the for loop BUT
+    #requires adhesion MAX value, that is computed inside the LOOP
+    #TODO CHeck it later.
+    # FIS = init_FIS()
     K = 4 * n_dim
     if K >= n_point:
         K = n_point - 2
@@ -313,34 +319,36 @@ def FLV_best_neighbourhoods(points_x, distance_matrix):
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
         neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
+        # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
+        neighbors_coords = points_x[neighbors_idx]
+        # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
-        #TODO update the inputs. Currently follows the lola neighbors handling
-        w = assign_weights(ii, adhesion, cohesion)
-        score = flola_score(ii, w)
+        # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
+
+        print('Points_x shape {}'.format(points_x.shape))
+        FIS = init_FIS(neighbors_coords, adhesion)
+        w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
+
+    #TODO update the inputs. Currently follows the lola neighbors handling
+    # Continuation of Alg. (1) [2] 
+    score = flola_score(points_x, points_y, w)
     
-    #TODO 
-    # Pick Nnew samples with highest nonlinearity score
-    # Pnew = new samples in the neighborhood of these samples
-    # P = P ∪ Pnew
+    #TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking.
 
-# TODO time it if needed
-def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, adhesion:np.ndarray):
+def init_FIS(data_points: np.ndarray, adhesion:np.ndarray):
     """
-    Weight calculation of data_points based on cohesion & adhesion values between 
-    the data points; Section 4 [2]
+    Initialize the Fuzzy Inference System S; Section 4 [2]
     :param data_points: Nxd-dimensional input vector of N data points with d dimensions
-    :param cohesion: The Nxd-dimensional cohesion values of the neighbors of P_r
-    :param adhesion: The Nxd-dimensional adhesion values of the neighbors of P_r
-    :return: weight: THe Nxd-dimensional values returned by the evaluation of FIS S 
+    :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
+    :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
+    :return flola_sim: The Fuzzy Inference System S
     """
-    a = data_points
-    dims = data_points.shape
+    a = np.sort(data_points, axis=None)
+    a_w = np.linspace(0, 1, 100, endpoint=True)
     A_max = np.max(adhesion)
-    weights = np.zeros_like(data_points)
-
     coh = ctrl.Antecedent(a, 'cohesion')
     adh = ctrl.Antecedent(a, 'adhesion')
-    wei = ctrl.Consequent(a, 'weight')
+    wei = ctrl.Consequent(a_w, 'weight')
 
     # Define the membership functions & populate the space
     coh['high'] = coh_high(coh.universe)
@@ -351,7 +359,6 @@ def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, adhesion:np.nd
     wei['low'] = fuzz.trimf(wei.universe, [0, 0, 0.13])
     wei['average'] = fuzz.trimf(wei.universe, [0.16, 0.33, 0.5])
     wei['high'] = fuzz.trimf(wei.universe, [0.6, 1.01, 1.01])
-
     #Define the rules of the System 
     rule1 = ctrl.Rule(coh['high'] & adh['low'], wei['high'])
     rule2 = ctrl.Rule(coh['high'] & adh['high'], wei['average'])
@@ -361,14 +368,33 @@ def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, adhesion:np.nd
     FLOLA_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4])
     flola_sim = ctrl.ControlSystemSimulation(FLOLA_ctrl)
 
-    #Get the weights
-    for i in range(dims[0]):
-        for j in range(dims[1]):
-            flola_sim.input['cohesion'] = cohesion[i,j]
-            flola_sim.input['adhesion'] = adhesion[i,j]
-            flola_sim.compute()
-            weights[i,j] = flola_sim.output['weight']
+    return flola_sim
 
+# TODO time it if needed
+def assign_weights(data_points: np.ndarray, cohesion: np.ndarray, 
+    adhesion:np.ndarray, flola_sim) -> np.ndarray:
+    """
+    Weight calculation of data_points based on cohesion & adhesion values between 
+    the data points; Section 4 [2]
+    :param data_points: Nxd-dimensional input vector of N data points with d dimensions
+    :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
+    :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
+    :param flola_sim: The Fuzzy Inference System S
+    :return weight: THe Nxd-dimensional values returned by the evaluation of FIS S 
+    """
+    S = flola_sim
+    dims = data_points.shape
+    # print("Dims {}".format(dims))
+    weights = np.zeros(dims[0])
+
+    #Get the weights for each neighbor
+    for i in range(dims[0]):
+        S.input['cohesion'] = cohesion[i]
+        S.input['adhesion'] = adhesion[i]
+        S.compute()
+        weights[i] = S.output['weight']
+
+    # print('Final weights {} with shape {}'.format(weights, weights.shape))
     return weights
 
 
@@ -404,13 +430,13 @@ def get_adhesion_cohesion(
     :param distance_matix: The precalculated distance matrix for all p in P
     :return: Adhesion and Cohesion arrays for N
     """
-    A = distance_matix[Pr_index, P_neigbors_idxs]
-    C = np.zeros((len(P_neigbors_idxs)))
+    C = distance_matix[Pr_index, P_neigbors_idxs]
+    A = np.zeros((len(P_neigbors_idxs)))
 
     for i in range(len(P_neigbors_idxs)):
         neighbor_dists = distance_matix[P_neigbors_idxs[i], :]
         r = np.delete(neighbor_dists, P_neigbors_idxs[i])
-        C[i] = np.min(r)
+        A[i] = np.min(r)
 
     return A, C
 
