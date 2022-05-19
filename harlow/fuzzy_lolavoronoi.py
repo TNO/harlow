@@ -313,9 +313,15 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
-        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
+        neighbors_idx = get_neighbourhood(
+            ii, distance_matrix, alpha, n_dim
+        )  # gets the neighbours of Pr
+        # as indices
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
-        neighbors_coords = points_x[neighbors_idx]
+        neighbors_coords = points_x[neighbors_idx]  # neighbourhoods X (check
+        # if works properly
+        # neighbors_y = points_y[neighbors_idx]  # neighbourhoods y (check if
+        # works properly
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
@@ -330,7 +336,7 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
     # TODO I think score should be an 1D array containing the FLOLA score for
     # each Pr. That array with scores will be returned by this function.
     # Also the neighbourhoods are returned
-    score = flola_score(points_x, points_y, w)
+    # score = flola_score(points_x, points_y, w)
 
     # TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking.
 
