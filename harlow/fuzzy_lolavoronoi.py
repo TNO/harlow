@@ -17,6 +17,7 @@ The implementation is influenced by:
 import itertools
 import math
 import time
+from turtle import shape
 from typing import Callable, Optional, Tuple
 
 # import numba as nb
@@ -268,7 +269,7 @@ def best_new_points(
     # function and its return variables can be renamed to better match what
     # it does
     neighborhoods_scores, neighborhoods_idxs = FLV_best_neighbourhoods(
-        points_x, points_y, distance_matrix
+        points_x, points_y, distance_matrix, domain_lower_bound, domain_upper_bound
     )
     # TODO calculate the V for every Pr. We can reuse from LV:
     # (
@@ -294,14 +295,16 @@ def best_new_points(
     # return new_points_x
 
 
-# TODO
-# We are missing 1 point out of the points_x
-# neighbors_idx : returns 1 les point - fix it
-def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
+def FLV_best_neighbourhoods(points_x, points_y, distance_matrix , d_low, d_high):
     """
     Alg. (1) [2]
     """
     n_point, n_dim = points_x.shape
+    # print('X shapes', points_x.shape)
+    # print('Y shapes', points_y.shape)
+    w = np.zeros(n_point)
+    nonlinear_score = np.empty(n_point)
+    H_fuzzy_rank = []
     # Init FIS S
     # It should be done before the for loop BUT
     # requires adhesion MAX value, that is computed inside the LOOP
@@ -313,10 +316,9 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
-        neighbors_idx = get_neighbourhood(
-            ii, distance_matrix, alpha, n_dim
-        )  # gets the neighbours of Pr
+        # gets the neighbours of Pr
         # as indices
+        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)  
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
         neighbors_coords = points_x[neighbors_idx]  # neighbourhoods X (check
         # if works properly
@@ -326,19 +328,38 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix):
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
 
-        print("Points_x shape {}".format(points_x.shape))
+        # print("Points_x shape {}".format(points_x.shape))
         FIS = init_FIS(neighbors_coords, adhesion)
         w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
+        #TODO Check the shapes - account for weights dim OR all points ? 
+        # At each point we find different neighbors!
+        grad = flola_gradient_estimate(points_x[ii, :], points_y[ii, :], points_x[neighbors_idx],
+            points_y[neighbors_idx], w)
+        # print('grad', grad, grad.shape)
+        #E_fuzzy(P_r) Eq. (3.2) [2]
+        nonlinear_score[ii] = nonlinearity_measure(points_x[ii, :], points_y[ii, :], grad, 
+            points_x[neighbors_idx], points_y[neighbors_idx])        
+        # print('Nonlinear score', nonlinear_score, nonlinear_score.shape)
+        relative_volumes, random_points, \
+        distance_mx, closest_indicator_mx = voronoi_volume_estimate(
+            points=points_x[neighbors_idx], 
+            domain_lower_bound=d_low, 
+            domain_upper_bound=d_high)
+        print(relative_volumes, relative_volumes.shape)
+        # H_fuzzy(P_r) Eq.(5.1) [2]
+        H_fuzzy = lola_voronoi_score(nonlinear_score, relative_volumes)
+        H_fuzzy_rank.append(H_fuzzy)
 
-    # TODO update the inputs. Currently follows the lola neighbors handling
-    # Continuation of Alg. (1) [2]
+
+    print(H_fuzzy_rank)
 
     # TODO I think score should be an 1D array containing the FLOLA score for
     # each Pr. That array with scores will be returned by this function.
     # Also the neighbourhoods are returned
     # score = flola_score(points_x, points_y, w)
 
-    # TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking.
+    # TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking. 
+    # In process ! Check the 
 
 
 def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
@@ -388,7 +409,7 @@ def assign_weights(
     :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
     :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
     :param flola_sim: The Fuzzy Inference System S
-    :return weight: THe Nxd-dimensional values returned by the evaluation of FIS S
+    :return weight: THe N-dimensional values returned by the evaluation of FIS S
     """
     S = flola_sim
     dims = data_points.shape
@@ -980,24 +1001,26 @@ def flola_score(
 
 def flola_gradient_estimate(
     reference_point_x: np.ndarray,
-    reference_point_y: float,
+    reference_point_y: np.ndarray,
     neighbor_points_x: np.ndarray,
     neighbor_points_y: np.ndarray,
     weights: np.ndarray,
 ) -> np.ndarray:
     """
-    Estimate the gradient at `reference_point` by fitting a hyperplane to
+    Estimate the gradient at `reference_point` (P_r) by fitting a hyperplane to
     `neighbor_points` in a least-square sense. A hyperplane that goes exactly
-    through the `reference_point`. Eq.(3.2) [2] wrt to weights obtained from solving FIS S
+    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r 
+    obtained from solving FIS S
+    :param reference_point_x: The d-dimensional reference sample P_r
+    :param reference_point y: 
+    :param neigbor_points_x: The m x d-dimensional neighbors of P_r 
+    :param neigbor_points_y: 
+    :param weights: The weights of every neighbor of P_r
+    :return gradient: The d-dimensional gradient at P_r 
+
     """
-
-    # shape the input if not in the right shape,
-    # TODO: is this really needed? Check shapes when on TEST
-    reference_point_x = reference_point_x.reshape((1, -1))
-    n_dim = reference_point_x.shape[1]
-    neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
-    neighbor_points_y = neighbor_points_y.reshape((-1, 1))
-
+    n_neighbors, n_dims = neighbor_points_x.shape
+    print(reference_point_x.shape, reference_point_y.shape, neighbor_points_x.shape, neighbor_points_y.shape, weights.shape)
     # to ensure that we hyperplane goes through `reference_point`
     neighbor_points_x_diff = neighbor_points_x - reference_point_x
     neighbor_points_y_diff = neighbor_points_y - reference_point_y
@@ -1005,8 +1028,8 @@ def flola_gradient_estimate(
     # Solve weighted Least Squares
     # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
     Aw = neighbor_points_x_diff * np.sqrt(weights[:, np.newaxis])
-    Bw = neighbor_points_y * np.sqrt(weights)
-    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape((1, n_dim))
+    Bw = neighbor_points_y_diff * np.sqrt(weights)
+    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors, n_dims)
 
     return gradient
 
