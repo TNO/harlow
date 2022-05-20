@@ -270,19 +270,32 @@ def best_new_points(
         domain_lower_bound=domain_lower_bound, 
         domain_upper_bound=domain_upper_bound)
     # print('Relative volumes', relative_volumes, relative_volumes.shape)
-    
-    # TODO this function returns the FLOLA scores of Pr. Perhaps this
-    # function and its return variables can be renamed to better match what
-    # it does
+
     neighborhoods_scores = FLV_best_neighbourhoods(
         points_x, points_y, distance_matrix, relative_volumes)
 
-    # TODO sort P the hybrid score
-    # pick new samples from random points from the Voronoi estimate based on
-    # the p and neighbors. maximizing the distance to the neighbors. In the
-    # old algoritm this is in line 329 - 344
+    # TODO: check np.partition as an alternative
+    idxs_new_neighbor = np.argsort(-neighborhoods_scores)[:n_new_point]
 
-    # return new_points_x
+    new_reference_points_x = np.empty((n_new_point, n_dim))
+    for ii, idx_new_neighbor in enumerate(idxs_new_neighbor):
+        # all the distances to reference point whose neighborhood will get a new
+        # point where the target function is evaluated
+        distances_in_neighbor = distance_mx[:, idx_new_neighbor]
+
+        # consider only those points that are within the voronoi cell of the
+        # reference point
+        idx_mask_in_neighbor = closest_indicator_mx[:, idx_new_neighbor]
+
+        # to avoid selecting points that are not in the neighborhood
+        distances_in_neighbor[~idx_mask_in_neighbor] = -1
+
+        # largest distance within the same voronoi cell
+        idx_max_distance = np.argmax(distances_in_neighbor)
+        new_reference_point_x = random_points[idx_max_distance]
+        new_reference_points_x[ii, :] = new_reference_point_x
+
+    return new_reference_points_x
 
 
 def FLV_best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
@@ -326,13 +339,8 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate
         # print('Hybrid score', H_fuzzy, H_fuzzy.shape)
 
 
-    print(H_fuzzy, H_fuzzy.shape)
+    # print(H_fuzzy, H_fuzzy.shape)
     return H_fuzzy
-    # print(nonlinear_arr)
-    # TODO I think score should be an 1D array containing the FLOLA score for
-    # each Pr. That array with scores will be returned by this function.
-    # Also the neighbourhoods are returned
-
 
 def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
     """
