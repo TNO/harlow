@@ -17,7 +17,6 @@ The implementation is influenced by:
 import itertools
 import math
 import time
-from turtle import shape
 from typing import Callable, Optional, Tuple
 
 # import numba as nb
@@ -264,28 +263,19 @@ def best_new_points(
 
     # Calculate distance matrix P
     distance_matrix = calculate_distance_matrix(points_x, n_dim)
-
+    # Calculate the V for every Pr
+    relative_volumes, random_points, \
+    distance_mx, closest_indicator_mx = voronoi_volume_estimate(
+        points=points_x, 
+        domain_lower_bound=domain_lower_bound, 
+        domain_upper_bound=domain_upper_bound)
+    # print('Relative volumes', relative_volumes, relative_volumes.shape)
+    
     # TODO this function returns the FLOLA scores of Pr. Perhaps this
     # function and its return variables can be renamed to better match what
     # it does
-    neighborhoods_scores, neighborhoods_idxs = FLV_best_neighbourhoods(
-        points_x, points_y, distance_matrix, domain_lower_bound, domain_upper_bound
-    )
-    # TODO calculate the V for every Pr. We can reuse from LV:
-    # (
-    #    relative_volumes,
-    #    random_points,
-    #    distance_mx,
-    #    closest_indicator_mx,
-    # ) = voronoi_volume_estimate(
-    #    points=reference_points_x,
-    #    domain_lower_bound=domain_lower_bound,
-    #    domain_upper_bound=domain_upper_bound,
-    # )
-
-    # TODO then we calculate the Hfuzzy score
-    # hybrid_score = fuzzy_lola_voronoi_score(neighborhoods_scores,
-    # relative_volumes)
+    neighborhoods_scores = FLV_best_neighbourhoods(
+        points_x, points_y, distance_matrix, relative_volumes)
 
     # TODO sort P the hybrid score
     # pick new samples from random points from the Voronoi estimate based on
@@ -295,7 +285,7 @@ def best_new_points(
     # return new_points_x
 
 
-def FLV_best_neighbourhoods(points_x, points_y, distance_matrix , d_low, d_high):
+def FLV_best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
     """
     Alg. (1) [2]
     """
@@ -303,8 +293,7 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix , d_low, d_high)
     # print('X shapes', points_x.shape)
     # print('Y shapes', points_y.shape)
     w = np.zeros(n_point)
-    nonlinear_score = np.empty(n_point)
-    H_fuzzy_rank = []
+    nonlinear_score, H_fuzzy = np.empty(n_point), np.empty(n_point)
     # Init FIS S
     # It should be done before the for loop BUT
     # requires adhesion MAX value, that is computed inside the LOOP
@@ -316,50 +305,33 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix , d_low, d_high)
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
-        # gets the neighbours of Pr
-        # as indices
+        # gets the neighbours of Pr as indices
         neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)  
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
-        neighbors_coords = points_x[neighbors_idx]  # neighbourhoods X (check
-        # if works properly
-        # neighbors_y = points_y[neighbors_idx]  # neighbourhoods y (check if
-        # works properly
+        neighbors_coords = points_x[neighbors_idx]
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
-
-        # print("Points_x shape {}".format(points_x.shape))
         FIS = init_FIS(neighbors_coords, adhesion)
         w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
-        #TODO Check the shapes - account for weights dim OR all points ? 
-        # At each point we find different neighbors!
-        grad = flola_gradient_estimate(points_x[ii, :], points_y[ii, :], points_x[neighbors_idx],
-            points_y[neighbors_idx], w)
+        grad = flola_gradient_estimate(points_x[neighbors_idx], points_y[neighbors_idx],
+            points_x[ii, :], points_y[ii, :], w)
         # print('grad', grad, grad.shape)
         #E_fuzzy(P_r) Eq. (3.2) [2]
-        nonlinear_score[ii] = nonlinearity_measure(points_x[ii, :], points_y[ii, :], grad, 
-            points_x[neighbors_idx], points_y[neighbors_idx])        
-        # print('Nonlinear score', nonlinear_score, nonlinear_score.shape)
-        relative_volumes, random_points, \
-        distance_mx, closest_indicator_mx = voronoi_volume_estimate(
-            points=points_x[neighbors_idx], 
-            domain_lower_bound=d_low, 
-            domain_upper_bound=d_high)
-        print(relative_volumes, relative_volumes.shape)
+        nonlinear_score[ii] = nonlinearity_measure(points_x[neighbors_idx], points_y[neighbors_idx],
+            grad, points_x[ii, :], points_y[ii, :])
+        # print('Nonlinear score', nonlinear_score[ii])
         # H_fuzzy(P_r) Eq.(5.1) [2]
-        H_fuzzy = lola_voronoi_score(nonlinear_score, relative_volumes)
-        H_fuzzy_rank.append(H_fuzzy)
+        H_fuzzy[ii] = flola_voronoi_score(nonlinear_score[ii], nonlinear_score, volume_estimate[ii])
+        # print('Hybrid score', H_fuzzy, H_fuzzy.shape)
 
 
-    print(H_fuzzy_rank)
-
+    print(H_fuzzy, H_fuzzy.shape)
+    return H_fuzzy
+    # print(nonlinear_arr)
     # TODO I think score should be an 1D array containing the FLOLA score for
     # each Pr. That array with scores will be returned by this function.
     # Also the neighbourhoods are returned
-    # score = flola_score(points_x, points_y, w)
-
-    # TODO Upgrade to Alg. (2) [2] to include the hybrid score ranking. 
-    # In process ! Check the 
 
 
 def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
@@ -764,6 +736,13 @@ def lola_voronoi_score(
     """Eq.(5.1) of [1]."""
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
 
+def flola_voronoi_score(
+    nonlinearity_measures: float, nonlinearity_array: np.ndarray, relative_volumes: np.ndarray
+) -> np.ndarray:
+    """Eq.(5.1) of [2]."""
+    return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_array)
+
+
 
 # @nb.jit(nopython=nopython, fastmath=fastmath, cache=False)
 def neighborhood_score(
@@ -1019,8 +998,8 @@ def flola_gradient_estimate(
     :return gradient: The d-dimensional gradient at P_r 
 
     """
-    n_neighbors, n_dims = neighbor_points_x.shape
-    print(reference_point_x.shape, reference_point_y.shape, neighbor_points_x.shape, neighbor_points_y.shape, weights.shape)
+    n_neighbors, n_dims = reference_point_x.shape
+    # print(reference_point_x.shape, reference_point_y.shape, neighbor_points_x.shape, neighbor_points_y.shape, weights.shape)
     # to ensure that we hyperplane goes through `reference_point`
     neighbor_points_x_diff = neighbor_points_x - reference_point_x
     neighbor_points_y_diff = neighbor_points_y - reference_point_y
