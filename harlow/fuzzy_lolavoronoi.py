@@ -1,4 +1,4 @@
-"""Lola-Vornoi adaptive design strategy for global surrogate modelling.
+"""Fuzzy Lola-Vornoi adaptive design strategy for global surrogate modelling.
 
 The algorithm is proposed and described in this paper:
 [1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
@@ -8,18 +8,11 @@ surrogate modeling of computer experiments. SIAM Journal on Scientific Computing
 [2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015).
 A fuzzy hybrid sequential design strategy for global surrogate modeling of high-dimensional computer experiments.
 SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
-
-The implementation is influenced by:
-* gitlab.com/energyincities/besos/-/blob/master/besos/
-* https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
-
 """
-import itertools
 import math
 import time
 from typing import Callable, Optional, Tuple
 
-# import numba as nb
 import numpy as np
 import skfuzzy as fuzz
 from loguru import logger
@@ -28,7 +21,6 @@ from skfuzzy import control as ctrl
 from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
-from harlow.numba_utils import euclidean_distance, np_all, np_any, np_min
 from harlow.sampling_baseclass import Sampler
 from harlow.surrogate_model import Surrogate
 
@@ -180,8 +172,6 @@ class FuzzyLolaVoronoi(Sampler):
                 domain_upper_bound=domain_upper_bound,
                 n_point_last_iter=n_point_last_iter,
                 n_new_point=n_new_point_per_iteration,
-                ignore_far_neighborhoods=ignore_far_neighborhoods,
-                ignore_old_neighborhoods=ignore_old_neighborhoods,
             )
             self.step_gen_time.append(time.time() - start_time)
             n_point_last_iter = points_x.shape[0]
@@ -253,8 +243,6 @@ def best_new_points(
     domain_upper_bound: np.ndarray,
     n_point_last_iter: int,
     n_new_point: int = 1,
-    ignore_far_neighborhoods: Optional[bool] = True,
-    ignore_old_neighborhoods: Optional[bool] = True,
 ):
     # shape the input if not in the right shape
     n_dim = len(domain_lower_bound)
@@ -271,7 +259,7 @@ def best_new_points(
         domain_upper_bound=domain_upper_bound)
     # print('Relative volumes', relative_volumes, relative_volumes.shape)
 
-    neighborhoods_scores = FLV_best_neighbourhoods(
+    neighborhoods_scores = best_neighbourhoods(
         points_x, points_y, distance_matrix, relative_volumes)
 
     # TODO: check np.partition as an alternative
@@ -298,14 +286,13 @@ def best_new_points(
     return new_reference_points_x
 
 
-def FLV_best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
+def best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
     """
     Alg. (1) [2]
     """
     n_point, n_dim = points_x.shape
     # print('X shapes', points_x.shape)
     # print('Y shapes', points_y.shape)
-    w = np.zeros(n_point)
     nonlinear_score, H_fuzzy = np.empty(n_point), np.empty(n_point)
     # Init FIS S
     # It should be done before the for loop BUT
@@ -313,26 +300,28 @@ def FLV_best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate
     # TODO CHeck it later.
     # FIS = init_FIS()
     K = 4 * n_dim
-    if K >= n_point:
-        K = n_point - 2
+    if K >= n_point-1:
+        K = n_point - 1
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
         # gets the neighbours of Pr as indices
         neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)  
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
-        neighbors_coords = points_x[neighbors_idx]
+        neighbors_coords = points_x[neighbors_idx,:]
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
         FIS = init_FIS(neighbors_coords, adhesion)
         w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
-        grad = flola_gradient_estimate(points_x[neighbors_idx], points_y[neighbors_idx],
-            points_x[ii, :], points_y[ii, :], w)
+        grad = flola_gradient_estimate(points_x[ii, :], points_y[
+            ii], points_x[neighbors_idx, :], points_y[neighbors_idx, :], w)
         # print('grad', grad, grad.shape)
         #E_fuzzy(P_r) Eq. (3.2) [2]
-        nonlinear_score[ii] = nonlinearity_measure(points_x[neighbors_idx], points_y[neighbors_idx],
-            grad, points_x[ii, :], points_y[ii, :])
+        nonlinear_score[ii] = nonlinearity_measure(points_x[ii,:],
+                                                   points_y[ii,:],
+                                                   grad, points_x[neighbors_idx, :],
+                                                   points_y[neighbors_idx, :])
         # print('Nonlinear score', nonlinear_score[ii])
         # H_fuzzy(P_r) Eq.(5.1) [2]
         H_fuzzy[ii] = flola_voronoi_score(nonlinear_score[ii], nonlinear_score, volume_estimate[ii])
@@ -489,10 +478,10 @@ def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray):
     :return: alpha as float
     """
     distances_prIdx = distance_matrix[Pr_idx, :]
-    nearest_k_idxs = np.argpartition(np.delete(distances_prIdx, Pr_idx), K)
-    vals_closest_K = distances_prIdx[nearest_k_idxs[:K]]
+    distances_wo_prIdx = np.delete(distances_prIdx, Pr_idx)
+    nearest_k_vals = np.sort(distances_wo_prIdx)[:K]
 
-    return np.sum(vals_closest_K) * (2 / K)
+    return np.sum(nearest_k_vals) * (2 / K)
 
 
 def calculate_distance_matrix(
@@ -513,350 +502,11 @@ def calculate_distance_matrix(
         return squareform(pdist(points_x, "minkowsky", p=n_dim))
 
 
-def best_new_points_with_neighbors(
-    reference_points_x: np.ndarray,
-    reference_points_y: np.ndarray,
-    all_neighbor_points_x: np.ndarray,
-    all_neighbor_points_y: np.ndarray,
-    domain_lower_bound: np.ndarray,
-    domain_upper_bound: np.ndarray,
-    n_next_point: int,
-):
-    """Find the new/next reference point(s) where the target function will be evaluated.
-
-    TODO: reuse the random point used here for other calls of this function (
-        `best_next_points`)
-    """
-    n_dim = reference_points_x.shape[1]
-
-    nonlinearity_measures = lola_score(
-        all_neighbor_points_x=all_neighbor_points_x,
-        all_neighbor_points_y=all_neighbor_points_y,
-        reference_points_x=reference_points_x,
-        reference_points_y=reference_points_y,
-    )
-    (
-        relative_volumes,
-        random_points,
-        distance_mx,
-        closest_indicator_mx,
-    ) = voronoi_volume_estimate(
-        points=reference_points_x,
-        domain_lower_bound=domain_lower_bound,
-        domain_upper_bound=domain_upper_bound,
-    )
-    hybrid_score = lola_voronoi_score(nonlinearity_measures, relative_volumes)
-
-    # TODO: check np.partition as an alternative
-    idxs_new_neighbor = np.argsort(-hybrid_score)[:n_next_point]
-
-    new_reference_points_x = np.empty((n_next_point, n_dim))
-    for ii, idx_new_neighbor in enumerate(idxs_new_neighbor):
-        # all the distances to reference point whose neighborhood will get a new
-        # point where the target function is evaluated
-        distances_in_neighbor = distance_mx[:, idx_new_neighbor]
-
-        # consider only those points that are within the voronoi cell of the
-        # reference point
-        idx_mask_in_neighbor = closest_indicator_mx[:, idx_new_neighbor]
-
-        # to avoid selecting points that are not in the neighborhood
-        distances_in_neighbor[~idx_mask_in_neighbor] = -1
-
-        # largest distance within the same voronoi cell
-        idx_max_distance = np.argmax(distances_in_neighbor)
-        new_reference_point_x = random_points[idx_max_distance]
-        new_reference_points_x[ii, :] = new_reference_point_x
-
-    return new_reference_points_x
-
-
-def best_neighborhoods(
-    points_x: np.ndarray,
-    n_point_last_iter: int,
-    ignore_far_neighborhoods: Optional[bool] = True,
-    ignore_old_neighborhoods: Optional[bool] = True,
-):
-    """Find the best neighborhood for each row of `points_x`. This function is expected
-    to be used with the initial sample of `points_x`, when no best neighborhoods yet
-    available from preceding iteration steps. This function exists to separate numba
-    compatible code from non-compatible one."""
-
-    # n-choose-k, all possible neighbor combinations, the elements of the matrix are
-    # `points_x` indices
-    n_point, n_dim = points_x.shape
-    n_neighbor = 2 * n_dim
-
-    all_neighbor_point_idxs_combinations = np.array(
-        list(itertools.combinations(np.arange(n_point), n_neighbor))
-    )
-    (
-        best_neighborhood_scores,
-        best_neighborhood_idxs,
-        all_neighborhood_scores,
-    ) = best_neighborhoods_numba(
-        points_x,
-        all_neighbor_point_idxs_combinations,
-        n_point_last_iter,
-        ignore_far_neighborhoods=ignore_far_neighborhoods,
-        ignore_old_neighborhoods=ignore_old_neighborhoods,
-    )
-    return (
-        best_neighborhood_scores,
-        best_neighborhood_idxs,
-        all_neighborhood_scores,
-        all_neighbor_point_idxs_combinations,
-    )
-
-
-# @nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
-def best_neighborhoods_numba(
-    points_x: np.ndarray,
-    all_neighbor_point_idxs_combinations: np.ndarray,
-    n_point_last_iter: int,
-    ignore_far_neighborhoods: Optional[bool] = True,
-    ignore_old_neighborhoods: Optional[bool] = True,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Find the best neighborhood for each row of `points_x`. This function is expected
-    to be used with the initial sample of `points_x`, when no best neighborhoods yet
-    available from preceding iteration steps.
-
-    Args:
-        points_x: n_point x n_dim.
-        all_neighbor_point_idxs_combinations:
-        n_point_last_iter:
-        ignore_far_neighborhoods:
-        ignore_old_neighborhoods:
-    Returns:
-
-    """
-
-    # TODO: It should be possible to perform the calculation of
-    # all neighbourhoods after discarding the points that are
-    # too far away. This will reduce storage requirements
-    # and the computational cost of obtaining all combinations.
-    n_point, n_dim = points_x.shape
-    n_neighborhood = all_neighbor_point_idxs_combinations.shape[0]
-
-    # Number of new points
-    n_new_points = points_x.shape[0] - n_point_last_iter
-
-    # this matrix contains neighborhoods that contain the reference point as well, these
-    # will be assigned -1 and the rest will get a neighborhood score
-    # each column belong to one point, same order as points_x (reference_point)
-    all_neighborhood_scores = -np.ones((n_neighborhood, n_point))
-
-    # TODO: both loops are completely independent hence parallelizable
-    # for ii in nb.prange(n_point):
-    # This loop is executed for each point in the domain
-    for ii in range(n_point):
-        reference_point_x = np.expand_dims(points_x[ii], 0)
-        # consider only the valid neighborhoods: the ones that do not contain
-        # `reference_point_x`
-        idx_valid_neighborhoods = np.where(
-            np_all(all_neighbor_point_idxs_combinations != ii, axis=1)
-        )[0]
-
-        if ignore_old_neighborhoods:
-            # Find index of old points
-            arr_valid_neighbourhoods = all_neighbor_point_idxs_combinations[
-                idx_valid_neighborhoods
-            ]
-            arr_new_point_no = np.arange(
-                n_point_last_iter, n_point_last_iter + n_new_points
-            )
-
-            # Remove entries from valid neighborhoods that
-            # do not contain a new point
-            arr_valid_neighbourhoods_mask = np.repeat(
-                False, len(arr_valid_neighbourhoods)
-            )
-            for _idx_pt, pt in enumerate(arr_new_point_no):
-
-                # Mask valid neighbourhoods (i.e. neighbourhoods that contain
-                # the current new point). Terminate early if all elements
-                # in mask array are true.
-                arr_valid_neighbourhoods_mask = np.bitwise_or(
-                    arr_valid_neighbourhoods_mask,
-                    np_any(arr_valid_neighbourhoods == pt, axis=1),
-                )
-                if np.all(arr_valid_neighbourhoods_mask):
-                    break
-            arr_valid_neighbourhoods = arr_valid_neighbourhoods[
-                arr_valid_neighbourhoods_mask
-            ]
-            idx_valid_neighborhoods = np.where(arr_valid_neighbourhoods_mask)[0]
-
-        # consider only the new neighborhoods that are not too far away.
-        # neighborhoods that contain a point farther away the median Euclidean distance
-        # are dismissed.
-        # section [5] of the paper
-        # TODO: Check and discuss whether this 'treshold' defined by the median of
-        #  distances is the best heuristic.
-        if np.where(idx_valid_neighborhoods)[0].size:
-            if ignore_far_neighborhoods:
-                valid_pts_combinations = all_neighbor_point_idxs_combinations[
-                    idx_valid_neighborhoods
-                ]
-                all_neighbor_points_x = points_x[valid_pts_combinations, :]
-                dists = np.linalg.norm(
-                    all_neighbor_points_x - reference_point_x, axis=-1
-                )
-                med = np.median(dists)
-                idx_valid_neighborhoods = idx_valid_neighborhoods[
-                    np.all(dists <= med, axis=-1)
-                ]
-
-        # compute the neighbourhood_score (`ns`) for each neighborhood
-        #
-        if np.where(idx_valid_neighborhoods)[0].size:
-            for jj in range(len(idx_valid_neighborhoods)):
-                idx_valid_neighborhood = idx_valid_neighborhoods[jj]
-                neighbor_points_x = points_x[
-                    all_neighbor_point_idxs_combinations[idx_valid_neighborhood], :
-                ]
-                # this is a time consuming function
-                ns = neighborhood_score(
-                    neighbor_points_x=neighbor_points_x,
-                    reference_point_x=reference_point_x,
-                )[0]
-                all_neighborhood_scores[idx_valid_neighborhood, ii] = ns
-
-    # best neighborhoods, the order is the same as in `points_x`
-    # best_neighborhood_idxs = np_argmax(all_neighborhood_scores, axis=0)
-    best_neighborhood_idxs = np.argmax(all_neighborhood_scores, axis=0)
-    flat_idxs = n_point * best_neighborhood_idxs + np.arange(n_point)
-    # best_neighborhood_scores = all_neighborhood_scores.ravel()[
-    #     flat_idxs.astype(nb.int_)
-    # ]
-    best_neighborhood_scores = all_neighborhood_scores.ravel()[flat_idxs.astype(np.int)]
-    return (
-        best_neighborhood_scores,
-        best_neighborhood_idxs,
-        all_neighborhood_scores,
-    )
-
-
-def lola_voronoi_score(
-    nonlinearity_measures: np.ndarray, relative_volumes: np.ndarray
-) -> np.ndarray:
-    """Eq.(5.1) of [1]."""
-    return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
-
 def flola_voronoi_score(
     nonlinearity_measures: float, nonlinearity_array: np.ndarray, relative_volumes: np.ndarray
 ) -> np.ndarray:
     """Eq.(5.1) of [2]."""
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_array)
-
-
-
-# @nb.jit(nopython=nopython, fastmath=fastmath, cache=False)
-def neighborhood_score(
-    neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
-) -> Tuple[float, float]:
-    """
-
-    Args:
-        neighbor_points_x:
-            n_point x n_dim.
-        reference_point_x:
-            1 x n_dim
-
-    Returns:
-        Neighborhood score.
-    """
-    # shapes are not checked!
-    # shape the input if not in the right shape, TODO: is this really needed?
-    reference_point_x = reference_point_x.reshape((1, -1))
-    n_dim = reference_point_x.shape[1]
-    # neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
-
-    # cohesion, Eq(4.3) of [1]
-    cohesion = np.mean(
-        np.sqrt(np.sum((neighbor_points_x - reference_point_x) ** 2, axis=1))
-    )
-
-    # cross-polytope ratio
-    if n_dim == 1:
-        pr1 = neighbor_points_x[0, 0]
-        pr2 = neighbor_points_x[1, 0]
-        # Eq(4.6) of [1]
-        cross_polytope_ratio = 1 - np.abs(pr1 + pr2) / (
-            np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)
-        )
-    else:
-        # Eq(4.4) of [1]
-        # smallest neighbor distance for each neighbor
-        # neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
-        # np.fill_diagonal(neighbor_distances, np.inf)
-        # min_neighbor_distances = np.min(neighbor_distances, axis=1)
-        #  neighbor_distances = pdist_full_matrix(neighbor_points_x)
-
-        # This should be an equivalent alternative to squareform + pdist
-        # that also works with numba. Based on this stackoverflow answer:
-        # https://stackoverflow.com/questions/60839615/
-        # efficiently-calculating-a-euclidean-dist-matrix-in-numpy
-        # TODO: Check
-        # TODO: would be good to avoid np.max
-        # neighbor_distances = squareform(pdist(neighbor_points_x, metric="euclidean"))
-
-        neighbor_distances = euclidean_distance(neighbor_points_x)
-        np.fill_diagonal(neighbor_distances, np.max(neighbor_distances))
-        # min_neighbor_distances = np_min(neighbor_distances, axis=1)
-        min_neighbor_distances = np_min(neighbor_distances, axis=1)
-        adhesion = np.mean(min_neighbor_distances)
-        # Eq(4.5) of [1]
-        cross_polytope_ratio = adhesion / (np.sqrt(2) * cohesion)
-
-    # Eq(4.7) of [1]
-    return cross_polytope_ratio / cohesion, cross_polytope_ratio
-
-
-def lola_score(
-    all_neighbor_points_x: np.ndarray,
-    all_neighbor_points_y: np.ndarray,
-    reference_points_x: np.ndarray,
-    reference_points_y: np.ndarray,
-) -> np.ndarray:
-    """Non-linearity measure for each point and its neighbor. Measures how much a
-    neighborhood deviates from a hyperplane."""
-    n_reference_point = len(reference_points_y)
-    es = np.empty(n_reference_point)
-
-    for (
-        ii,
-        (
-            neighbor_points_x,
-            neighbor_points_y,
-            reference_point_x,
-            reference_point_y,
-        ),
-    ) in enumerate(
-        zip(
-            all_neighbor_points_x,
-            all_neighbor_points_y,
-            reference_points_x,
-            reference_points_y,
-        )
-    ):
-
-        reference_point_gradient = gradient_estimate(
-            reference_point_x=reference_point_x,
-            reference_point_y=reference_point_y,
-            neighbor_points_x=neighbor_points_x,
-            neighbor_points_y=neighbor_points_y,
-        )[0]
-        es[ii] = nonlinearity_measure(
-            reference_point_x=reference_point_x,
-            reference_point_y=reference_point_y,
-            reference_point_gradient=reference_point_gradient,
-            neighbor_points_x=neighbor_points_x,
-            neighbor_points_y=neighbor_points_y,
-        )
-
-    return es
 
 
 def nonlinearity_measure(
@@ -1006,7 +656,9 @@ def flola_gradient_estimate(
     :return gradient: The d-dimensional gradient at P_r 
 
     """
-    n_neighbors, n_dims = reference_point_x.shape
+    reference_point_x = reference_point_x.reshape((1, -1))
+    n_neighbors, n_dims = neighbor_points_x.shape
+
     # print(reference_point_x.shape, reference_point_y.shape, neighbor_points_x.shape, neighbor_points_y.shape, weights.shape)
     # to ensure that we hyperplane goes through `reference_point`
     neighbor_points_x_diff = neighbor_points_x - reference_point_x
@@ -1016,54 +668,7 @@ def flola_gradient_estimate(
     # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
     Aw = neighbor_points_x_diff * np.sqrt(weights[:, np.newaxis])
     Bw = neighbor_points_y_diff * np.sqrt(weights)
-    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors, n_dims)
-
-    return gradient
-
-
-def gradient_estimate(
-    reference_point_x: np.ndarray,
-    reference_point_y: float,
-    neighbor_points_x: np.ndarray,
-    neighbor_points_y: np.ndarray,
-) -> np.ndarray:
-    """
-    Estimate the gradient at `reference_point` by fitting a hyperplane to
-    `neighbor_points` in a least-square sense. A hyperplane that goes exactly
-    through the `reference_point`.
-
-    We think that the there is a mistake in Eq.(4.8) of [1], the right hand side
-    should be `f(p_neighbor) - f(p_reference)`, or on the left hand side the
-    `-p_reference` should be dropped if the formulation is in line with this:
-    "Without loss of generality, we assume that pr lies in the origin."
-    section 4.2.1 of [1].
-    This stands as of [2] Eq. (3.1) thus the implementation is correct!
-
-    Args:
-        reference_point_x:
-            1 x n_dim.
-        reference_point_y:
-        neighbor_points_x:
-            n_neighbor x n_dim.
-        neighbor_points_y:
-            n_neighbor x 1.
-
-    Returns:
-        Gradient estimate, 1 x n_dim.
-    """
-    # shape the input if not in the right shape, TODO: is this really needed?
-    reference_point_x = reference_point_x.reshape((1, -1))
-    n_dim = reference_point_x.shape[1]
-    neighbor_points_x = neighbor_points_x.reshape((-1, n_dim))
-    neighbor_points_y = neighbor_points_y.reshape((-1, 1))
-
-    # to ensure that we hyperplane goes through `reference_point`
-    neighbor_points_x_diff = neighbor_points_x - reference_point_x
-    neighbor_points_y_diff = neighbor_points_y - reference_point_y
-
-    # least-square fit of the hyperplane, the gradient is the hyperplane coefficients
-    gradient = np.linalg.lstsq(
-        neighbor_points_x_diff, neighbor_points_y_diff, rcond=None
-    )[0].reshape((1, n_dim))
+    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors,
+                                                              n_dims)
 
     return gradient

@@ -124,6 +124,7 @@ def shekel(X):
 
 def hartmann(X):
     n = X.shape[0]
+    results = []
     outer = 0.0
     for i in range(n):
         alpha = np.array([1.0, 1.2, 3.0, 3.2])
@@ -155,5 +156,6 @@ def hartmann(X):
 
             new = alpha[ii] * np.exp(-inner)
             outer = outer + new
+        results.append(-(2.58 + outer) / 1.94)
 
-    return -(2.58 + outer) / 1.94
+    return np.asarray(results)
