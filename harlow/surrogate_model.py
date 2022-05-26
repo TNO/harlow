@@ -374,7 +374,7 @@ class ModelListGaussianProcess(Surrogate):
         model_names,
         training_max_iter=100,
         learning_rate=0.1,
-        min_loss_rate=0.01,
+        min_loss_rate=None,
         optimizer=None,
         mean=None,
         covar=None,
@@ -416,8 +416,8 @@ class ModelListGaussianProcess(Surrogate):
         # Silence torch and numpy warnings (related to converting
         # between np.arrays and torch.tensors).
         if silence_warnings:
-            warnings.filterwarnings("once", category=DeprecationWarning)
-            warnings.filterwarnings("once", category=UserWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
             # Initialize model
@@ -500,8 +500,18 @@ class ModelListGaussianProcess(Surrogate):
             vec_loss.append(loss.item())
             self.optimizer.step()
 
+            self.optimizer.zero_grad()
+            output = self.model(*self.model.train_inputs)
+            loss = -self.mll(output, self.model.train_targets)
+            loss.backward()
+            vec_loss.append(loss.item())
+            self.optimizer.step()
+
             # TODO: Will this work for negative losss? CHECK
-            loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+            loss_ratio = None
+            if self.min_loss_rate:
+                loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+
             # From https://stackoverflow.com/questions/5290994
             # /remove-and-replace-printed-items
             if self.show_progress:
@@ -515,8 +525,9 @@ class ModelListGaussianProcess(Surrogate):
             self.noise_std = self.get_noise()
 
             # Check criterion and break if true
-            if loss_ratio < 0.0:
-                break
+            if self.min_loss_rate:
+                if loss_ratio < 0.0:
+                    break
 
             # Set previous iter loss to current
             loss_0 = loss.item()
@@ -627,7 +638,7 @@ class BatchIndependentGaussianProcess(Surrogate):
         num_tasks,
         training_max_iter=100,
         learning_rate=0.1,
-        min_loss_rate=0.01,
+        min_loss_rate=None,
         optimizer=None,
         mean=None,
         covar=None,
@@ -658,8 +669,8 @@ class BatchIndependentGaussianProcess(Surrogate):
         # Silence torch and numpy warnings (related to converting
         # between np.arrays and torch.tensors).
         if silence_warnings:
-            warnings.filterwarnings("once", category=DeprecationWarning)
-            warnings.filterwarnings("once", category=UserWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
             # Initialize model
@@ -677,10 +688,10 @@ class BatchIndependentGaussianProcess(Surrogate):
                 f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
-        if self.train_y.shape[1] != len(self.num_tasks):
+        if self.train_y.shape[1] != self.num_tasks:
             raise ValueError(
                 f"Dim 1 of `train_y` must be equal to the number of tasks"
-                f"but is {self.train_y.shape[0]} != {len(self.num_tasks)}"
+                f"but is {self.train_y.shape[1]} != {self.num_tasks}"
             )
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
@@ -724,14 +735,17 @@ class BatchIndependentGaussianProcess(Surrogate):
         for _i in range(self.training_max_iter):
 
             self.optimizer.zero_grad()
-            output = self.model(*self.model.train_inputs)
-            loss = -self.mll(output, self.model.train_targets)
+            output = self.model(self.train_X)
+            loss = -self.mll(output, self.train_y)
             loss.backward()
             vec_loss.append(loss.item())
             self.optimizer.step()
 
             # TODO: Will this work for negative losss? CHECK
-            loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+            loss_ratio = None
+            if self.min_loss_rate:
+                loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+
             # From https://stackoverflow.com/questions/5290994
             # /remove-and-replace-printed-items
             if self.show_progress:
@@ -745,8 +759,9 @@ class BatchIndependentGaussianProcess(Surrogate):
             self.noise_std = self.get_noise()
 
             # Check criterion and break if true
-            if loss_ratio < 0.0:
-                break
+            if self.min_loss_rate:
+                if loss_ratio < 0.0:
+                    break
 
             # Set previous iter loss to current
             loss_0 = loss.item()
@@ -830,7 +845,7 @@ class MultiTaskGaussianProcess(Surrogate):
         num_tasks,
         training_max_iter=100,
         learning_rate=0.1,
-        min_loss_rate=0.01,
+        min_loss_rate=None,
         optimizer=None,
         mean=None,
         covar=None,
@@ -861,8 +876,8 @@ class MultiTaskGaussianProcess(Surrogate):
         # Silence torch and numpy warnings (related to converting
         # between np.arrays and torch.tensors).
         if silence_warnings:
-            warnings.filterwarnings("once", category=DeprecationWarning)
-            warnings.filterwarnings("once", category=UserWarning)
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
             # Initialize model
@@ -880,10 +895,10 @@ class MultiTaskGaussianProcess(Surrogate):
                 f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
-        if self.train_y.shape[1] != len(self.num_tasks):
+        if self.train_y.shape[1] != self.num_tasks:
             raise ValueError(
                 f"Dim 1 of `train_y` must be equal to the number of tasks"
-                f"but is {self.train_y.shape[0]} != {len(self.num_tasks)}"
+                f"but is {self.train_y.shape[1]} != {self.num_tasks}"
             )
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
@@ -927,14 +942,17 @@ class MultiTaskGaussianProcess(Surrogate):
         for _i in range(self.training_max_iter):
 
             self.optimizer.zero_grad()
-            output = self.model(*self.model.train_inputs)
-            loss = -self.mll(output, self.model.train_targets)
+            output = self.model(self.train_X)
+            loss = -self.mll(output, self.train_y)
             loss.backward()
             vec_loss.append(loss.item())
             self.optimizer.step()
 
             # TODO: Will this work for negative losss? CHECK
-            loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+            loss_ratio = None
+            if self.min_loss_rate:
+                loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+
             # From https://stackoverflow.com/questions/5290994
             # /remove-and-replace-printed-items
             if self.show_progress:
@@ -948,8 +966,9 @@ class MultiTaskGaussianProcess(Surrogate):
             self.noise_std = self.get_noise()
 
             # Check criterion and break if true
-            if loss_ratio < 0.0:
-                break
+            if self.min_loss_rate:
+                if loss_ratio < 0.0:
+                    break
 
             # Set previous iter loss to current
             loss_0 = loss.item()
