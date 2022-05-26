@@ -16,7 +16,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 import torch
-from gpytorch.mlls import SumMarginalLogLikelihood
+from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
 from tensorflow.keras.layers import Dense, Input
@@ -281,6 +281,10 @@ class GaussianProcessTFP(Surrogate):
 
 
 class ExactGPModel(gpytorch.models.ExactGP):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/ModelList_GP_Regression.html # noqa: E501
+    """
+
     def __init__(self, train_x, train_y, likelihood):
         super().__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.ConstantMean()
@@ -290,6 +294,49 @@ class ExactGPModel(gpytorch.models.ExactGP):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+
+class MultitaskGPModel(gpytorch.models.ExactGP):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html # noqa: E501
+    """
+
+    def __init__(self, train_x, train_y, likelihood, N_tasks):
+        super(MultitaskGPModel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=N_tasks
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=N_tasks, rank=1
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+
+
+class BatchIndependentMultitaskGPModel(gpytorch.models.ExactGP):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html  # noqa: E501
+    """
+
+    def __init__(self, train_x, train_y, likelihood, N_tasks):
+        super().__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ConstantMean(
+            batch_shape=torch.Size([N_tasks])
+        )
+        self.covar_module = gpytorch.kernels.ScaleKernel(
+            gpytorch.kernels.RBFKernel(batch_shape=torch.Size([N_tasks])),
+            batch_shape=torch.Size([N_tasks]),
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal.from_batch_mvn(
+            gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+        )
 
 
 class ModelListGaussianProcess(Surrogate):
@@ -310,15 +357,12 @@ class ModelListGaussianProcess(Surrogate):
         is likely a better solution to this.
 
     TODO:
-    * Could this be extended so that the input features for each GP are
-    determined based on an information-theory approach (e.g. using the Fisher
-    information matrix approximation)? The training points could be jointly
-    determined for all GPs to minimize the number of FE model evaluations
-    needed for surrogating.
     * GpyTorch probably has existing functionality for updating and refitting
     models. This is likely the prefered approach and should replace the current
     approach where the model is redefined at each call to `fit()` or `.update()`.
     * Rewrite to use the existing Gaussian process surrogate class
+    * Add type hinting
+    * Improve docstrings
     """
 
     is_probabilistic = True
@@ -355,7 +399,7 @@ class ModelListGaussianProcess(Surrogate):
         self.list_params = list_params
         self.optimizer = optimizer
         self.show_progress = show_progress
-        self.predictions = None
+        self.prediction = None
 
         # Check input consistency
         if self.model_names is None:
@@ -489,9 +533,9 @@ class ModelListGaussianProcess(Surrogate):
         # Get input features per model
         X_list = [X_pred[:, prm_list] for prm_list in self.list_params]
 
-        # Make predictions
+        # Make prediction
         with torch.no_grad(), gpytorch.settings.fast_pred_var():
-            self.predictions = self.likelihood(*self.model(*X_list))
+            self.prediction = self.likelihood(*self.model(*X_list))
 
         # Generate output for each model
         self.mean = []
@@ -500,20 +544,20 @@ class ModelListGaussianProcess(Surrogate):
         self.std = []
         self.var = []
         sample = []
-        for _submodel, prediction in zip(self.model.models, self.predictions):
+        for _submodel, _prediction in zip(self.model.models, self.prediction):
 
             # Get mean, variance and std. dev per model
-            self.mean.append(prediction.mean)
-            self.var.append(prediction.variance)
-            self.std.append(prediction.variance.sqrt())
+            self.mean.append(_prediction.mean)
+            self.var.append(_prediction.variance)
+            self.std.append(_prediction.variance.sqrt())
 
             # Get posterior predictive samples per model
-            sample.append(prediction.sample())
+            sample.append(_prediction.sample())
 
             # Get confidence intervals per model
-            l_cr, u_cr = prediction.confidence_region()
-            self.lower.append(l_cr)
-            self.upper.append(u_cr)
+            _l_cr, _u_cr = _prediction.confidence_region()
+            self.lower.append(_l_cr)
+            self.upper.append(_u_cr)
 
         if return_std:
             return sample, self.std
@@ -527,7 +571,7 @@ class ModelListGaussianProcess(Surrogate):
         self.likelihood.eval()
 
         sample = []
-        for prediction in self.predictions:
+        for prediction in self.prediction:
             sample.append(prediction.n_sample(n_samples))
 
         return sample
@@ -546,6 +590,412 @@ class ModelListGaussianProcess(Surrogate):
             noise_std.append(likelihood.noise.sqrt())
 
         return noise_std
+
+
+class BatchIndependentGaussianProcess(Surrogate):
+    """
+    !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
+
+    Utility class to generate a surrogate composed of multiple independent
+    Gaussian processes with the same covariance and likelihood:
+    https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html
+
+    Notes:
+        * This model must be initialized with data
+        * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+        with its arguments every time it is called.
+        * The `.update(X, y)` method will append the new X and y training tensors
+        to the existing `train_X`, `train_y` and perform the fitting.
+        * Both `.fit()` and `.update()` will re-instantiate a new model. There
+        is likely a better solution to this.
+
+    TODO:
+    * GpyTorch probably has existing functionality for updating and refitting
+    models. This is likely the prefered approach and should replace the current
+    approach where the model is redefined at each call to `fit()` or `.update()`.
+    * Rewrite to use the existing Gaussian process surrogate class
+    * Add type hinting
+    * Improve docstrings
+    """
+
+    is_probabilistic = True
+
+    def __init__(
+        self,
+        train_X,
+        train_y,
+        num_tasks,
+        training_max_iter=100,
+        learning_rate=0.1,
+        min_loss_rate=0.01,
+        optimizer=None,
+        mean=None,
+        covar=None,
+        show_progress=True,
+        silence_warnings=False,
+        **kwargs,
+    ):
+
+        self.model = None
+        self.train_X = train_X
+        self.train_y = train_y
+        self.num_tasks = num_tasks
+        self.training_max_iter = training_max_iter
+        self.noise_std = None
+        self.likelihood = None
+        self.mll = None
+        self.learning_rate = learning_rate
+        self.min_loss_rate = min_loss_rate
+        self.mean_module = mean
+        self.covar_module = covar
+        self.optimizer = optimizer
+        self.show_progress = show_progress
+        self.predictions = None
+
+        if self.optimizer is None:
+            warnings.warn("No optimizer specified, using default.", UserWarning)
+
+        # Silence torch and numpy warnings (related to converting
+        # between np.arrays and torch.tensors).
+        if silence_warnings:
+            warnings.filterwarnings("once", category=DeprecationWarning)
+            warnings.filterwarnings("once", category=UserWarning)
+            warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+
+            # Initialize model
+        self.create_model()
+
+    def create_model(self):
+
+        # Reset optimizer
+        self.optimizer = None
+
+        # Check input consistency
+        if self.train_y.shape[0] != self.train_X.shape[0]:
+            raise ValueError(
+                f"Dim 0 of `train_y` must be equal to the number of training"
+                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
+            )
+
+        if self.train_y.shape[1] != len(self.num_tasks):
+            raise ValueError(
+                f"Dim 1 of `train_y` must be equal to the number of tasks"
+                f"but is {self.train_y.shape[0]} != {len(self.num_tasks)}"
+            )
+
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
+            num_tasks=self.num_tasks
+        )
+        self.model = BatchIndependentMultitaskGPModel(
+            self.train_X, self.train_y, self.likelihood, self.num_tasks
+        )
+
+    def fit(self, train_X=None, train_y=None):
+
+        # If arguments are passed, delete the previously storred `train_X` and `train_y`
+        if (train_X is None) or (train_y is None):
+            warnings.warn(
+                "Calling `.fit()` with no input argumentss will re-instantiate "
+                "and fit the model for the currently stored training data."
+            )
+        else:
+            self.train_X = torch.atleast_2d(torch.tensor(train_X).float())
+            self.train_y = torch.atleast_2d(torch.tensor(train_y).float())
+
+        # Create model
+        self.create_model()
+
+        # Switch the model to train mode
+        self.model.train()
+        self.likelihood.train()
+
+        # Define optimizer
+        if self.optimizer is None:
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(), lr=self.learning_rate
+            )  # Includes GaussianLikelihood parameters
+
+        # Define marginal loglikelihood
+        self.mll = ExactMarginalLogLikelihood(self.likelihood, self.model)
+
+        # Train
+        vec_loss = []
+        loss_0 = np.inf
+        for _i in range(self.training_max_iter):
+
+            self.optimizer.zero_grad()
+            output = self.model(*self.model.train_inputs)
+            loss = -self.mll(output, self.model.train_targets)
+            loss.backward()
+            vec_loss.append(loss.item())
+            self.optimizer.step()
+
+            # TODO: Will this work for negative losss? CHECK
+            loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+            # From https://stackoverflow.com/questions/5290994
+            # /remove-and-replace-printed-items
+            if self.show_progress:
+                print(
+                    f"Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
+                    end="\r",
+                    flush=True,
+                )
+
+            # Get noise value
+            self.noise_std = self.get_noise()
+
+            # Check criterion and break if true
+            if loss_ratio < 0.0:
+                break
+
+            # Set previous iter loss to current
+            loss_0 = loss.item()
+
+    def predict(self, X_pred, return_std=False):
+
+        # Cast input to tensor for compatibility with sampling algorithms
+        X_pred = torch.atleast_2d(torch.tensor(X_pred).float())
+
+        # Switch the model to eval mode
+        self.model.eval()
+        self.likelihood.eval()
+
+        # Make prediction
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            self.prediction = self.likelihood(self.model(X_pred))
+
+        # Get mean, variance and std. dev per model
+        self.mean = self.prediction.mean
+        self.var = self.prediction.variance
+        self.std = self.prediction.variance.sqrt()
+
+        # Get confidence intervals per model
+        self.cr_l, self.cr_u = self.prediction.confidence_region()
+
+        if return_std:
+            return self.prediction.sample(), self.std
+        else:
+            return self.prediction.sample()
+
+    def sample_posterior(self, n_samples=1):
+        # Switch the model to eval mode
+        self.model.eval()
+        self.likelihood.eval()
+
+        return self.prediction.n_sample(n_samples)
+
+    def update(self, new_X, new_y):
+        full_X = torch.cat([self.train_X, new_X], dim=0)
+        full_y = torch.cat([self.train_y, new_y], dim=0)
+
+        self.optimizer = None
+        self.fit(full_X, full_y)
+
+    def get_noise(self):
+        return self.model.likelihood.noise.sqrt()
+
+
+class MultiTaskGaussianProcess(Surrogate):
+    """
+    !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
+
+    Utility class to generate a surrogate composed of multiple correlated
+    Gaussian processes:
+    https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html
+
+    Notes:
+        * This model must be initialized with data
+        * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+        with its arguments every time it is called.
+        * The `.update(X, y)` method will append the new X and y training tensors
+        to the existing `train_X`, `train_y` and perform the fitting.
+        * Both `.fit()` and `.update()` will re-instantiate a new model. There
+        is likely a better solution to this.
+
+    TODO:
+    * GpyTorch probably has existing functionality for updating and refitting
+    models. This is likely the prefered approach and should replace the current
+    approach where the model is redefined at each call to `fit()` or `.update()`.
+    * Rewrite to use the existing Gaussian process surrogate class
+    * Add type hinting
+    * Improve docstrings
+    """
+
+    is_probabilistic = True
+
+    def __init__(
+        self,
+        train_X,
+        train_y,
+        num_tasks,
+        training_max_iter=100,
+        learning_rate=0.1,
+        min_loss_rate=0.01,
+        optimizer=None,
+        mean=None,
+        covar=None,
+        show_progress=True,
+        silence_warnings=False,
+        **kwargs,
+    ):
+
+        self.model = None
+        self.train_X = train_X
+        self.train_y = train_y
+        self.num_tasks = num_tasks
+        self.training_max_iter = training_max_iter
+        self.noise_std = None
+        self.likelihood = None
+        self.mll = None
+        self.learning_rate = learning_rate
+        self.min_loss_rate = min_loss_rate
+        self.mean_module = mean
+        self.covar_module = covar
+        self.optimizer = optimizer
+        self.show_progress = show_progress
+        self.predictions = None
+
+        if self.optimizer is None:
+            warnings.warn("No optimizer specified, using default.", UserWarning)
+
+        # Silence torch and numpy warnings (related to converting
+        # between np.arrays and torch.tensors).
+        if silence_warnings:
+            warnings.filterwarnings("once", category=DeprecationWarning)
+            warnings.filterwarnings("once", category=UserWarning)
+            warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+
+            # Initialize model
+        self.create_model()
+
+    def create_model(self):
+
+        # Reset optimizer
+        self.optimizer = None
+
+        # Check input consistency
+        if self.train_y.shape[0] != self.train_X.shape[0]:
+            raise ValueError(
+                f"Dim 0 of `train_y` must be equal to the number of training"
+                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
+            )
+
+        if self.train_y.shape[1] != len(self.num_tasks):
+            raise ValueError(
+                f"Dim 1 of `train_y` must be equal to the number of tasks"
+                f"but is {self.train_y.shape[0]} != {len(self.num_tasks)}"
+            )
+
+        self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
+            num_tasks=self.num_tasks
+        )
+        self.model = MultitaskGPModel(
+            self.train_X, self.train_y, self.likelihood, self.num_tasks
+        )
+
+    def fit(self, train_X=None, train_y=None):
+
+        # If arguments are passed, delete the previously storred `train_X` and `train_y`
+        if (train_X is None) or (train_y is None):
+            warnings.warn(
+                "Calling `.fit()` with no input argumentss will re-instantiate "
+                "and fit the model for the currently stored training data."
+            )
+        else:
+            self.train_X = torch.atleast_2d(torch.tensor(train_X).float())
+            self.train_y = torch.atleast_2d(torch.tensor(train_y).float())
+
+        # Create model
+        self.create_model()
+
+        # Switch the model to train mode
+        self.model.train()
+        self.likelihood.train()
+
+        # Define optimizer
+        if self.optimizer is None:
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(), lr=self.learning_rate
+            )  # Includes GaussianLikelihood parameters
+
+        # Define marginal loglikelihood
+        self.mll = ExactMarginalLogLikelihood(self.likelihood, self.model)
+
+        # Train
+        vec_loss = []
+        loss_0 = np.inf
+        for _i in range(self.training_max_iter):
+
+            self.optimizer.zero_grad()
+            output = self.model(*self.model.train_inputs)
+            loss = -self.mll(output, self.model.train_targets)
+            loss.backward()
+            vec_loss.append(loss.item())
+            self.optimizer.step()
+
+            # TODO: Will this work for negative losss? CHECK
+            loss_ratio = (loss_0 - loss.item()) - self.min_loss_rate * loss.item()
+            # From https://stackoverflow.com/questions/5290994
+            # /remove-and-replace-printed-items
+            if self.show_progress:
+                print(
+                    f"Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
+                    end="\r",
+                    flush=True,
+                )
+
+            # Get noise value
+            self.noise_std = self.get_noise()
+
+            # Check criterion and break if true
+            if loss_ratio < 0.0:
+                break
+
+            # Set previous iter loss to current
+            loss_0 = loss.item()
+
+    def predict(self, X_pred, return_std=False):
+
+        # Cast input to tensor for compatibility with sampling algorithms
+        X_pred = torch.atleast_2d(torch.tensor(X_pred).float())
+
+        # Switch the model to eval mode
+        self.model.eval()
+        self.likelihood.eval()
+
+        # Make prediction
+        with torch.no_grad(), gpytorch.settings.fast_pred_var():
+            self.prediction = self.likelihood(self.model(X_pred))
+
+        # Get mean, variance and std. dev per model
+        self.mean = self.prediction.mean
+        self.var = self.prediction.variance
+        self.std = self.prediction.variance.sqrt()
+
+        # Get confidence intervals per model
+        self.cr_l, self.cr_u = self.prediction.confidence_region()
+
+        if return_std:
+            return self.prediction.sample(), self.std
+        else:
+            return self.prediction.sample()
+
+    def sample_posterior(self, n_samples=1):
+        # Switch the model to eval mode
+        self.model.eval()
+        self.likelihood.eval()
+
+        return self.prediction.n_sample(n_samples)
+
+    def update(self, new_X, new_y):
+        full_X = torch.cat([self.train_X, new_X], dim=0)
+        full_y = torch.cat([self.train_y, new_y], dim=0)
+
+        self.optimizer = None
+        self.fit(full_X, full_y)
+
+    def get_noise(self):
+        return self.model.likelihood.noise.sqrt()
 
 
 class NN(Surrogate):
