@@ -171,7 +171,6 @@ class FuzzyLolaVoronoi(Sampler):
                 points_y=points_y,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
-                n_point_last_iter=n_point_last_iter,
                 n_new_point=n_new_point_per_iteration,
             )
             self.step_gen_time.append(time.time() - start_time)
@@ -242,32 +241,37 @@ def best_new_points(
     points_y: np.ndarray,
     domain_lower_bound: np.ndarray,
     domain_upper_bound: np.ndarray,
-    n_point_last_iter: int,
-    n_new_point: int = 1,
-):
+    n_new_point: int,
+) -> np.ndarray:
+    """
+    Hybrid Sequential Strategy - Alg. (2) [2].
+    Combines an exploitation (FLOLA) and an exploration (Voronoi) score
+    and selects a new candindate sample in the neighborhood of the N_new
+    highest ranked samples
+
+    :param points_x: Nxd-dimensional input data points
+    :param points_y: Nxd-dimensional target data points
+    :param domain_lower_bound: The lower bound of the function's space
+    :param domain_upper_bound: The upper bound of the function's space
+    :param n_new_point: The number of new points we wish to sample
+    :return new_reference_point_x: The new highly-ranked samples in the neighborhood
+    """
+
     # shape the input if not in the right shape
     n_dim = len(domain_lower_bound)
     points_x = points_x.reshape((-1, n_dim))
     points_y = points_y.reshape((-1, 1))
-
     # Calculate distance matrix P
     distance_matrix = calculate_distance_matrix(points_x, n_dim)
     # Calculate the V for every Pr
-    (
-        relative_volumes,
-        random_points,
-        distance_mx,
-        closest_indicator_mx,
-    ) = voronoi_volume_estimate(
-        points=points_x,
-        domain_lower_bound=domain_lower_bound,
-        domain_upper_bound=domain_upper_bound,
-    )
-    # print('Relative volumes', relative_volumes, relative_volumes.shape)
+    relative_volumes, random_points, \
+    distance_mx, closest_indicator_mx = voronoi_volume_estimate(
+        points=points_x, 
+        domain_lower_bound=domain_lower_bound, 
+        domain_upper_bound=domain_upper_bound)
 
     neighborhoods_scores = best_neighbourhoods(
-        points_x, points_y, distance_matrix, relative_volumes
-    )
+        points_x, points_y, distance_matrix, relative_volumes)
 
     # TODO: check np.partition as an alternative
     idxs_new_neighbor = np.argsort(-neighborhoods_scores)[:n_new_point]
@@ -293,10 +297,25 @@ def best_new_points(
     return new_reference_points_x
 
 
-def best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
+def best_neighbourhoods(
+    points_x: np.ndarray,
+    points_y: np.ndarray,
+    distance_matrix: np.ndarray,
+    volume_estimate: np.ndarray,
+) -> np.ndarray:
     """
-    Alg. (1) [2]
+    Exploitation Aglorithm - Alg. (1) [2].
+    Computes a score fir all points p in P_r, indicating the nonlinearity
+    of the region surrounding p. New samples are chosen in the neighborhood
+    of the N_new highest ranked samples.
+
+    :param points_x: Nxd-dimensional input data points
+    :param points_y: Nxd-dimensional target data points
+    :param distance_matrix: NxN distance matrix
+    :volume_estimate: N-dimensional Voronoi volume estimate
+    :returns: H_fuzz: N-dimensional Hybrid score
     """
+
     n_point, n_dim = points_x.shape
     # print('X shapes', points_x.shape)
     # print('Y shapes', points_y.shape)
@@ -307,16 +326,15 @@ def best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
     # TODO CHeck it later.
     # FIS = init_FIS()
     K = 4 * n_dim
-
-    if K >= n_point - 1:
+    if K >= n_point-1:
         K = n_point - 1
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
         # gets the neighbours of Pr as indices
-        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
+        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)  
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
-        neighbors_coords = points_x[neighbors_idx, :]
+        neighbors_coords = points_x[neighbors_idx,:]
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
@@ -330,35 +348,33 @@ def best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
             w,
         )
         # print('grad', grad, grad.shape)
-        # E_fuzzy(P_r) Eq. (3.2) [2]
-        nonlinear_score[ii] = nonlinearity_measure(
-            points_x[ii, :],
-            points_y[ii, :],
-            grad,
-            points_x[neighbors_idx, :],
-            points_y[neighbors_idx, :],
-        )
-        # print('Nonlinear score', nonlinear_score[ii])
-        # H_fuzzy(P_r) Eq.(5.1) [2]
-        H_fuzzy[ii] = flola_voronoi_score(
-            nonlinear_score[ii], nonlinear_score, volume_estimate[ii]
-        )
-        # print('Hybrid score', H_fuzzy, H_fuzzy.shape)
+        #E_fuzzy(P_r) Eq. (3.2) [2]
+        nonlinear_score[ii] = nonlinearity_measure(points_x[ii,:],
+                                                   points_y[ii,:],
+                                                   grad, points_x[neighbors_idx, :],
+                                                   points_y[neighbors_idx, :])
+    # H_fuzzy(P_r) Eq.(5.1) [2]
+    H_fuzzy = flola_voronoi_score(nonlinear_score, volume_estimate)
 
-    # print(H_fuzzy, H_fuzzy.shape)
     return H_fuzzy
-
 
 def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
     """
-    Initialize the Fuzzy Inference System S; Section 4 [2]
+    Initialize the Fuzzy Inference System S; Section 4 [2].
+
     :param data_points: Nxd-dimensional input vector of N data points with d dimensions
     :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
     :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
     :return flola_sim: The Fuzzy Inference System S
     """
+
     a = np.sort(data_points, axis=None)
-    a_w = np.linspace(0, 1, 100, endpoint=True)
+    # Different ways to define the function's ranges.
+    # Sparse = Faster / Dense = Slower
+    # a = np.arange(np.min(data_points), np.max(data_points), 0.1)
+    # a_w = np.linspace(0, 1, 100, endpoint=True)
+    # a_w = np.linspace(0, 1, 5, endpoint=True)
+    a_w = np.arange(0, 1, 0.1)
     A_max = np.max(adhesion)
     coh = ctrl.Antecedent(a, "cohesion")
     adh = ctrl.Antecedent(a, "adhesion")
@@ -387,20 +403,24 @@ def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
 
 # TODO time it if needed
 def assign_weights(
-    data_points: np.ndarray, cohesion: np.ndarray, adhesion: np.ndarray, flola_sim
+    data_points: np.ndarray,
+    cohesion: np.ndarray,
+    adhesion: np.ndarray,
+    flola_sim,
 ) -> np.ndarray:
     """
     Weight calculation of data_points based on cohesion & adhesion values between
-    the data points; Section 4 [2]
+    the data points; Section 4 [2].
+
     :param data_points: Nxd-dimensional input vector of N data points with d dimensions
     :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
     :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
     :param flola_sim: The Fuzzy Inference System S
-    :return weight: THe N-dimensional values returned by the evaluation of FIS S
+    :return weight: The N-dimensional weight values returned by the evaluation of FIS S
     """
+
     S = flola_sim
     dims = data_points.shape
-    # print("Dims {}".format(dims))
     weights = np.zeros(dims[0])
 
     # Get the weights for each neighbor
@@ -410,7 +430,6 @@ def assign_weights(
         S.compute()
         weights[i] = S.output["weight"]
 
-    # print('Final weights {} with shape {}'.format(weights, weights.shape))
     return weights
 
 
@@ -438,16 +457,17 @@ def adh_low(x, A_max, s_al=0.27):
 
 def get_adhesion_cohesion(
     Pr_index: int, P_neigbors_idxs: np.ndarray, distance_matix: np.ndarray
-):
+) -> Tuple[np.array, np.array]:
     """
     Calculation of adhesion and cohesion values for the neighbors of P_r.
-    According to Eq. (4.1) and (4.2) [2]
+    According to Eq. (4.1) and (4.2) [2].
 
     :param Pr_index: Index of reference point
     :param P_neigbors_idxs: neighbour indexes for point Pr
     :param distance_matix: The precalculated distance matrix for all p in P
     :return: Adhesion and Cohesion arrays for N
     """
+
     C = distance_matix[Pr_index, P_neigbors_idxs]
     A = np.zeros((len(P_neigbors_idxs)))
 
@@ -461,22 +481,23 @@ def get_adhesion_cohesion(
 
 def get_neighbourhood(
     Pr_idx: int, distance_matrix: np.ndarray, alpha: float, n_dim: int
-):
+) -> np.array:
     """
     Calculate the neighbourhood for point Pr.
-    Eq. (3.3) [2]
+    Eq. (3.3) [2].
 
     :param Pr_idx: Index of reference point
-    :param distance_matrix: The precalculated distance matrix for all p in P
-    :param alpha: Distance parameter (equation 3.4)
+    :param distance_matrix: The NxN-dimensional precalculated distance matrix for all p in P
+    :param alpha: Distance parameter Eq. (3.4) [2]
     :param n_dim: Number of dimensions
-    :return: ndarray with neighbour indexes for point Pr
+    :return neighbors_idx: N-dimensional array with neighbour indexes for point Pr
     """
+
     distances_prIdx = distance_matrix[Pr_idx, :]
     neighbors_idx = np.where(distances_prIdx < alpha)[0]
     neighbors_idx = neighbors_idx[neighbors_idx != Pr_idx]
 
-    # If number of neighbors is smaller than ndim equation 3.1 will be undertermined.
+    # If number of neighbors is smaller than ndim Eq. (3.1) will be undertermined.
     # Then, take ndim nearest neighbors.
     if len(neighbors_idx) < n_dim:
         nearest_ndim_idx = np.argpartition(np.delete(distances_prIdx, Pr_idx), n_dim)
@@ -485,16 +506,18 @@ def get_neighbourhood(
     return neighbors_idx
 
 
-def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray):
+def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray
+) -> np.ndarray:
     """
     Calculate distance parameter alpha.
-    Eq. (3.4) [2]
+    Eq. (3.4) [2].
 
     :param Pr_idx: Index of reference point
     :param K: Parameter K = 4d
     :param distance_matrix: The precalculated distance matrix for all p in P
     :return: alpha as float
     """
+
     distances_prIdx = distance_matrix[Pr_idx, :]
     distances_wo_prIdx = np.delete(distances_prIdx, Pr_idx)
     nearest_k_vals = np.sort(distances_wo_prIdx)[:K]
@@ -504,16 +527,17 @@ def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray):
 
 def calculate_distance_matrix(
     points_x: np.ndarray, n_dim: int, fractional: bool = False
-):
+) -> np.ndarray:
     """
     This function calculates the distance matrix for the points P.
-     Instead of calculating the distance for alpha, A and
-     C for Pr in the loop, this function is meant to be called once,
-      prior to the main for loop iterating over all Pr.
+    Instead of calculating the distance for alpha, A and
+    C for Pr in the loop, this function is meant to be called once,
+    prior to the main for loop iterating over all Pr.
 
     :param points_x: The set of point P
     :return: A distance matrix for P
     """
+
     if not fractional:
         return squareform(pdist(points_x, "euclidean"))
     else:
@@ -521,13 +545,9 @@ def calculate_distance_matrix(
 
 
 def flola_voronoi_score(
-    nonlinearity_measures: float,
-    nonlinearity_array: np.ndarray,
-    relative_volumes: np.ndarray,
-) -> np.ndarray:
+    nonlinearity_measures: float, relative_volumes: np.ndarray) -> np.ndarray:
     """Eq.(5.1) of [2]."""
-    return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_array)
-
+    return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
 
 def nonlinearity_measure(
     reference_point_x: np.ndarray,
@@ -536,7 +556,7 @@ def nonlinearity_measure(
     neighbor_points_x: np.ndarray,
     neighbor_points_y: np.ndarray,
 ) -> float:
-    # Eq.(4.9) of [1]
+    """Eq.(4.9) of [1]."""
     e = np.sum(
         np.abs(
             neighbor_points_y
@@ -609,53 +629,6 @@ def voronoi_volume_estimate(
     return relative_volumes, random_points, distance_mx, closest_indicator_mx
 
 
-def flola_score(
-    all_neighbor_points_x: np.ndarray,
-    all_neighbor_points_y: np.ndarray,
-    reference_points_x: np.ndarray,
-    reference_points_y: np.ndarray,
-    fis_weights: np.ndarray,
-) -> np.ndarray:
-    """Non-linearity measure for each point and its neighbor. Measures how much a
-    neighborhood deviates from a hyperplane."""
-    n_reference_point = len(reference_points_y)
-    es = np.empty(n_reference_point)
-
-    for (
-        ii,
-        (
-            neighbor_points_x,
-            neighbor_points_y,
-            reference_point_x,
-            reference_point_y,
-        ),
-    ) in enumerate(
-        zip(
-            all_neighbor_points_x,
-            all_neighbor_points_y,
-            reference_points_x,
-            reference_points_y,
-        )
-    ):
-
-        reference_point_gradient = flola_gradient_estimate(
-            reference_point_x=reference_point_x,
-            reference_point_y=reference_point_y,
-            neighbor_points_x=neighbor_points_x,
-            neighbor_points_y=neighbor_points_y,
-            weights=fis_weights,
-        )[0]
-        es[ii] = nonlinearity_measure(
-            reference_point_x=reference_point_x,
-            reference_point_y=reference_point_y,
-            reference_point_gradient=reference_point_gradient,
-            neighbor_points_x=neighbor_points_x,
-            neighbor_points_y=neighbor_points_y,
-        )
-
-    return es
-
-
 def flola_gradient_estimate(
     reference_point_x: np.ndarray,
     reference_point_y: np.ndarray,
@@ -666,27 +639,27 @@ def flola_gradient_estimate(
     """
     Estimate the gradient at `reference_point` (P_r) by fitting a hyperplane to
     `neighbor_points` in a least-square sense. A hyperplane that goes exactly
-    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r
-    obtained from solving FIS S
+    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r 
+    obtained from solving FIS S.
+
     :param reference_point_x: The d-dimensional reference sample P_r
-    :param reference_point y:
+    :param reference_point y: -//-
     :param neigbor_points_x: The m x d-dimensional neighbors of P_r
-    :param neigbor_points_y:
+    :param neigbor_points_y: -//-
     :param weights: The weights of every neighbor of P_r
     :return gradient: The d-dimensional gradient at P_r
-
     """
+
     reference_point_x = reference_point_x.reshape((1, -1))
     n_neighbors, n_dims = neighbor_points_x.shape
-
     # to ensure that we hyperplane goes through `reference_point`
     neighbor_points_x_diff = neighbor_points_x - reference_point_x
     neighbor_points_y_diff = neighbor_points_y - reference_point_y
-
-    # Solve weighted Least Squares
+    # Solve Weighted Least Squares
     # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
     Aw = neighbor_points_x_diff * np.sqrt(weights[:, np.newaxis])
     Bw = neighbor_points_y_diff * np.sqrt(weights)
-    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors, n_dims)
+    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors,
+                                                              n_dims)
 
     return gradient
