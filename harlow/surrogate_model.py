@@ -381,7 +381,6 @@ class ModelListGaussianProcess(Surrogate):
         list_params=None,
         show_progress=True,
         silence_warnings=False,
-        **kwargs,
     ):
 
         self.model_names = model_names
@@ -489,7 +488,7 @@ class ModelListGaussianProcess(Surrogate):
         self.mll = SumMarginalLogLikelihood(self.likelihood, self.model)
 
         # Train
-        vec_loss = []
+        self.vec_loss = []
         loss_0 = np.inf
         for _i in range(self.training_max_iter):
 
@@ -497,14 +496,7 @@ class ModelListGaussianProcess(Surrogate):
             output = self.model(*self.model.train_inputs)
             loss = -self.mll(output, self.model.train_targets)
             loss.backward()
-            vec_loss.append(loss.item())
-            self.optimizer.step()
-
-            self.optimizer.zero_grad()
-            output = self.model(*self.model.train_inputs)
-            loss = -self.mll(output, self.model.train_targets)
-            loss.backward()
-            vec_loss.append(loss.item())
+            self.vec_loss.append(loss.item())
             self.optimizer.step()
 
             # TODO: Will this work for negative losss? CHECK
@@ -516,7 +508,8 @@ class ModelListGaussianProcess(Surrogate):
             # /remove-and-replace-printed-items
             if self.show_progress:
                 print(
-                    f"Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
+                    f"Iter = {_i} / {self.training_max_iter},"
+                    f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
                     end="\r",
                     flush=True,
                 )
@@ -531,6 +524,11 @@ class ModelListGaussianProcess(Surrogate):
 
             # Set previous iter loss to current
             loss_0 = loss.item()
+
+        print(
+            f"Iter = {self.training_max_iter},"
+            f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
+        )
 
     def predict(self, X_pred, return_std=False):
 
@@ -549,26 +547,26 @@ class ModelListGaussianProcess(Surrogate):
             self.prediction = self.likelihood(*self.model(*X_list))
 
         # Generate output for each model
-        self.mean = []
-        self.lower = []
-        self.upper = []
-        self.std = []
-        self.var = []
-        sample = []
-        for _submodel, _prediction in zip(self.model.models, self.prediction):
+        self.mean = torch.zeros(X_pred.shape[0], len(self.model_names))
+        self.cr_l = torch.zeros(X_pred.shape[0], len(self.model_names))
+        self.cr_u = torch.zeros(X_pred.shape[0], len(self.model_names))
+        self.std = torch.zeros(X_pred.shape[0], len(self.model_names))
+        self.var = torch.zeros(X_pred.shape[0], len(self.model_names))
+        sample = torch.zeros(X_pred.shape[0], len(self.model_names))
+
+        for j, (_submodel, _prediction) in enumerate(
+            zip(self.model.models, self.prediction)
+        ):
 
             # Get mean, variance and std. dev per model
-            self.mean.append(_prediction.mean)
-            self.var.append(_prediction.variance)
-            self.std.append(_prediction.variance.sqrt())
+            self.mean[:, j] = _prediction.mean
+            self.var[:, j] = _prediction.variance
+            self.std[:, j] = _prediction.variance.sqrt()
 
             # Get posterior predictive samples per model
-            sample.append(_prediction.sample())
+            sample[:, j] = _prediction.sample()
 
-            # Get confidence intervals per model
-            _l_cr, _u_cr = _prediction.confidence_region()
-            self.lower.append(_l_cr)
-            self.upper.append(_u_cr)
+            self.cr_l[:, j], self.cr_u[:, j] = _prediction.confidence_region()
 
         if return_std:
             return sample, self.std
@@ -581,11 +579,7 @@ class ModelListGaussianProcess(Surrogate):
         self.model.eval()
         self.likelihood.eval()
 
-        sample = []
-        for prediction in self.prediction:
-            sample.append(prediction.n_sample(n_samples))
-
-        return sample
+        return [prediction.n_sample(n_samples) for prediction in self.prediction]
 
     def update(self, new_X, new_y):
         full_X = torch.cat([self.train_X, new_X], dim=0)
@@ -595,12 +589,9 @@ class ModelListGaussianProcess(Surrogate):
         self.fit(full_X, full_y)
 
     def get_noise(self):
-
-        noise_std = []
-        for likelihood in self.model.likelihood.likelihoods:
-            noise_std.append(likelihood.noise.sqrt())
-
-        return noise_std
+        return [
+            likelihood.noise.sqrt() for likelihood in self.model.likelihood.likelihoods
+        ]
 
 
 class BatchIndependentGaussianProcess(Surrogate):
@@ -644,7 +635,6 @@ class BatchIndependentGaussianProcess(Surrogate):
         covar=None,
         show_progress=True,
         silence_warnings=False,
-        **kwargs,
     ):
 
         self.model = None
@@ -730,7 +720,7 @@ class BatchIndependentGaussianProcess(Surrogate):
         self.mll = ExactMarginalLogLikelihood(self.likelihood, self.model)
 
         # Train
-        vec_loss = []
+        self.vec_loss = []
         loss_0 = np.inf
         for _i in range(self.training_max_iter):
 
@@ -738,7 +728,7 @@ class BatchIndependentGaussianProcess(Surrogate):
             output = self.model(self.train_X)
             loss = -self.mll(output, self.train_y)
             loss.backward()
-            vec_loss.append(loss.item())
+            self.vec_loss.append(loss.item())
             self.optimizer.step()
 
             # TODO: Will this work for negative losss? CHECK
@@ -750,7 +740,8 @@ class BatchIndependentGaussianProcess(Surrogate):
             # /remove-and-replace-printed-items
             if self.show_progress:
                 print(
-                    f"Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
+                    f"Iter = {_i} / {self.training_max_iter},"
+                    f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
                     end="\r",
                     flush=True,
                 )
@@ -765,6 +756,11 @@ class BatchIndependentGaussianProcess(Surrogate):
 
             # Set previous iter loss to current
             loss_0 = loss.item()
+
+        print(
+            f"Iter = {self.training_max_iter},"
+            f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
+        )
 
     def predict(self, X_pred, return_std=False):
 
@@ -851,7 +847,6 @@ class MultiTaskGaussianProcess(Surrogate):
         covar=None,
         show_progress=True,
         silence_warnings=False,
-        **kwargs,
     ):
 
         self.model = None
@@ -937,7 +932,7 @@ class MultiTaskGaussianProcess(Surrogate):
         self.mll = ExactMarginalLogLikelihood(self.likelihood, self.model)
 
         # Train
-        vec_loss = []
+        self.vec_loss = []
         loss_0 = np.inf
         for _i in range(self.training_max_iter):
 
@@ -945,7 +940,7 @@ class MultiTaskGaussianProcess(Surrogate):
             output = self.model(self.train_X)
             loss = -self.mll(output, self.train_y)
             loss.backward()
-            vec_loss.append(loss.item())
+            self.vec_loss.append(loss.item())
             self.optimizer.step()
 
             # TODO: Will this work for negative losss? CHECK
@@ -957,7 +952,8 @@ class MultiTaskGaussianProcess(Surrogate):
             # /remove-and-replace-printed-items
             if self.show_progress:
                 print(
-                    f"Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
+                    f"Iter = {_i} / {self.training_max_iter},"
+                    f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}",
                     end="\r",
                     flush=True,
                 )
@@ -972,6 +968,11 @@ class MultiTaskGaussianProcess(Surrogate):
 
             # Set previous iter loss to current
             loss_0 = loss.item()
+
+        print(
+            f"Iter = {self.training_max_iter},"
+            f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
+        )
 
     def predict(self, X_pred, return_std=False):
 

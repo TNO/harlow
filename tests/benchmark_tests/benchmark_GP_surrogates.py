@@ -43,11 +43,11 @@ def get_param_idx(params_dict):
 # ====================================================================
 # SURROGATING PARAMETERS
 # ====================================================================
-N_train = 200
-N_test = 200
-N_pred = 100
-N_iter = 400
+N_train = 300
 N_update = 100
+N_test = 100
+N_pred = 100
+N_iter = 200
 rmse_criterium = 0.1
 silence_warnings = True
 
@@ -85,15 +85,15 @@ params_common = [
 
 # Parameters that are not shared by all models
 params_model = {
-    "H1_S": ["Kr1", "Kr2"],
-    "H2_S": ["Kr1", "Kr2"],
-    "H3_S": ["Kr1", "Kr2"],
-    "H4_S": ["Kr2", "Kr3"],
-    "H5_S": ["Kr2", "Kr3"],
-    "H7_S": ["Kr2", "Kr3"],
-    "H8_S": ["Kr3", "Kr4"],
-    "H9_S": ["Kr3", "Kr4"],
-    "H10_S": ["Kr3", "Kr4"],
+    "H1_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H2_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H3_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H4_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H5_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H7_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H8_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H9_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
+    "H10_S": ["Kr1", "Kr2", "Kr3", "Kr4"],
 }
 
 # Define FE models and append to list
@@ -200,9 +200,9 @@ print(f"Create training set N = {N_train}:")
 train_X, train_y = create_test_set(domain_lower_bound, domain_upper_bound, N_train)
 # test_X, test_y = create_test_set(domain_lower_bound, domain_upper_bound, N_test)
 
-print(f"Create update set N = {N_update}:")
-# To check surrogate updating
-update_X, update_y = create_test_set(domain_lower_bound, domain_upper_bound, N_update)
+# print(f"Create update set N = {N_update}:")
+# # To check surrogate updating
+# update_X, update_y = create_test_set(domain_lower_bound, domain_upper_bound, N_update)
 
 # ====================================================================
 # DEFINE SURROGATE
@@ -214,7 +214,7 @@ surrogate_MLGP = ModelListGaussianProcess(
     train_y,
     model_names=sensor_names,
     list_params=list_params,
-    training_iter=N_iter,
+    training_max_iter=N_iter,
     silence_warnings=silence_warnings,
 )
 
@@ -222,7 +222,7 @@ surrogate_BIGP = BatchIndependentGaussianProcess(
     train_X,
     train_y,
     num_tasks=N_tasks,
-    training_iter=N_iter,
+    training_max_iter=N_iter,
     silence_warnings=silence_warnings,
 )
 
@@ -230,7 +230,7 @@ surrogate_MTGP = MultiTaskGaussianProcess(
     train_X,
     train_y,
     num_tasks=N_tasks,
-    training_iter=N_iter,
+    training_max_iter=N_iter,
     silence_warnings=silence_warnings,
 )
 
@@ -249,10 +249,10 @@ for i, surrogate_i in enumerate(list_surrogates):
 # ====================================================================
 # UPDATE
 # ====================================================================
-print("============= Update =====================")
-for i, surrogate_i in enumerate(list_surrogates):
-    print("Updating: " + list_GP_type[i])
-    surrogate_i.update(update_X, update_y)
+# print("============= Update =====================")
+# for i, surrogate_i in enumerate(list_surrogates):
+#     print("Updating: " + list_GP_type[i])
+#     surrogate_i.update(update_X, update_y)
 
 # ====================================================================
 # SURROGATE PREDICT
@@ -278,40 +278,55 @@ for i, surrogate_i in enumerate(list_surrogates):
 # Initialize plots
 nrows = 3
 ncols = int(np.ceil(N_tasks / 3))
-f, axes = plt.subplots(nrows, ncols, figsize=(3 * ncols, 3 * nrows))
 
-# for idx, ax_i in enumerate(axes.ravel()):
-#
-#     mean_i = surrogate.mean[idx]
-#     upper_i = surrogate.upper[idx]
-#     lower_i = surrogate.lower[idx]
-#
-#     grid_idx = np.unravel_index(idx, (nrows, ncols))
-#
-#     train_X_i = surrogate.model.train_inputs[idx][0].detach().numpy()
-#     train_y_i = surrogate.model.train_targets[idx].detach().numpy()
-#
-#     # Plot training data as black stars
-#     ax_i.plot(train_X[:, -1], train_y[:, idx], "k*", label="Observations")
-#
-#     # Predictive mean as blue line
-#     ax_i.plot(pred_X[:, -1].numpy(), mean_i.numpy(), "b", label="Mean")
-#
-#     # Shade in confidence
-#     ax_i.fill_between(
-#         pred_X[:, -1].numpy(),
-#         lower_i.detach().numpy(),
-#         upper_i.detach().numpy(),
-#         alpha=0.5,
-#         label="Confidence",
-#     )
-#     ax_i.plot(
-#         pred_X[:, -1].numpy(),
-#         true_y[:, idx],
-#         color="red",
-#         linestyle="dashed",
-#         label="Model",
-#     )
-#     ax_i.set_title(f"Sensor: {sensor_names[idx]}")
-#
-# axes[0, 0].legend()
+for i, surrogate_i in enumerate(list_surrogates):
+    print("Plotting: " + list_GP_type[i])
+
+    # Initialize plot
+    f, axes = plt.subplots(nrows, ncols, figsize=(3 * ncols, 3 * nrows))
+
+    # Get surrogate output
+    mean_i = surrogate_i.mean
+    upper_i = surrogate_i.cr_u
+    lower_i = surrogate_i.cr_l
+    train_X_i = surrogate_i.train_X.detach().numpy()
+    train_y_i = surrogate_i.train_y.detach().numpy()
+    for j, ax_i in enumerate(axes.ravel()):
+        grid_idx = np.unravel_index(j, (nrows, ncols))
+
+        # Plot training data as black stars
+        ax_i.plot(train_X[:, -1], train_y[:, j], "k*", label="Observations")
+
+        # Predictive mean as blue line
+        ax_i.plot(pred_X[:, -1].numpy(), mean_i[:, j].numpy(), "b", label="Mean")
+
+        # Shade in confidence
+        ax_i.fill_between(
+            pred_X[:, -1].numpy(),
+            lower_i[:, j].detach().numpy(),
+            upper_i[:, j].detach().numpy(),
+            alpha=0.5,
+            label="Confidence",
+        )
+        ax_i.plot(
+            pred_X[:, -1].numpy(),
+            true_y[:, j],
+            color="red",
+            linestyle="dashed",
+            label="Model",
+        )
+        ax_i.set_title(f"Sensor: {sensor_names[j]}")
+
+    axes[0, 0].legend()
+    plt.suptitle("Model: " + list_GP_type[i])
+    plt.show()
+
+
+plt.figure()
+for i, surrogate_i in enumerate(list_surrogates):
+    plt.plot(surrogate_i.vec_loss, label=list_GP_type[i])
+    plt.xlabel("N_iter")
+    plt.ylabel("Loss")
+plt.legend()
+plt.grid()
+plt.show()
