@@ -2,7 +2,8 @@ import itertools
 import math
 import time
 from typing import Callable, Optional, Tuple
-
+import pickle
+import os
 # import numba as nb
 import numpy as np
 from loguru import logger
@@ -56,6 +57,7 @@ class LolaVoronoi(Sampler):
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
         run_name: str = None,
+        save_dir: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -66,6 +68,8 @@ class LolaVoronoi(Sampler):
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
         self.metric = evaluation_metric
+        self.run_name = run_name
+        self.save_dir = save_dir
         # self.verbose = verbose
 
         # Internal storage for inspection
@@ -218,10 +222,19 @@ class LolaVoronoi(Sampler):
 
             self.score = score
             self.iterations = ii
+            save_name = self.run_name + '_{}_iters.pkl'.format(self.iterations)
+            save_path = os.path.join(self.save_dir, save_name)
+            #Save model every 5 iterations
+            if self.iterations % 5 == 0:
+                with open(save_path, 'wb') as file:
+                    pickle.dump(self.surrogate_model, file)
             if stopping_criterium:
                 logger.info(f"Evaluation metric score on provided testset: {score}")
                 if score <= stopping_criterium:
                     logger.info(f"Algorithm converged in {ii} iterations")
+                    #Save model if converged
+                    with open(save_path, 'wb') as file:
+                        pickle.dump(self.surrogate_model, file)
                     break
         self.writer.close()
         return self.fit_points_x, self.fit_points_y

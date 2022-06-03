@@ -9,53 +9,21 @@ The different methods are compared for a given random seed to determine:
 
 import argparse
 import json
-import math
+import os
 
 import numpy as np
-from sklearn.metrics import mean_squared_error
 
 from harlow.fuzzy_lolavoronoi import FuzzyLolaVoronoi
-from harlow.helper_functions import latin_hypercube_sampling
+from harlow.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
 from harlow.lola_voronoi import LolaVoronoi
 from harlow.probabilistic_sampling import Probabilistic_sampler
 from harlow.random_sampling import Latin_hypercube_sampler
 from harlow.surrogate_model import VanillaGaussianProcess
-from tests.integration_tests.test_functions import hartmann, peaks_2d
+from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
 
-domains_lower_bound = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-domains_upper_bound = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
-# domains_lower_bound = np.array([-8., -8.])
-# domains_upper_bound = np.array([8., 8.])
-n_initial_point = 15
-n_new_points_per_iteration = 1
-rmse_criterium = 0.001
 np.random.seed(0)
-n_iter_sampling = 10
-n_iter_runs = 2
-compare = False
-metric = "rmse"
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
-
-
-def rmse(x, y):
-    return math.sqrt(mean_squared_error(x, y))
-
-
-def rrse(x, y):
-    # print('Original', x)
-    dims = x.shape
-    x_bar = np.mean(y)
-    x_bar_arr = np.zeros(dims)
-    x_bar_arr.fill(x_bar)
-    # test = (x - x_bar)
-    # print('After minus', test)
-    return math.sqrt(mean_squared_error(x, y) / mean_squared_error(x, x_bar_arr))
-
-
-# def rrse(actual: np.ndarray, predicted: np.ndarray):
-#     """ Root Relative Squared Error """
-#     return np.sqrt(np.sum(np.square(actual - predicted)) /
-#     np.sum(np.square(actual - np.mean(actual))))
+stop_thresh = None
 
 
 def create_test_set_2D(min_domain, max_domain, n):
@@ -68,6 +36,13 @@ def create_test_set_2D(min_domain, max_domain, n):
 def create_test_set_6D(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = hartmann(test_X).reshape((-1, 1))
+
+    return test_X, test_y
+
+
+def create_test_set_8D(min_domain, max_domain, n):
+    test_X = latin_hypercube_sampling(min_domain, max_domain, n)
+    test_y = stybtang(test_X).reshape((-1, 1))
 
     return test_X, test_y
 
@@ -88,10 +63,16 @@ def steps_to_array(list_of_dicts, key):
     return arr_0
 
 
-def run_benchmark(name, crt, method, problem, test_size):
+def run_benchmark(
+    name, crt, method, adapt_steps, n_new_points, problem, n_initial_point, test_size
+):
     sampling_res_list = []
+    save_path = os.path.join("saves", name)
+    os.makedirs(save_path, exist_ok=True)
 
     if problem == 2:
+        domains_lower_bound = np.array([-8.0, -8.0])
+        domains_upper_bound = np.array([8.0, 8.0])
         test_X, test_y = create_test_set_2D(
             domains_lower_bound, domains_upper_bound, test_size
         )
@@ -102,6 +83,8 @@ def run_benchmark(name, crt, method, problem, test_size):
         target_func = peaks_2d
 
     elif problem == 6:
+        domains_lower_bound = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        domains_upper_bound = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
         test_X, test_y = create_test_set_6D(
             domains_lower_bound, domains_upper_bound, test_size
         )
@@ -113,7 +96,19 @@ def run_benchmark(name, crt, method, problem, test_size):
         target_func = hartmann
 
     elif problem == 8:
-        pass
+        domains_lower_bound = np.array([-5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0])
+        domains_upper_bound = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
+        test_X, test_y = create_test_set_8D(
+            domains_lower_bound, domains_upper_bound, test_size
+        )
+        # print('TEST_X, TEST_y', test_X, test_X.shape, test_y, test_y.shape)
+        start_points_X = latin_hypercube_sampling(
+            domains_lower_bound, domains_upper_bound, n_initial_point
+        )
+        start_points_y = stybtang(start_points_X).reshape((-1, 1))
+        # print('START_X, START_y', start_points_X, start_points_X.shape,
+        # start_points_y, start_points_y.shape)
+        target_func = stybtang
 
     sampling_run_res = test_sampler(
         start_points_X,
@@ -124,29 +119,29 @@ def run_benchmark(name, crt, method, problem, test_size):
         test_y,
         crt,
         method,
+        adapt_steps,
+        n_initial_point,
+        n_new_points,
         target_func,
         name,
+        save_path,
     )
 
-    print(sampling_run_res)
     sampling_res_list.append(sampling_run_res)
 
-    # Save to json for plotting etc (Doesnt work for FLOLA)!!
-    with open("{}_results".format(name), "w") as fout:
+    # Save to json for plotting etc !!
+    json_name = "{}_results_with_score_{}".format(
+        name, sampling_run_res.get("score")[-1]
+    )
+    json_save_path = os.path.join("json_saves", json_name)
+    os.makedirs(json_save_path, exist_ok=True)
+    with open(json_name, "w") as fout:
+        sampling_run_res["step_x"] = [i.tolist() for i in sampling_run_res["step_x"]]
+        sampling_run_res["step_y"] = [i.tolist() for i in sampling_run_res["step_y"]]
+        sampling_run_res["score"] = [i.tolist() for i in sampling_run_res["score"]]
         json.dump(sampling_run_res, fout)
-        # plot_results.append(res)
 
-        # res_plot = create_flv_figures(plot_results)
-        # writer.add_figure('Iter {}'.format(_i), res_plot, global_step=_i)
-
-        # writer.add_scalar("RMSE", res.get('score')[-1],
-        # res.get('iteration')[-1])
-        # writer.add_scalar("Gen time", res.get('gen_time')[-1],
-        # res.get('iteration')[-1])
-        # writer.add_scalar("Fit time", res.get('fit_time')[-1],
-        # res.get('iteration')[-1])
-
-    return (sampling_res_list,)
+    return sampling_res_list
 
 
 def test_sampler(
@@ -158,8 +153,12 @@ def test_sampler(
     test_y,
     metric,
     sampler,
+    n_iter_sampling,
+    n_initial_point,
+    n_new_points_per_iteration,
     target_f,
     name,
+    save_path,
 ):
 
     surrogate_model = VanillaGaussianProcess()
@@ -178,6 +177,7 @@ def test_sampler(
             test_points_y=test_y,
             evaluation_metric=metric,
             run_name=name,
+            save_dir=save_path,
         )
     elif sampler == "LOLA":
         lv = LolaVoronoi(
@@ -191,6 +191,7 @@ def test_sampler(
             test_points_y=test_y,
             evaluation_metric=metric,
             run_name=name,
+            save_dir=save_path,
         )
     elif sampler == "Prob":
         lv = Probabilistic_sampler(
@@ -248,16 +249,53 @@ if __name__ == "__main__":
         type=int,
         help="Dimensionality of the problem to solve",
     )
+    parser.add_argument(
+        "-i",
+        "--init_p",
+        default=15,
+        type=int,
+        help="Number of initial points to start sampling",
+    )
+    parser.add_argument(
+        "-m",
+        "--metric",
+        default="rmse",
+        type=str,
+        help="Define the meassure function",
+    )
+    parser.add_argument(
+        "-st",
+        "--steps",
+        default=3000,
+        type=int,
+        help="Number of iterative adaptive sampling steps",
+    )
+    parser.add_argument(
+        "-n",
+        "--n_points_iter",
+        default=1,
+        type=int,
+        help="Number of points we add at every adaptive sampling steps",
+    )
     args = parser.parse_args()
 
     TEST_SIZE = 500
-    if metric == "rmse":
-        criterion = rmse
-    elif metric == "rrse":
-        criterion = rrse
+    if args.metric == "all":
+        metric = [rmse, rrse, mae]
+    else:
+        metric = [rmse]
 
-    run_name = "Bench_{}_sampler".format(args.sampler)
+    run_name = "Bench_{}_with_{}_initial_points_on_{}D_problem".format(
+        args.sampler, args.init_p, args.problem
+    )
     print(run_name)
     flv_sampling_out = run_benchmark(
-        run_name, criterion, args.sampler, args.problem, TEST_SIZE
+        run_name,
+        metric,
+        args.sampler,
+        args.steps,
+        args.n_points_iter,
+        args.problem,
+        args.init_p,
+        TEST_SIZE,
     )
