@@ -17,6 +17,7 @@ from typing import Callable, Optional, Tuple
 import numpy as np
 import skfuzzy as fuzz
 from loguru import logger
+from tensorboardX import SummaryWriter
 from scipy.spatial.distance import cdist, pdist, squareform
 from skfuzzy import control as ctrl
 from sklearn.metrics import mean_squared_error
@@ -25,19 +26,9 @@ from harlow.helper_functions import latin_hypercube_sampling
 from harlow.sampling_baseclass import Sampler
 from harlow.surrogate_model import Surrogate
 
-# TODO
-#  * improve logging
-#  * pretty timedelta: https://gist.github.com/thatalextaylor/7408395
-
-nopython = True
-fastmath = True
-
-
 # -----------------------------------------------------
 # USER FACING API (class)
 # -----------------------------------------------------
-# TODO: is this class really needed or just an unnecessary complication? it has a
-#  single method
 class FuzzyLolaVoronoi(Sampler):
     def __init__(
         self,
@@ -50,7 +41,7 @@ class FuzzyLolaVoronoi(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
-        verbose: bool = False,
+        run_name: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -61,7 +52,7 @@ class FuzzyLolaVoronoi(Sampler):
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
         self.metric = evaluation_metric
-        self.verbose = verbose
+        # self.verbose = verbose
 
         # Internal storage for inspection
         self.step_x = []
@@ -70,25 +61,8 @@ class FuzzyLolaVoronoi(Sampler):
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
-
-        # TODO:
-        #  * add a cleaned up metric (see below)
-        #  * add input consistency check & formatting input if needed
-        # if evaluation_metric == "r2":
-        #     self.metric = r2_score
-        # elif evaluation_metric == "mse":
-        #     self.metric = mean_squared_error
-        # elif evaluation_metric == "rmse":
-        #     self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
-        #
-        # if np.ndim(self.test_X) == 1:
-        #     self.score[0] = (self.metric
-        #         self.test_y, self.surrogate_model.predict(self.test_X.reshape(-1, 1))
-        #     )
-        # else:
-        #     self.score[0] = self.metric(
-        #         self.test_y, self.surrogate_model.predict(self.test_X)
-        #     )
+        #Init writer for live web-based logging.
+        self.writer = SummaryWriter(comment='-' + run_name)
 
     def sample(
         self,
@@ -111,8 +85,8 @@ class FuzzyLolaVoronoi(Sampler):
         if n_initial_point is None:
             n_initial_point = 5 * n_dim
 
-        if stopping_criterium:
-            n_iter = 1000
+        # if stopping_criterium:
+        #     n_iter = 1000
 
         if stopping_criterium and not self.metric:
             self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
@@ -159,7 +133,6 @@ class FuzzyLolaVoronoi(Sampler):
         # ..........................................
         # Iterative improvement (adaptive stage)
         # ..........................................
-        n_point_last_iter = 0
         for ii in range(n_iter):
             logger.info(
                 f"Started adaptive iteration step: {ii+1} (max steps:" f" {n_iter})."
@@ -190,19 +163,22 @@ class FuzzyLolaVoronoi(Sampler):
             # refit the surrogate
             start_time = time.time()
             self.surrogate_model.update(new_points_x, new_points_y.ravel())
-            self.step_fit_time = time.time() - start_time
+            self.step_fit_time.append(time.time() - start_time)
             logger.info(
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
             )
-
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
             score = self.evaluate()
-            self.step_x.append(points_x)
-            self.step_y.append(points_y)
+            self.step_x.append(points_x.tolist())
+            self.step_y.append(points_y.tolist())
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
+            #Writer log
+            self.writer.add_scalar("RMSE", score, ii+1)
+            self.writer.add_scalar("Gen time", self.step_gen_time[ii+1], ii+1)
+            self.writer.add_scalar("Fit time", self.step_fit_time[ii+1], ii+1)
 
             self.score = score
             self.iterations = ii
@@ -211,7 +187,7 @@ class FuzzyLolaVoronoi(Sampler):
                 if score <= stopping_criterium:
                     logger.info(f"Algorithm converged in {ii} iterations")
                     break
-
+        self.writer.close()
         return self.fit_points_x, self.fit_points_y
 
     def evaluate(self):
@@ -220,6 +196,8 @@ class FuzzyLolaVoronoi(Sampler):
 
         Returns:
         """
+        #TODO Add multi metric functionality . i.e a dict with x3 losses, return all 
+        # metric scores and write them on tensorboard.
         if self.metric is None or self.test_points_x is None:
             score = None
         else:

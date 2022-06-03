@@ -15,6 +15,7 @@ from typing import Callable
 
 import numpy as np
 from loguru import logger
+from tensorboardX import SummaryWriter
 from scipy.optimize import differential_evolution
 from sklearn.metrics import mean_squared_error
 
@@ -34,7 +35,7 @@ class Probabilistic_sampler:
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
-        verbose: bool = False,
+        run_name: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -45,14 +46,23 @@ class Probabilistic_sampler:
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
         self.metric = evaluation_metric
-        self.verbose = verbose
-
+        # self.verbose = verbose
+        # Internal storage for inspection
+        self.step_x = []
+        self.step_y = []
+        self.step_score = []
+        self.step_iter = []
+        self.step_fit_time = []
+        self.step_gen_time = []
+        #Init writer for live web-based logging.
+        self.writer = SummaryWriter(comment='-' + run_name)
         self.iterations = 0
 
     def sample(
         self,
         n_initial_point: int = None,
         n_iter: int = 20,
+        n_new_point_per_iteration: int = None,
         stopping_criterium: float = None,
         epsilon: float = 0.005,
     ):
@@ -75,7 +85,8 @@ class Probabilistic_sampler:
                 "Uncertainty based sampling only implemented for probabilistic \
                 surrogate models."
             )
-
+        
+        gen_start_time = time.time()
         if self.fit_points_x is None:
             points_x = latin_hypercube_sampling(
                 n_sample=n_initial_point,
@@ -87,6 +98,7 @@ class Probabilistic_sampler:
             points_x = self.fit_points_x
             points_y = self.fit_points_y
 
+        self.step_gen_time.append(time.time() - gen_start_time)
         convergence = False
 
         while convergence is False:
@@ -101,7 +113,6 @@ class Probabilistic_sampler:
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
             )
 
-            start_time = time.time()
             diff_evolution_result = differential_evolution(
                 self.prediction_std, bounds=bounds
             )
@@ -109,6 +120,8 @@ class Probabilistic_sampler:
                 f"Finished differential evolution in {time.time() - start_time} sec."
             )
             std_max = -diff_evolution_result.fun
+
+            self.step_fit_time.append(time.time() - start_time)
 
             if not stopping_criterium and (
                 std_max <= epsilon or self.iterations > n_iter
@@ -126,13 +139,25 @@ class Probabilistic_sampler:
                     convergence = True
 
             x_new = diff_evolution_result.x
+            print(x_new, x_new.shape)
             y_new = self.target_function(x_new)
             points_x = np.concatenate((points_x, np.expand_dims(x_new, axis=0)))
             points_y = np.concatenate((points_y, y_new))
 
+            self.step_x.append(points_x)
+            self.step_y.append(points_y)
+            self.step_score.append(score)
+            self.step_iter.append(self.iterations + 1)
+            #Writer log
+            self.writer.add_scalar("RMSE", score, self.iterations+1)
+            self.writer.add_scalar("Gen time", self.step_gen_time[self.iterations], self.iterations+1)
+            self.writer.add_scalar("Fit time", self.step_fit_time[self.iterations], self.iterations+1)
+
+
             self.score = score
             self.iterations += 1
 
+        self.writer.close()
         return points_x, points_y
 
     def result_as_dict(self):
