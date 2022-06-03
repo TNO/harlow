@@ -13,22 +13,23 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
+from harlow.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.lola_voronoi import LolaVoronoi
-from harlow.fuzzy_lolavoronoi import FuzzyLolaVoronoi
-from harlow.surrogate_model import VanillaGaussianProcess, Vanilla_NN
-from tests.integration_tests.test_functions import peaks_2d, hartmann
+from harlow.surrogate_model import VanillaGaussianProcess
+from harlow.visualization import corner, plotting
+from tests.integration_tests.test_functions import hartmann, peaks_2d
 
 # domains_lower_bound = np.array([0., 0., 0., 0., 0., 0.])
 # domains_upper_bound = np.array([1., 1., 1., 1., 1., 1.])
-domains_lower_bound = np.array([-8., -8.])
-domains_upper_bound = np.array([8., 8.])
+domains_lower_bound = np.array([-4.0, -4.0])
+domains_upper_bound = np.array([4.0, 4.0])
 n_initial_point = 15
 n_new_points_per_iteration = 1
 rmse_criterium = 0.001
 np.random.seed(123)
 n_iter_sampling = 30
-n_iter_runs = 5
+n_iter_runs = 3
 
 
 def rmse(x, y):
@@ -53,17 +54,24 @@ def run_benchmark():
     LV_sampling_results = []
     FLV_sampling_results = []
 
+    fig, ax = corner.corner(
+        hartmann, np.array([[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]]).T
+    )
+    fig.show()
+
+    plotting.plot_function(peaks_2d, np.array([[-4, 4], [-4, 4]]), show=True)
     for _i in range(n_iter_runs):
         # test_X, test_y = create_test_set_6D(domains_lower_bound,
         #                                  domains_upper_bound, 500)
-        test_X, test_y = create_test_set_2D(domains_lower_bound,
-                                         domains_upper_bound, 500)
+        test_X, test_y = create_test_set_2D(
+            domains_lower_bound, domains_upper_bound, 500
+        )
 
         start_points_X = latin_hypercube_sampling(
             domains_lower_bound, domains_upper_bound, n_initial_point
         )
 
-        #start_points_y = hartmann(start_points_X).reshape((-1, 1))
+        # start_points_y = hartmann(start_points_X).reshape((-1, 1))
         start_points_y = peaks_2d(start_points_X).reshape((-1, 1))
 
         LV_sampling_results.append(
@@ -90,8 +98,7 @@ def run_benchmark():
             )
         )
 
-    return (LV_sampling_results,
-            FLV_sampling_results)
+    return (LV_sampling_results, FLV_sampling_results)
 
 
 def test_sampling_LV(
@@ -174,7 +181,7 @@ def test_sampling_FLV(
     lv.sample(
         n_iter=n_iter,
         n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration
+        n_new_point_per_iteration=n_new_points_per_iteration,
     )
 
     return {

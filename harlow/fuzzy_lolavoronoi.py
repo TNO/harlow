@@ -6,7 +6,8 @@ surrogate modeling of computer experiments. SIAM Journal on Scientific Computing
 (2011): 1948-1974.
 
 [2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015).
-A fuzzy hybrid sequential design strategy for global surrogate modeling of high-dimensional computer experiments.
+A fuzzy hybrid sequential design strategy for global surrogate modeling of
+high-dimensional computer experiments.
 SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
 """
 import math
@@ -252,15 +253,21 @@ def best_new_points(
     # Calculate distance matrix P
     distance_matrix = calculate_distance_matrix(points_x, n_dim)
     # Calculate the V for every Pr
-    relative_volumes, random_points, \
-    distance_mx, closest_indicator_mx = voronoi_volume_estimate(
-        points=points_x, 
-        domain_lower_bound=domain_lower_bound, 
-        domain_upper_bound=domain_upper_bound)
+    (
+        relative_volumes,
+        random_points,
+        distance_mx,
+        closest_indicator_mx,
+    ) = voronoi_volume_estimate(
+        points=points_x,
+        domain_lower_bound=domain_lower_bound,
+        domain_upper_bound=domain_upper_bound,
+    )
     # print('Relative volumes', relative_volumes, relative_volumes.shape)
 
     neighborhoods_scores = best_neighbourhoods(
-        points_x, points_y, distance_matrix, relative_volumes)
+        points_x, points_y, distance_matrix, relative_volumes
+    )
 
     # TODO: check np.partition as an alternative
     idxs_new_neighbor = np.argsort(-neighborhoods_scores)[:n_new_point]
@@ -300,36 +307,47 @@ def best_neighbourhoods(points_x, points_y, distance_matrix, volume_estimate):
     # TODO CHeck it later.
     # FIS = init_FIS()
     K = 4 * n_dim
-    if K >= n_point-1:
+
+    if K >= n_point - 1:
         K = n_point - 1
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
         # gets the neighbours of Pr as indices
-        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)  
+        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
-        neighbors_coords = points_x[neighbors_idx,:]
+        neighbors_coords = points_x[neighbors_idx, :]
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
         FIS = init_FIS(neighbors_coords, adhesion)
         w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
-        grad = flola_gradient_estimate(points_x[ii, :], points_y[
-            ii], points_x[neighbors_idx, :], points_y[neighbors_idx, :], w)
+        grad = flola_gradient_estimate(
+            points_x[ii, :],
+            points_y[ii],
+            points_x[neighbors_idx, :],
+            points_y[neighbors_idx, :],
+            w,
+        )
         # print('grad', grad, grad.shape)
-        #E_fuzzy(P_r) Eq. (3.2) [2]
-        nonlinear_score[ii] = nonlinearity_measure(points_x[ii,:],
-                                                   points_y[ii,:],
-                                                   grad, points_x[neighbors_idx, :],
-                                                   points_y[neighbors_idx, :])
+        # E_fuzzy(P_r) Eq. (3.2) [2]
+        nonlinear_score[ii] = nonlinearity_measure(
+            points_x[ii, :],
+            points_y[ii, :],
+            grad,
+            points_x[neighbors_idx, :],
+            points_y[neighbors_idx, :],
+        )
         # print('Nonlinear score', nonlinear_score[ii])
         # H_fuzzy(P_r) Eq.(5.1) [2]
-        H_fuzzy[ii] = flola_voronoi_score(nonlinear_score[ii], nonlinear_score, volume_estimate[ii])
+        H_fuzzy[ii] = flola_voronoi_score(
+            nonlinear_score[ii], nonlinear_score, volume_estimate[ii]
+        )
         # print('Hybrid score', H_fuzzy, H_fuzzy.shape)
-
 
     # print(H_fuzzy, H_fuzzy.shape)
     return H_fuzzy
+
 
 def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
     """
@@ -503,7 +521,9 @@ def calculate_distance_matrix(
 
 
 def flola_voronoi_score(
-    nonlinearity_measures: float, nonlinearity_array: np.ndarray, relative_volumes: np.ndarray
+    nonlinearity_measures: float,
+    nonlinearity_array: np.ndarray,
+    relative_volumes: np.ndarray,
 ) -> np.ndarray:
     """Eq.(5.1) of [2]."""
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_array)
@@ -646,20 +666,19 @@ def flola_gradient_estimate(
     """
     Estimate the gradient at `reference_point` (P_r) by fitting a hyperplane to
     `neighbor_points` in a least-square sense. A hyperplane that goes exactly
-    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r 
+    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r
     obtained from solving FIS S
     :param reference_point_x: The d-dimensional reference sample P_r
-    :param reference_point y: 
-    :param neigbor_points_x: The m x d-dimensional neighbors of P_r 
-    :param neigbor_points_y: 
+    :param reference_point y:
+    :param neigbor_points_x: The m x d-dimensional neighbors of P_r
+    :param neigbor_points_y:
     :param weights: The weights of every neighbor of P_r
-    :return gradient: The d-dimensional gradient at P_r 
+    :return gradient: The d-dimensional gradient at P_r
 
     """
     reference_point_x = reference_point_x.reshape((1, -1))
     n_neighbors, n_dims = neighbor_points_x.shape
 
-    # print(reference_point_x.shape, reference_point_y.shape, neighbor_points_x.shape, neighbor_points_y.shape, weights.shape)
     # to ensure that we hyperplane goes through `reference_point`
     neighbor_points_x_diff = neighbor_points_x - reference_point_x
     neighbor_points_y_diff = neighbor_points_y - reference_point_y
@@ -668,7 +687,6 @@ def flola_gradient_estimate(
     # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
     Aw = neighbor_points_x_diff * np.sqrt(weights[:, np.newaxis])
     Bw = neighbor_points_y_diff * np.sqrt(weights)
-    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors,
-                                                              n_dims)
+    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors, n_dims)
 
     return gradient

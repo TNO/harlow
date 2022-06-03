@@ -19,7 +19,7 @@ def test_1d():
 
 def test_2d():
     support_range = np.array([[0, 2], [-1, 1]]).T
-    corner(func=func_nd, support_range=support_range)
+    return corner(func=func_nd, support_range=support_range)
 
 
 def test_3d():
