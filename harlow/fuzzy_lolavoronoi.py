@@ -7,25 +7,27 @@ surrogate modeling of computer experiments. SIAM Journal on Scientific Computing
 
 [2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015).
 A fuzzy hybrid sequential design strategy for global surrogate modeling of
-high-dimensional computer experiments.
+ high-dimensional computer experiments.
 SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
 """
 import math
+import os
+import pickle
 import time
 from typing import Callable, Optional, Tuple
-import pickle
-import os
+
 import numpy as np
 import skfuzzy as fuzz
 from loguru import logger
-from tensorboardX import SummaryWriter
 from scipy.spatial.distance import cdist, pdist, squareform
 from skfuzzy import control as ctrl
 from sklearn.metrics import mean_squared_error
+from tensorboardX import SummaryWriter
 
-from harlow.helper_functions import latin_hypercube_sampling
+from harlow.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.sampling_baseclass import Sampler
 from harlow.surrogate_model import Surrogate
+
 
 # -----------------------------------------------------
 # USER FACING API (class)
@@ -65,8 +67,8 @@ class FuzzyLolaVoronoi(Sampler):
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
-        #Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment='-' + run_name)
+        # Init writer for live web-based logging.
+        self.writer = SummaryWriter(comment="-" + run_name)
 
     def sample(
         self,
@@ -127,10 +129,12 @@ class FuzzyLolaVoronoi(Sampler):
         # Additional class objects to help keep track of the sampling. `gen_time`
         # denotes the time to generate new points. `fit_time` is the time
         # to fit the surrogate.
-        score = self.evaluate()
+        score = evaluate(
+            self.metric, self.surrogate_model, self.test_points_x, self.test_points_y
+        )
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score)
+        self.step_score.append(score[0])
         self.step_iter.append(0)
         self.step_fit_time.append(time.time() - start_time)
 
@@ -151,7 +155,6 @@ class FuzzyLolaVoronoi(Sampler):
                 n_new_point=n_new_point_per_iteration,
             )
             self.step_gen_time.append(time.time() - start_time)
-            n_point_last_iter = points_x.shape[0]
             logger.info(
                 f"Found the next best {n_new_point_per_iteration} point(s) in "
                 f"{time.time() - start_time} sec."
@@ -174,51 +177,50 @@ class FuzzyLolaVoronoi(Sampler):
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = self.evaluate()
-            self.step_x.append(points_x.tolist())
-            self.step_y.append(points_y.tolist())
+            score = evaluate(
+                self.metric,
+                self.surrogate_model,
+                self.test_points_x,
+                self.test_points_y,
+            )
+            self.step_x.append(points_x)
+            self.step_y.append(points_y)
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
-            #Writer log
-            self.writer.add_scalar("RMSE", score, ii+1)
-            self.writer.add_scalar("Gen time", self.step_gen_time[ii+1], ii+1)
-            self.writer.add_scalar("Fit time", self.step_fit_time[ii+1], ii+1)
-
-            self.score = score
+            # Writer log & various metric scores
+            if len(score) == 1:
+                self.writer.add_scalar("RMSE", score[0], ii + 1)
+            elif len(score) == 2:
+                self.writer.add_scalar("RMSE", score[0], ii + 1)
+                self.writer.add_scalar("RRSE", score[1], ii + 1)
+            elif len(score) == 3:
+                self.writer.add_scalar("RMSE", score[0], ii + 1)
+                self.writer.add_scalar("RRSE", score[1], ii + 1)
+                self.writer.add_scalar("MAE", score[2], ii + 1)
+            self.writer.add_scalar("Gen time", self.step_gen_time[ii + 1], ii + 1)
+            self.writer.add_scalar("Fit time", self.step_fit_time[ii + 1], ii + 1)
+            # Currently use RMSE for convergence
+            self.score = score[0]
             self.iterations = ii
-            save_name = self.run_name + '_{}_iters.pkl'.format(self.iterations)
-            save_path = os.path.join(self.save_dir, save_name)
-            #Save model every 200 iterations
+            # Save model every 200 iterations
             if self.iterations % 200 == 0:
-                with open(save_path, 'wb') as file:
+                save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
+                save_path = os.path.join(self.save_dir, save_name)
+                with open(save_path, "wb") as file:
                     pickle.dump(self.surrogate_model, file)
             if stopping_criterium:
-                logger.info(f"Evaluation metric score on provided testset: {score}")
-                if score <= stopping_criterium:
+                logger.info(
+                    f"Evaluation metric {[name for name in self.metric]} score"
+                    f" on provided testset: {score}"
+                )
+                if self.score <= stopping_criterium:
                     logger.info(f"Algorithm converged in {ii} iterations")
-                    #Save model if converged
-                    with open(save_path, 'wb') as file:
+                    # Save model if converged
+                    with open(save_path, "wb") as file:
                         pickle.dump(self.surrogate_model, file)
                     break
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
-
-    def evaluate(self):
-        """
-        Evaluate user specified metric for the current iteration
-
-        Returns:
-        """
-        #TODO Add multi metric functionality . i.e a dict with x3 losses, return all 
-        # metric scores and write them on tensorboard.
-        if self.metric is None or self.test_points_x is None:
-            score = None
-        else:
-            score = self.metric(
-                self.surrogate_model.predict(self.test_points_x), self.test_points_y
-            )
-
-        return score
 
     def result_as_dict(self):
         pass
@@ -255,14 +257,20 @@ def best_new_points(
     # Calculate distance matrix P
     distance_matrix = calculate_distance_matrix(points_x, n_dim)
     # Calculate the V for every Pr
-    relative_volumes, random_points, \
-    distance_mx, closest_indicator_mx = voronoi_volume_estimate(
-        points=points_x, 
-        domain_lower_bound=domain_lower_bound, 
-        domain_upper_bound=domain_upper_bound)
+    (
+        relative_volumes,
+        random_points,
+        distance_mx,
+        closest_indicator_mx,
+    ) = voronoi_volume_estimate(
+        points=points_x,
+        domain_lower_bound=domain_lower_bound,
+        domain_upper_bound=domain_upper_bound,
+    )
 
     neighborhoods_scores = best_neighbourhoods(
-        points_x, points_y, distance_matrix, relative_volumes)
+        points_x, points_y, distance_matrix, relative_volumes
+    )
 
     # TODO: check np.partition as an alternative
     idxs_new_neighbor = np.argsort(-neighborhoods_scores)[:n_new_point]
@@ -317,20 +325,21 @@ def best_neighbourhoods(
     # TODO CHeck it later.
     # FIS = init_FIS()
     K = 4 * n_dim
-    if K >= n_point-1:
+    if K >= n_point - 1:
         K = n_point - 1
 
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
         # gets the neighbours of Pr as indices
-        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)  
+        neighbors_idx = get_neighbourhood(ii, distance_matrix, alpha, n_dim)
         # print("Neighbors index", neighbors_idx, '\n', neighbors_idx.shape)
-        neighbors_coords = points_x[neighbors_idx,:]
+        neighbors_coords = points_x[neighbors_idx, :]
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
         FIS = init_FIS(neighbors_coords, adhesion)
         w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
+        # print('Weights', w)
         grad = flola_gradient_estimate(
             points_x[ii, :],
             points_y[ii],
@@ -339,15 +348,21 @@ def best_neighbourhoods(
             w,
         )
         # print('grad', grad, grad.shape)
-        #E_fuzzy(P_r) Eq. (3.2) [2]
-        nonlinear_score[ii] = nonlinearity_measure(points_x[ii,:],
-                                                   points_y[ii,:],
-                                                   grad, points_x[neighbors_idx, :],
-                                                   points_y[neighbors_idx, :])
+        # E_fuzzy(P_r) Eq. (3.2) [2]
+        nonlinear_score[ii] = nonlinearity_measure(
+            points_x[ii, :],
+            points_y[ii, :],
+            grad,
+            points_x[neighbors_idx, :],
+            points_y[neighbors_idx, :],
+        )
+        # print('Nonlinear score', nonlinear_score[ii])
+
     # H_fuzzy(P_r) Eq.(5.1) [2]
     H_fuzzy = flola_voronoi_score(nonlinear_score, volume_estimate)
-
+    # print(H_fuzzy, H_fuzzy.shape)
     return H_fuzzy
+
 
 def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
     """
@@ -478,10 +493,12 @@ def get_neighbourhood(
     Eq. (3.3) [2].
 
     :param Pr_idx: Index of reference point
-    :param distance_matrix: The NxN-dimensional precalculated distance matrix for all p in P
+    :param distance_matrix: The NxN-dimensional precalculated distance matrix
+    for all p in P
     :param alpha: Distance parameter Eq. (3.4) [2]
     :param n_dim: Number of dimensions
-    :return neighbors_idx: N-dimensional array with neighbour indexes for point Pr
+    :return neighbors_idx: N-dimensional array with neighbour indexes for
+    point Pr
     """
 
     distances_prIdx = distance_matrix[Pr_idx, :]
@@ -497,8 +514,7 @@ def get_neighbourhood(
     return neighbors_idx
 
 
-def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray
-) -> np.ndarray:
+def calculate_alpha(Pr_idx: int, K: int, distance_matrix: np.ndarray) -> np.ndarray:
     """
     Calculate distance parameter alpha.
     Eq. (3.4) [2].
@@ -536,9 +552,11 @@ def calculate_distance_matrix(
 
 
 def flola_voronoi_score(
-    nonlinearity_measures: float, relative_volumes: np.ndarray) -> np.ndarray:
+    nonlinearity_measures: float, relative_volumes: np.ndarray
+) -> np.ndarray:
     """Eq.(5.1) of [2]."""
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
+
 
 def nonlinearity_measure(
     reference_point_x: np.ndarray,
@@ -630,7 +648,7 @@ def flola_gradient_estimate(
     """
     Estimate the gradient at `reference_point` (P_r) by fitting a hyperplane to
     `neighbor_points` in a least-square sense. A hyperplane that goes exactly
-    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r 
+    through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r
     obtained from solving FIS S.
 
     :param reference_point_x: The d-dimensional reference sample P_r
@@ -650,7 +668,6 @@ def flola_gradient_estimate(
     # Least-Square fit of the hyperplane, the gradient is the hyperplane coefficient
     Aw = neighbor_points_x_diff * np.sqrt(weights[:, np.newaxis])
     Bw = neighbor_points_y_diff * np.sqrt(weights)
-    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors,
-                                                              n_dims)
+    gradient = np.linalg.lstsq(Aw, Bw, rcond=None)[0].reshape(n_neighbors, n_dims)
 
     return gradient

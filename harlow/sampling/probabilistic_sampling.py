@@ -72,8 +72,8 @@ class Probabilistic_sampler:
         if n_initial_point is None:
             n_initial_point = 5 * n_dim
 
-        if stopping_criterium:
-            n_iter = 1000
+        # if stopping_criterium:
+        #    n_iter = 1000
 
         if stopping_criterium and not self.metric:
             self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
@@ -149,7 +149,7 @@ class Probabilistic_sampler:
             points_x = np.concatenate((points_x, x_new))
             points_y = np.concatenate((points_y, y_new))
 
-            if not stopping_criterium and (
+            if not stopping_criterium or (
                 std_max <= epsilon or self.iterations > n_iter
             ):
                 logger.info("std_max <= epsilon or max iterations reached")
