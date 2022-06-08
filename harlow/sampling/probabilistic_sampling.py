@@ -15,9 +15,9 @@ from typing import Callable
 
 import numpy as np
 from loguru import logger
-from tensorboardX import SummaryWriter
 from scipy.optimize import differential_evolution
 from sklearn.metrics import mean_squared_error
+from tensorboardX import SummaryWriter
 
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import latin_hypercube_sampling
@@ -54,8 +54,8 @@ class Probabilistic_sampler:
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
-        #Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment='-' + run_name)
+        # Init writer for live web-based logging.
+        self.writer = SummaryWriter(comment="-" + run_name)
         self.iterations = 0
 
     def sample(
@@ -85,7 +85,10 @@ class Probabilistic_sampler:
                 "Uncertainty based sampling only implemented for probabilistic \
                 surrogate models."
             )
-        
+
+        # ..........................................
+        # Initial sample of points
+        # ..........................................
         gen_start_time = time.time()
         if self.fit_points_x is None:
             points_x = latin_hypercube_sampling(
@@ -97,8 +100,13 @@ class Probabilistic_sampler:
         else:
             points_x = self.fit_points_x
             points_y = self.fit_points_y
-
         self.step_gen_time.append(time.time() - gen_start_time)
+
+        start_time = time.time()
+        self.surrogate_model.fit(points_x, points_y)
+        logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
+        self.step_fit_time.append(time.time() - gen_start_time)
+
         convergence = False
 
         while convergence is False:
@@ -107,21 +115,39 @@ class Probabilistic_sampler:
                 for i in range(n_dim)
             ]
 
-            start_time = time.time()
-            self.surrogate_model.fit(points_x, points_y)
-            logger.info(
-                f"Fitted a new surrogate model in {time.time() - start_time} sec."
-            )
+            def prediction_std(x):
+                if x.ndim == 1:
+                    x = np.expand_dims(x, axis=0)
 
+                std = -(
+                    self.surrogate_model.predict(x, return_std=True)[1]
+                    # - self.surrogate_model.noise_std
+                )
+
+                return std
+
+            start_time = time.time()
             diff_evolution_result = differential_evolution(
-                self.prediction_std, bounds=bounds
+                prediction_std, bounds=bounds
             )
             logger.info(
                 f"Finished differential evolution in {time.time() - start_time} sec."
             )
             std_max = -diff_evolution_result.fun
+            self.step_gen_time.append(time.time() - start_time)
 
-            self.step_fit_time.append(time.time() - start_time)
+            x_new = np.expand_dims(diff_evolution_result.x, axis=0)
+            y_new = self.target_function(x_new)
+
+            start_time = time.time()
+            self.surrogate_model.update(x_new, y_new)
+            logger.info(
+                f"Fitted a new surrogate model in {time.time() - start_time} sec."
+            )
+            self.step_fit_time.append(time.time() - gen_start_time)
+
+            points_x = np.concatenate((points_x, x_new))
+            points_y = np.concatenate((points_y, y_new))
 
             if not stopping_criterium and (
                 std_max <= epsilon or self.iterations > n_iter
@@ -138,38 +164,28 @@ class Probabilistic_sampler:
                     logger.info(f"Algorithm converged in {self.iterations} iterations")
                     convergence = True
 
-            x_new = diff_evolution_result.x
-            print(x_new, x_new.shape)
-            y_new = self.target_function(x_new)
-            points_x = np.concatenate((points_x, np.expand_dims(x_new, axis=0)))
-            points_y = np.concatenate((points_y, y_new))
-
+            self.fit_points_x = points_x
+            self.fit_points_y = points_y
             self.step_x.append(points_x)
             self.step_y.append(points_y)
             self.step_score.append(score)
             self.step_iter.append(self.iterations + 1)
-            #Writer log
-            self.writer.add_scalar("RMSE", score, self.iterations+1)
-            self.writer.add_scalar("Gen time", self.step_gen_time[self.iterations], self.iterations+1)
-            self.writer.add_scalar("Fit time", self.step_fit_time[self.iterations], self.iterations+1)
 
+            # Writer log
+            self.writer.add_scalar("RMSE", score, self.iterations + 1)
+            self.writer.add_scalar(
+                "Gen time", self.step_gen_time[self.iterations], self.iterations + 1
+            )
+            self.writer.add_scalar(
+                "Fit time", self.step_fit_time[self.iterations], self.iterations + 1
+            )
 
             self.score = score
             self.iterations += 1
 
         self.writer.close()
-        return points_x, points_y
+
+        return self.fit_points_x, self.fit_points_y
 
     def result_as_dict(self):
         pass
-
-    def prediction_std(self, x):
-        if x.ndim == 1:
-            x = np.expand_dims(x, axis=0)
-
-        std = -(
-            self.surrogate_model.predict(x, return_std=True)[1]
-            - self.surrogate_model.noise_std
-        )
-
-        return std
