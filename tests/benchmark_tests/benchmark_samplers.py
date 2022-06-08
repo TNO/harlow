@@ -287,6 +287,7 @@ def test_sampler(
     }
 
 
+
 if __name__== "__main__":\
 
     parser = argparse.ArgumentParser()
@@ -299,7 +300,7 @@ if __name__== "__main__":\
         criterion = rmse
     elif metric == 'rrse':
         criterion = rrse
-    
+
     run_name = 'Bench_{}_sampler'.format(args.sampler)
     print(run_name)
     flv_sampling_out = run_benchmark(run_name, criterion, args.sampler, args.problem, TEST_SIZE)
