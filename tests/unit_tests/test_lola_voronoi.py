@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from harlow.lola_voronoi import (
+from harlow.sampling.lola_voronoi import (
     best_neighborhoods,
     gradient_estimate,
     neighborhood_score,
