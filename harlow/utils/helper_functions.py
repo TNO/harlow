@@ -87,3 +87,16 @@ def hartmann(X):
         results.append(-(2.58 + outer) / 1.94)
 
     return np.asarray(results)
+
+def stybtang(X):
+    #https://www.sfu.ca/~ssurjano/stybtang.html
+    n = X.shape[0]
+    d = X.shape[1]
+    res = np.zeros(n)
+    for i in range(n):
+        val = 0.0
+        for j in range(d):
+            _sum = (np.power(X[i,j], 4) - 16.0 * np.power(X[i,j], 2) + 5.0 * X[i,j])
+        res[i] = 0.5 * _sum
+
+    return res
