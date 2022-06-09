@@ -3,7 +3,7 @@ from typing import Callable
 
 import numpy as np
 
-from harlow.surrogate_model import Surrogate
+from harlow.surrogating.surrogate_model import Surrogate
 
 
 class Sampler(ABC):

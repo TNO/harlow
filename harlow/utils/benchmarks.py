@@ -1,10 +1,10 @@
 import math
 
 import numpy as np
-from lola_voronoi import LolaVoronoi
 from sklearn.metrics import mean_squared_error
-from surrogate_model import NN
 
+from harlow.sampling.lola_voronoi import LolaVoronoi
+from harlow.surrogating.surrogate_model import NN
 from tests.integration_tests.test_functions import shekel
 
 

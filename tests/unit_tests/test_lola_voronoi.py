@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial import ConvexHull
 
-from harlow.lola_voronoi import (
+from harlow.sampling.lola_voronoi import (
     best_neighborhoods,
     gradient_estimate,
     neighborhood_score,
@@ -44,7 +44,7 @@ def test_visually_2d_best_neighborhoods():
             best_neighborhood_idxs,
             _,
             all_neighbor_point_idxs_combinations,
-        ) = best_neighborhoods(points_x=points_x)
+        ) = best_neighborhoods(points_x=points_x, n_point_last_iter=0)
 
         fig, axs = plt.subplots(2, 2, figsize=(10, 8))
         axs = axs.flatten()
