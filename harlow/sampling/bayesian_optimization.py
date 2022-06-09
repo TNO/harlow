@@ -35,9 +35,9 @@ from botorch.optim import optimize_acqf
 from loguru import logger
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.sampling_baseclass import Sampler
-from harlow.surrogate_model import Surrogate
+from harlow.sampling.sampling_baseclass import Sampler
+from harlow.surrogating.surrogate_model import Surrogate
+from harlow.utils.helper_functions import latin_hypercube_sampling
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dtype = torch.double
