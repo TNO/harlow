@@ -5,9 +5,9 @@ import numpy as np
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
-from harlow.lola_voronoi import LolaVoronoi
-from harlow.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogate_model import GaussianProcess, GaussianProcessTFP
+from harlow.sampling.lola_voronoi import LolaVoronoi
+from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
+from harlow.surrogating.surrogate_model import GaussianProcess, GaussianProcessTFP
 from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
 from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 

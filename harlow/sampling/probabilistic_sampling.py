@@ -18,8 +18,8 @@ from loguru import logger
 from scipy.optimize import differential_evolution
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.surrogate_model import Surrogate
+from harlow.surrogating.surrogate_model import Surrogate
+from harlow.utils.helper_functions import latin_hypercube_sampling
 
 
 class Probabilistic_sampler:

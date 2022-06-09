@@ -14,9 +14,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.lola_voronoi import LolaVoronoi
-from harlow.surrogate_model import GaussianProcess
+from harlow.sampling.lola_voronoi import LolaVoronoi
+from harlow.surrogating.surrogate_model import GaussianProcess
+from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.integration_tests.test_functions import peaks_2d
 
 domains_lower_bound = np.array([-8, -8])
