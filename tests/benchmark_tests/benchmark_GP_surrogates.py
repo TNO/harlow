@@ -6,14 +6,18 @@ Comparison of different Multi-task GPR approaches:
 * MultiTask GPs: For learning similarities between outcomes
 """
 
+from timeit import default_timer as timer
+
 import numpy as np
 import torch
+from botorch.models.transforms import Normalize, Standardize
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.surrogate_model import (
     BatchIndependentGaussianProcess,
+    DeepKernelMultiTaskGaussianProcess,
     ModelListGaussianProcess,
     MultiTaskGaussianProcess,
 )
@@ -43,11 +47,11 @@ def get_param_idx(params_dict):
 # ====================================================================
 # SURROGATING PARAMETERS
 # ====================================================================
-N_train = 300
+N_train = 500
 N_update = 100
 N_test = 100
 N_pred = 100
-N_iter = 200
+N_iter = 400
 rmse_criterium = 0.1
 silence_warnings = True
 
@@ -72,11 +76,13 @@ sensor_positions = [
     123.900,
     147.500,
 ]
-N_tasks = len(sensor_positions)
 
 # All parameters. This is the order that parameters will be expcted in
 # within the various functions in this scrípt (e.g. model response function)
 params_all = ["Kr1", "Kr2", "Kr3", "Kr4", "Kv"]
+
+N_tasks = len(sensor_positions)
+N_features = len(params_all)
 
 # Parameters that are shared between models
 params_common = [
@@ -134,6 +140,9 @@ params_priors = {
 # Create domain bounds
 domain_lower_bound = np.array([params_priors[param]["low"] for param in params_all])
 domain_upper_bound = np.array([params_priors[param]["high"] for param in params_all])
+
+# Bounds as tensor
+bounds = torch.tensor(np.vstack([domain_lower_bound, domain_upper_bound]))
 
 # Indices of all params
 param_idx = get_param_idx(params_all)
@@ -193,6 +202,17 @@ def func_model(X):
 
 
 # ====================================================================
+# STANDARDIZING AND NORMALIZING
+# ====================================================================
+def input_transform(X):
+    return Normalize(d=N_features, bounds=bounds)(X)
+
+
+def output_transform(y):
+    return Standardize(m=N_tasks)(y)[0]
+
+
+# ====================================================================
 # GENERATE TEST AND TRAIN DATA
 # ====================================================================
 # Each column of train_Y corresponds to one GP
@@ -210,8 +230,8 @@ train_X, train_y = create_test_set(domain_lower_bound, domain_upper_bound, N_tra
 N_tasks = train_y.shape[1]
 
 surrogate_MLGP = ModelListGaussianProcess(
-    train_X,
-    train_y,
+    input_transform(train_X),
+    output_transform(train_y),
     model_names=sensor_names,
     list_params=list_params,
     training_max_iter=N_iter,
@@ -219,32 +239,50 @@ surrogate_MLGP = ModelListGaussianProcess(
 )
 
 surrogate_BIGP = BatchIndependentGaussianProcess(
-    train_X,
-    train_y,
+    input_transform(train_X),
+    output_transform(train_y),
     num_tasks=N_tasks,
     training_max_iter=N_iter,
     silence_warnings=silence_warnings,
 )
 
 surrogate_MTGP = MultiTaskGaussianProcess(
-    train_X,
-    train_y,
+    input_transform(train_X),
+    output_transform(train_y),
     num_tasks=N_tasks,
     training_max_iter=N_iter,
     silence_warnings=silence_warnings,
 )
 
+surrogate_DKLGP = DeepKernelMultiTaskGaussianProcess(
+    input_transform(train_X),
+    output_transform(train_y),
+    num_tasks=N_tasks,
+    training_max_iter=N_iter,
+    silence_warnings=silence_warnings,
+)
+
+
 # Create a list of surrogates
-list_surrogates = [surrogate_MLGP, surrogate_BIGP, surrogate_MTGP]
-list_GP_type = ["ModelList GP", "BatchIndependent GP", "MultiTask GP"]
+list_surrogates = [surrogate_MLGP, surrogate_BIGP, surrogate_MTGP, surrogate_DKLGP]
+list_GP_type = [
+    "ModelList GP",
+    "BatchIndependent GP",
+    "MultiTask GP",
+    "DeepKernelMultiTask GP",
+]
 
 # ====================================================================
 # FIT
 # ====================================================================
 print("============= Initial fit =====================")
 for i, surrogate_i in enumerate(list_surrogates):
+    t1 = timer()
     print("Fitting: " + list_GP_type[i])
     surrogate_i.fit(train_X, train_y)
+    t2 = timer()
+    print("Fitted " + list_GP_type[i] + f" in {t2 - t1} sec.")
+    print("--------------------------------------------------")
 
 # ====================================================================
 # UPDATE
@@ -273,7 +311,8 @@ print("============= Predict =====================")
 y_pred = []
 for i, surrogate_i in enumerate(list_surrogates):
     print("Predicting: " + list_GP_type[i])
-    y_pred.append(surrogate_i.predict(pred_X, return_std=False))
+    y_pred.append(surrogate_i.predict(input_transform(pred_X), return_std=False))
+    print("--------------------------------------------------")
 
 # Initialize plots
 nrows = 3
@@ -281,6 +320,7 @@ ncols = int(np.ceil(N_tasks / 3))
 
 for i, surrogate_i in enumerate(list_surrogates):
     print("Plotting: " + list_GP_type[i])
+    print("--------------------------------------------------")
 
     # Initialize plot
     f, axes = plt.subplots(nrows, ncols, figsize=(3 * ncols, 3 * nrows))
@@ -295,22 +335,32 @@ for i, surrogate_i in enumerate(list_surrogates):
         grid_idx = np.unravel_index(j, (nrows, ncols))
 
         # Plot training data as black stars
-        ax_i.plot(train_X[:, -1], train_y[:, j], "k*", label="Observations")
+        ax_i.plot(
+            input_transform(train_X[:, -1]),
+            output_transform(train_y[:, j]),
+            "k*",
+            label="Observations",
+        )
 
         # Predictive mean as blue line
-        ax_i.plot(pred_X[:, -1].numpy(), mean_i[:, j].numpy(), "b", label="Mean")
+        ax_i.plot(
+            input_transform(pred_X[:, -1]).numpy(),
+            output_transform(mean_i[:, j]).numpy(),
+            "b",
+            label="Mean",
+        )
 
         # Shade in confidence
         ax_i.fill_between(
-            pred_X[:, -1].numpy(),
-            lower_i[:, j].detach().numpy(),
-            upper_i[:, j].detach().numpy(),
+            input_transform(pred_X[:, -1]).numpy(),
+            output_transform(lower_i[:, j]).detach().numpy(),
+            output_transform(upper_i[:, j]).detach().numpy(),
             alpha=0.5,
             label="Confidence",
         )
         ax_i.plot(
-            pred_X[:, -1].numpy(),
-            true_y[:, j],
+            input_transform(pred_X[:, -1]).numpy(),
+            output_transform(true_y[:, j]),
             color="red",
             linestyle="dashed",
             label="Model",
