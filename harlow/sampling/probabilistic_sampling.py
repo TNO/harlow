@@ -155,11 +155,10 @@ class Probabilistic_sampler:
                 logger.info("std_max <= epsilon or max iterations reached")
                 convergence = True
             elif stopping_criterium:
-                score = self.metric(
-                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
-                )
+                score = self.evaluate()
+                self.score = score[0]
                 logger.info(f"Evaluation metric score on provided testset: {score}")
-                if score <= stopping_criterium:
+                if self.score <= stopping_criterium:
                     self.number_of_iterations_at_convergence = self.iterations
                     logger.info(f"Algorithm converged in {self.iterations} iterations")
                     convergence = True
@@ -168,11 +167,19 @@ class Probabilistic_sampler:
             self.fit_points_y = points_y
             self.step_x.append(points_x)
             self.step_y.append(points_y)
-            self.step_score.append(score)
+            self.step_score.append(self.score)
             self.step_iter.append(self.iterations + 1)
 
             # Writer log
-            self.writer.add_scalar("RMSE", score, self.iterations + 1)
+            if len(score) == 1:
+                self.writer.add_scalar("RMSE", score[0], self.iterations + 1)
+            elif len(score) == 2:
+                self.writer.add_scalar("RMSE", score[0], self.iterations + 1)
+                self.writer.add_scalar("RRSE", score[1], self.iterations + 1)
+            elif len(score) == 3:
+                self.writer.add_scalar("RMSE", score[0], self.iterations + 1)
+                self.writer.add_scalar("RRSE", score[1], self.iterations + 1)
+                self.writer.add_scalar("MAE", score[2], self.iterations + 1)
             self.writer.add_scalar(
                 "Gen time", self.step_gen_time[self.iterations], self.iterations + 1
             )
@@ -187,5 +194,24 @@ class Probabilistic_sampler:
 
         return self.fit_points_x, self.fit_points_y
 
+        
+    def evaluate(self):
+        """
+        Evaluate user specified metric for the current iteration
+
+        Returns:
+        """
+        score_mtrx = np.zeros(len(self.metric))
+        count = 0
+        if self.metric is None or self.test_points_x is None:
+            score = None
+        else:
+            for metric_func in self.metric:
+                score_mtrx[count] = metric_func(
+                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
+                )
+                count += 1
+
+        return score_mtrx
     def result_as_dict(self):
         pass

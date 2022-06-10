@@ -56,15 +56,16 @@ class Latin_hypercube_sampler:
         surrogate_model.fit(points_x, points_y)
         logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
 
-        score = self.metric(surrogate_model.predict(points_x), points_y)
+        score = self.evaluate()
+        self.score = score[0]
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score)
+        self.step_score.append(score[0])
         self.step_iter.append(0)
         self.step_fit_time.append(time.time() - start_time)
 
         iteration = 0
-        while score > stopping_criterium:
+        while self.score > stopping_criterium:
             start_time = time.time()
             X_new = latin_hypercube_sampling(
                 n_sample=1,
@@ -81,15 +82,25 @@ class Latin_hypercube_sampler:
             logger.info(f"Fitted a surrogate model in {time.time() - start_time} sec.")
             self.step_fit_time.append(time.time() - start_time)
 
-            score = self.metric(surrogate_model.predict(self.test_points_x), self.test_points_y)
+            self.fit_points_x = points_x
+            self.fit_points_y = points_y
+            score = self.evaluate()
+            self.score = score[0]
             logger.info(f"Score {score}")
-
             self.step_x.append(points_x)
             self.step_y.append(points_y)
-            self.step_score.append(score)
+            self.step_score.append(score[0])
             self.step_iter.append(iteration + 1)
-            #Writer log
-            self.writer.add_scalar("RMSE", score, iteration+1)
+            # Writer log & various metric scores
+            if len(score) == 1:
+                self.writer.add_scalar("RMSE", score[0], iteration + 1)
+            elif len(score) == 2:
+                self.writer.add_scalar("RMSE", score[0], iteration + 1)
+                self.writer.add_scalar("RRSE", score[1], iteration + 1)
+            elif len(score) == 3:
+                self.writer.add_scalar("RMSE", score[0], iteration + 1)
+                self.writer.add_scalar("RRSE", score[1], iteration + 1)
+                self.writer.add_scalar("MAE", score[2], iteration + 1)      
             self.writer.add_scalar("Gen time", self.step_gen_time[iteration], iteration+1)
             self.writer.add_scalar("Fit time", self.step_fit_time[iteration], iteration+1)
             
@@ -98,11 +109,24 @@ class Latin_hypercube_sampler:
         logger.info(f"Algorithm converged in {iteration} iterations")
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
+        return self.fit_points_x, self.fit_points_y
 
-        # return {
-        #     "domain_lower_bound": self.domain_lower_bound.tolist(),
-        #     "domain_upper_bound": self.domain_upper_bound.tolist(),
-        #     "iterations": iteration,
-        #     "score": score,
-        #     "elapsed_time": time.time() - main_time,
-        # }
+
+    def evaluate(self):
+        """
+        Evaluate user specified metric for the current iteration
+
+        Returns:
+        """
+        score_mtrx = np.zeros(len(self.metric))
+        count = 0
+        if self.metric is None or self.test_points_x is None:
+            score = None
+        else:
+            for metric_func in self.metric:
+                score_mtrx[count] = metric_func(
+                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
+                )
+                count += 1
+
+        return score_mtrx

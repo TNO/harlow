@@ -216,21 +216,29 @@ class LolaVoronoi(Sampler):
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
             #Writer log
-            self.writer.add_scalar("RMSE", score, ii+1)
+            if len(score) == 1:
+                self.writer.add_scalar("RMSE", score[0], ii + 1)
+            elif len(score) == 2:
+                self.writer.add_scalar("RMSE", score[0], ii + 1)
+                self.writer.add_scalar("RRSE", score[1], ii + 1)
+            elif len(score) == 3:
+                self.writer.add_scalar("RMSE", score[0], ii + 1)
+                self.writer.add_scalar("RRSE", score[1], ii + 1)
+                self.writer.add_scalar("MAE", score[2], ii + 1)
             self.writer.add_scalar("Gen time", self.step_gen_time[ii], ii+1)
             self.writer.add_scalar("Fit time", self.step_fit_time, ii+1)
 
-            self.score = score
+            self.score = score[0]
             self.iterations = ii
-            save_name = self.run_name + '_{}_iters.pkl'.format(self.iterations)
-            save_path = os.path.join(self.save_dir, save_name)
             #Save model every 5 iterations
             if self.iterations % 5 == 0:
+                save_name = self.run_name + '_{}_iters.pkl'.format(self.iterations)
+                save_path = os.path.join(self.save_dir, save_name)
                 with open(save_path, 'wb') as file:
                     pickle.dump(self.surrogate_model, file)
             if stopping_criterium:
                 logger.info(f"Evaluation metric score on provided testset: {score}")
-                if score <= stopping_criterium:
+                if self.score <= stopping_criterium:
                     logger.info(f"Algorithm converged in {ii} iterations")
                     #Save model if converged
                     with open(save_path, 'wb') as file:
@@ -245,14 +253,18 @@ class LolaVoronoi(Sampler):
 
         Returns:
         """
+        score_mtrx = np.zeros(len(self.metric))
+        count = 0
         if self.metric is None or self.test_points_x is None:
             score = None
         else:
-            score = self.metric(
-                self.surrogate_model.predict(self.test_points_x), self.test_points_y
-            )
+            for metric_func in self.metric:
+                score_mtrx[count] = metric_func(
+                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
+                )
+                count +=1
 
-        return score
+        return score_mtrx
 
     def result_as_dict(self):
         pass
