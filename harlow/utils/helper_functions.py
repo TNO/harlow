@@ -94,7 +94,7 @@ def stybtang(X):
     d = X.shape[1]
     res = np.zeros(n)
     for i in range(n):
-        val = 0.0
+        _sum = 0.0
         for j in range(d):
             _sum = (np.power(X[i,j], 4) - 16.0 * np.power(X[i,j], 2) + 5.0 * X[i,j])
         res[i] = 0.5 * _sum
