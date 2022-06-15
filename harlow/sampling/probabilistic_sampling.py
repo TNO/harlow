@@ -20,7 +20,7 @@ from sklearn.metrics import mean_squared_error
 from tensorboardX import SummaryWriter
 
 from harlow.surrogating.surrogate_model import Surrogate
-from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 
 
 class Probabilistic_sampler:
@@ -155,7 +155,12 @@ class Probabilistic_sampler:
                 logger.info("std_max <= epsilon or max iterations reached")
                 convergence = True
             elif stopping_criterium:
-                score = self.evaluate()
+                score = evaluate(
+                    self.metric,
+                    self.surrogate_model,
+                    self.test_points_x,
+                    self.test_points_y,
+                )
                 self.score = score[0]
                 logger.info(f"Evaluation metric score on provided testset: {score}")
                 if self.score <= stopping_criterium:
@@ -194,24 +199,5 @@ class Probabilistic_sampler:
 
         return self.fit_points_x, self.fit_points_y
 
-        
-    def evaluate(self):
-        """
-        Evaluate user specified metric for the current iteration
-
-        Returns:
-        """
-        score_mtrx = np.zeros(len(self.metric))
-        count = 0
-        if self.metric is None or self.test_points_x is None:
-            score = None
-        else:
-            for metric_func in self.metric:
-                score_mtrx[count] = metric_func(
-                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
-                )
-                count += 1
-
-        return score_mtrx
     def result_as_dict(self):
         pass

@@ -1,10 +1,11 @@
 import time
-import numpy as np
 from typing import Callable
-from harlow.helper_functions import peaks_2d
-from harlow.helper_functions import latin_hypercube_sampling
+
+import numpy as np
 from loguru import logger
 from tensorboardX import SummaryWriter
+
+from harlow.helper_functions import evaluate, latin_hypercube_sampling
 
 
 class Latin_hypercube_sampler:
@@ -20,7 +21,7 @@ class Latin_hypercube_sampler:
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
         run_name: str = None,
-        ):
+    ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
         self.target_function = lambda x: target_function(x).reshape((-1, 1))
@@ -37,17 +38,16 @@ class Latin_hypercube_sampler:
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
-        #Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment='-' + run_name)
+        # Init writer for live web-based logging.
+        self.writer = SummaryWriter(comment="-" + run_name)
 
-    def sample(        
+    def sample(
         self,
         n_initial_point: int = None,
         n_iter: int = 20,
         n_new_point_per_iteration: int = 1,
         stopping_criterium: float = None,
-        ):
-        main_time = time.time()
+    ):
         start_time = time.time()
         points_x = self.fit_points_x
         points_y = self.fit_points_y
@@ -56,7 +56,9 @@ class Latin_hypercube_sampler:
         surrogate_model.fit(points_x, points_y)
         logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
 
-        score = self.evaluate()
+        score = evaluate(
+            self.metric, self.surrogate_model, self.test_points_x, self.test_points_y
+        )
         self.score = score[0]
         self.step_x.append(points_x)
         self.step_y.append(points_y)
@@ -84,7 +86,12 @@ class Latin_hypercube_sampler:
 
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = self.evaluate()
+            score = evaluate(
+                self.metric,
+                self.surrogate_model,
+                self.test_points_x,
+                self.test_points_y,
+            )
             self.score = score[0]
             logger.info(f"Score {score}")
             self.step_x.append(points_x)
@@ -100,33 +107,17 @@ class Latin_hypercube_sampler:
             elif len(score) == 3:
                 self.writer.add_scalar("RMSE", score[0], iteration + 1)
                 self.writer.add_scalar("RRSE", score[1], iteration + 1)
-                self.writer.add_scalar("MAE", score[2], iteration + 1)      
-            self.writer.add_scalar("Gen time", self.step_gen_time[iteration], iteration+1)
-            self.writer.add_scalar("Fit time", self.step_fit_time[iteration], iteration+1)
-            
+                self.writer.add_scalar("MAE", score[2], iteration + 1)
+            self.writer.add_scalar(
+                "Gen time", self.step_gen_time[iteration], iteration + 1
+            )
+            self.writer.add_scalar(
+                "Fit time", self.step_fit_time[iteration], iteration + 1
+            )
+
             iteration += 1
 
         logger.info(f"Algorithm converged in {iteration} iterations")
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
-
-
-    def evaluate(self):
-        """
-        Evaluate user specified metric for the current iteration
-
-        Returns:
-        """
-        score_mtrx = np.zeros(len(self.metric))
-        count = 0
-        if self.metric is None or self.test_points_x is None:
-            score = None
-        else:
-            for metric_func in self.metric:
-                score_mtrx[count] = metric_func(
-                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
-                )
-                count += 1
-
-        return score_mtrx

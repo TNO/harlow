@@ -1,5 +1,7 @@
 import itertools
 import math
+import os
+import pickle
 import time
 from typing import Callable, Optional, Tuple
 import pickle
@@ -7,9 +9,9 @@ import os
 # import numba as nb
 import numpy as np
 from loguru import logger
-from tensorboardX import SummaryWriter
 from scipy.spatial.distance import cdist
 from sklearn.metrics import mean_squared_error
+from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
@@ -79,26 +81,8 @@ class LolaVoronoi(Sampler):
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
-        #Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment='-' + run_name)
-        # TODO:
-        #  * add a cleaned up metric (see below)
-        #  * add input consistency check & formatting input if needed
-        # if evaluation_metric == "r2":
-        #     self.metric = r2_score
-        # elif evaluation_metric == "mse":
-        #     self.metric = mean_squared_error
-        # elif evaluation_metric == "rmse":
-        #     self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
-        #
-        # if np.ndim(self.test_X) == 1:
-        #     self.score[0] = (self.metric
-        #         self.test_y, self.surrogate_model.predict(self.test_X.reshape(-1, 1))
-        #     )
-        # else:
-        #     self.score[0] = self.metric(
-        #         self.test_y, self.surrogate_model.predict(self.test_X)
-        #     )
+        # Init writer for live web-based logging.
+        self.writer = SummaryWriter(comment="-" + run_name)
 
     def sample(
         self,
@@ -159,7 +143,9 @@ class LolaVoronoi(Sampler):
         # Additional class objects to help keep track of the sampling. `gen_time`
         # denotes the time to generate new points. `fit_time` is the time
         # to fit the surrogate.
-        score = self.evaluate()
+        score = evaluate(
+            self.metric, self.surrogate_model, self.test_points_x, self.test_points_y
+        )
         self.step_x.append(points_x)
         self.step_y.append(points_y)
         self.step_score.append(score)
@@ -210,12 +196,17 @@ class LolaVoronoi(Sampler):
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = self.evaluate()
+            score = evaluate(
+                self.metric,
+                self.surrogate_model,
+                self.test_points_x,
+                self.test_points_y,
+            )
             self.step_x.append(points_x)
             self.step_y.append(points_y)
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
-            #Writer log
+            # Writer log
             if len(score) == 1:
                 self.writer.add_scalar("RMSE", score[0], ii + 1)
             elif len(score) == 2:
@@ -225,46 +216,34 @@ class LolaVoronoi(Sampler):
                 self.writer.add_scalar("RMSE", score[0], ii + 1)
                 self.writer.add_scalar("RRSE", score[1], ii + 1)
                 self.writer.add_scalar("MAE", score[2], ii + 1)
-            self.writer.add_scalar("Gen time", self.step_gen_time[ii], ii+1)
-            self.writer.add_scalar("Fit time", self.step_fit_time, ii+1)
-
+            self.writer.add_scalar("Gen time", self.step_gen_time[ii], ii + 1)
+            self.writer.add_scalar("Fit time", self.step_fit_time, ii + 1)
+            logger.info(f"Evaluation metric score on provided testset: {score}")
             self.score = score[0]
             self.iterations = ii
-            #Save model every 5 iterations
+            # Save model every 5 iterations
             if self.iterations % 5 == 0:
-                save_name = self.run_name + '_{}_iters.pkl'.format(self.iterations)
-                save_path = os.path.join(self.save_dir, save_name)
-                with open(save_path, 'wb') as file:
-                    pickle.dump(self.surrogate_model, file)
+                self.save_model()
             if stopping_criterium:
-                logger.info(f"Evaluation metric score on provided testset: {score}")
                 if self.score <= stopping_criterium:
                     logger.info(f"Algorithm converged in {ii} iterations")
-                    #Save model if converged
-                    with open(save_path, 'wb') as file:
-                        pickle.dump(self.surrogate_model, file)
+                    # Save model if converged
+                    self.save_model()
+                    break
+            if n_iter:
+                if ii > n_iter:
+                    logger.info(f"Max number of iterations ({n_iter}) " f"reached.")
+                    self.save_model()
                     break
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
 
-    def evaluate(self):
-        """
-        Evaluate user specified metric for the current iteration
+    def save_model(self):
+        save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
+        save_path = os.path.join(self.save_dir, save_name)
 
-        Returns:
-        """
-        score_mtrx = np.zeros(len(self.metric))
-        count = 0
-        if self.metric is None or self.test_points_x is None:
-            score = None
-        else:
-            for metric_func in self.metric:
-                score_mtrx[count] = metric_func(
-                    self.surrogate_model.predict(self.test_points_x), self.test_points_y
-                )
-                count +=1
-
-        return score_mtrx
+        with open(save_path, "wb") as file:
+            pickle.dump(self.surrogate_model, file)
 
     def result_as_dict(self):
         pass
@@ -415,7 +394,6 @@ def best_neighborhoods(
     )
 
 
-# @nb.jit(nopython=nopython, fastmath=fastmath, parallel=False, cache=False)
 def best_neighborhoods_numba(
     points_x: np.ndarray,
     all_neighbor_point_idxs_combinations: np.ndarray,
@@ -498,8 +476,6 @@ def best_neighborhoods_numba(
         # neighborhoods that contain a point farther away the median Euclidean distance
         # are dismissed.
         # section [5] of the paper
-        # TODO: Check and discuss whether this 'treshold' defined by the median of
-        #  distances is the best heuristic.
         if np.where(idx_valid_neighborhoods)[0].size:
             if ignore_far_neighborhoods:
                 valid_pts_combinations = all_neighbor_point_idxs_combinations[
@@ -551,7 +527,6 @@ def lola_voronoi_score(
     return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
 
 
-# @nb.jit(nopython=nopython, fastmath=fastmath, cache=False)
 def neighborhood_score(
     neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
 ) -> Tuple[float, float]:
