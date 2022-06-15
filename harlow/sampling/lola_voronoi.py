@@ -15,7 +15,8 @@ from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
-from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.utils.helper_functions import evaluate, \
+    latin_hypercube_sampling, rmse
 from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
 
 # from harlow.distance import pdist_full_matrix
@@ -58,8 +59,8 @@ class LolaVoronoi(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
-        run_name: str = None,
-        save_dir: str = None,
+        run_name: str = "",
+        save_dir: str = "",
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -69,7 +70,11 @@ class LolaVoronoi(Sampler):
         self.fit_points_y = fit_points_y
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
-        self.metric = evaluation_metric
+
+        if evaluation_metric is None:
+            self.metric = [rmse]
+        else:
+            self.metric = evaluation_metric
         self.run_name = run_name
         self.save_dir = save_dir
         # self.verbose = verbose
