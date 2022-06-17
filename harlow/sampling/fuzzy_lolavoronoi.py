@@ -24,9 +24,9 @@ from skfuzzy import control as ctrl
 from sklearn.metrics import mean_squared_error
 from tensorboardX import SummaryWriter
 
-from harlow.helper_functions import evaluate, latin_hypercube_sampling
-from harlow.sampling_baseclass import Sampler
-from harlow.surrogate_model import Surrogate
+from harlow.sampling.sampling_baseclass import Sampler
+from harlow.surrogating.surrogate_model import Surrogate
+from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 
 
 # -----------------------------------------------------

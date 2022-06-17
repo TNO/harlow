@@ -5,7 +5,7 @@ import numpy as np
 from loguru import logger
 from tensorboardX import SummaryWriter
 
-from harlow.helper_functions import evaluate, latin_hypercube_sampling
+from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 
 
 class Latin_hypercube_sampler:

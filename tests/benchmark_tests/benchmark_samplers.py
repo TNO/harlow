@@ -13,12 +13,12 @@ import os
 
 import numpy as np
 
-from harlow.fuzzy_lolavoronoi import FuzzyLolaVoronoi
-from harlow.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
-from harlow.lola_voronoi import LolaVoronoi
-from harlow.probabilistic_sampling import Probabilistic_sampler
-from harlow.random_sampling import Latin_hypercube_sampler
-from harlow.surrogate_model import VanillaGaussianProcess
+from harlow.sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
+from harlow.sampling.lola_voronoi import LolaVoronoi
+from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
+from harlow.sampling.random_sampling import Latin_hypercube_sampler
+from harlow.surrogating.surrogate_model import VanillaGaussianProcess
+from harlow.utils.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
 from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
 
 np.random.seed(0)
