@@ -11,9 +11,9 @@ seed to determine:
 import math
 
 import numpy as np
+from sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from sklearn.metrics import mean_squared_error
 
-from harlow.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.surrogate_model import VanillaGaussianProcess
 from tests.integration_tests.test_functions import peaks_2d
