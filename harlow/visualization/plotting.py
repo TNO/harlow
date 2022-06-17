@@ -39,8 +39,8 @@ def plot_function(
     fig = plt.figure()
     ax = plt.axes(projection="3d")
     surface = ax.plot_trisurf(
-        x1_mx,
-        x2_mx,
+        x1_mx[:, 0],
+        x2_mx[:, 1],
         z_mx.reshape(grid_size, grid_size),
         cmap=cm.coolwarm,
         label=f.__name__ if plot_name is None else plot_name,

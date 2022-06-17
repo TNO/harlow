@@ -121,3 +121,7 @@ def test_lldeh_1d_against_sumo():
         )
         ax.set_aspect("equal", "box")
         ax.legend(bbox_to_anchor=(0.5, 1.05))
+
+
+if __name__ == "__main__":
+    test_forrester_1d_against_sumo()
