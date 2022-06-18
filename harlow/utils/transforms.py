@@ -37,16 +37,23 @@ class Transform(ABC):
 class ChainTransform(Transform):
     """
     Class used to chain together a series of transforms
+
+    TODO:
+        * Should this make a copy of `X` first or change it inplace?
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, *args):
+        self.lst_transforms = list(args)
 
     def forward(self, X):
-        pass
+        for transf in self.lst_transforms:
+            X = transf.forward(X)
+        return X
 
     def reverse(self, X):
-        pass
+        for transf in self.lst_transforms.__reversed__():
+            X = transf.reverse(X)
+        return X
 
 
 class Identity(Transform):
