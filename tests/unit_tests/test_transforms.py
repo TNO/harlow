@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from pytest import mark
 
 from harlow.utils.transforms import (
     ChainTransform,
@@ -55,8 +54,11 @@ def test_tensor_transform():
     assert isinstance(untransformed_X, np.ndarray)
 
 
-@mark.xfail
 def test_chain_transform():
-    transform = ChainTransform()
-    assert np.allclose(transform.forward(test_X), test_X)
-    assert np.allclose(transform.reverse(test_y), test_y)
+    transform = ChainTransform(
+        Identity(), Normalize(), Standardize(), TensorTransform()
+    )
+    transformed_X = transform.forward(test_X)
+    untransformed_X = transform.reverse(transformed_X)
+    assert torch.is_tensor(transformed_X)
+    assert isinstance(untransformed_X, np.ndarray)
