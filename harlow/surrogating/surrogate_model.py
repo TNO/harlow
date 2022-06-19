@@ -9,6 +9,7 @@ The main requirements towards each surrogate model are that they:
 """
 import re
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 import tensorflow as tf
@@ -20,6 +21,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
 from harlow.utils.helper_functions import NLL, normal_sp
+from harlow.utils.transforms import ExpandDims, Transform
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
@@ -33,7 +35,21 @@ class Surrogate(ABC):
     Abstract base class for the surrogate models.
     Each surrogate model must implement methods for model creation, model fitting,
     model prediction and model updating.
+
+    TODO:
+        * Is there a point to having a batch dimension for the input array?
     """
+
+    def __init__(
+        self,
+        input_transform: Optional[Transform] = ExpandDims,
+        output_transform: Optional[Transform] = ExpandDims,
+    ):
+        self.input_transform = input_transform
+        self.output_transform = output_transform
+        self.n_batches = None
+        self.n_features = None
+        self.n_training = None
 
     @property
     @abstractmethod
@@ -45,26 +61,120 @@ class Surrogate(ABC):
         pass
 
     @abstractmethod
-    def fit(self, X, y):
+    def _fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
         pass
 
     @abstractmethod
-    def predict(self, X):
+    def _predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
         pass
 
     @abstractmethod
-    def update(self, new_X, new_y):
+    def _update(self, new_X: np.ndarray, new_y: np.ndarray, **kwargs):
         pass
+
+    def transform_inputs(self, X, y=None):
+
+        # Ensure `X` and `y` are numpy arrays
+        if not isinstance(X, np.ndarray):
+            raise ValueError(
+                f"Parameters `X` must be of type {np.ndarray} but are"
+                f"type {type(X)} "
+            )
+
+        # Apply transform
+        X = self.input_transform().forward(X)
+
+        if X.ndim != 3:
+            raise ValueError(
+                f"Input array `X` must have shape `(n_batch x n_points x n_features)`"
+                f"but has shape {X.shape}."
+            )
+
+        # Get problem shape
+        self.n_batches = X.shape[0]
+        self.n_features = X.shape[-1]
+        self.n_training = X.shape[-2]
+
+        # Check target points `y`
+        if y is not None:
+            if not isinstance(y, np.ndarray):
+                raise ValueError(
+                    f"Targets `y` must be of type {np.ndarray} but are"
+                    f"type {type(y)}."
+                )
+
+            # Apply transform
+            y = self.output_transform().forward(y)
+
+            # Check shape of `y`
+            if y.ndim != 2:
+                raise ValueError(
+                    f"Target array `y` must have 2 dimensions but has {y.ndim}."
+                )
+
+            if (y.shape[0] != self.n_training) or (y.shape[-1] != self.n_batches):
+                raise ValueError(
+                    f"Target `y` must have shape ({self.n_training}x{self.n_output})"
+                    f" but has shape {y.shape}."
+                )
+
+            return X, y
+
+        return X
+
+    def fit(self, X, y, **kwargs):
+        """
+        Calls the `_fit()` method of the surrogate model instance after applying
+        transforms and checking inputs. A user specified surrogate model only
+        has to implement the `_fit()` method.
+        """
+        _X, _y = self.transform_inputs(X, y=y)
+        self._fit(_X, _y, **kwargs)
+
+    def update(self, X, y, **kwargs):
+        """
+        Calls the `_update()` method of the surrogate model instance after applying
+        transforms and checking inputs. A user specified surrogate model only
+        has to implement the `_update()` method.
+        """
+        _X, _y = self.transform_inputs(X, y=y)
+        self._update(_X, _y, **kwargs)
+
+    def predict(self, X, return_std=False, **kwargs):
+        """
+        Calls the `_predict()` method of the surrogate model instance after applying
+        transforms and checking inputs. A user specified surrogate model only
+        has to implement the `_predict()` method.
+        """
+        _X = self.transform_inputs(X)
+
+        if return_std:
+            samples, std = self._predict(_X, return_std=return_std, **kwargs)
+            return samples, std
+        else:
+            samples = self._predict(_X, return_std=return_std, **kwargs)
+            return samples
 
 
 class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
-    def __init__(self, train_restarts=10, kernel=kernel, noise_std=None):
+    def __init__(
+        self,
+        train_restarts: int = 10,
+        kernel=kernel,
+        noise_std=None,
+        input_transform=ExpandDims,
+        output_transform=ExpandDims,
+    ):
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
+
         self.model = None
         self.train_restarts = train_restarts
-        self.noise_std = None
+        self.noise_std = noise_std
         self.kernel = kernel
 
         self.create_model()
@@ -74,8 +184,8 @@ class VanillaGaussianProcess(Surrogate):
             kernel=self.kernel, n_restarts_optimizer=self.train_restarts, random_state=0
         )
 
-    def fit(self, X, y):
-        self.X = X
+    def _fit(self, X, y, **kwargs):
+        self.X = X[0]
         self.y = y
         self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
@@ -104,20 +214,20 @@ class VanillaGaussianProcess(Surrogate):
 
         return getattr(self.model.kernel, white_kernel_attr[0]).noise_level ** 0.5
 
-    def predict(self, X, return_std=False):
-        samples, std = self.model.predict(X, return_std=True)
+    def _predict(self, X, return_std=False, **kwargs):
+        samples, std = self.model.predict(X[0], return_std=True)
 
         if return_std:
             return samples, std
         else:
             return samples
 
-    def update(self, new_X, new_y):
-        X = np.concatenate([self.X, new_X])
+    def _update(self, new_X, new_y, **kwargs):
+        X = np.concatenate([self.X, new_X[0]])
 
         if new_y.ndim > self.y.ndim:
             new_y = new_y.flatten()
-        y = np.concatenate([self.y, new_y])
+        y = np.concatenate([self.y, new_y]).ravel()
 
         # TODO check if this the best way to use for incremental
         #  learning/online learning
@@ -130,7 +240,16 @@ class VanillaGaussianProcess(Surrogate):
 class GaussianProcessTFP(Surrogate):
     is_probabilistic = True
 
-    def __init__(self, train_iterations=50):
+    def __init__(
+        self,
+        train_iterations=50,
+        input_transform=ExpandDims,
+        output_transform=ExpandDims,
+    ):
+
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
         self.model = None
         self.train_iterations = train_iterations
 
@@ -230,15 +349,17 @@ class GaussianProcessTFP(Surrogate):
             }
         )
 
-    def fit(self, X, y):
-        self.observation_index_points = X
+    def _fit(self, X, y, **kwargs):
+        self.observation_index_points = X[0]
         self.observations = y
         self.optimize_parameters()
 
-    def predict(self, X, iterations=50, return_std=False, return_samples=False):
+    def _predict(
+        self, X, iterations=50, return_std=False, return_samples=False, **kwargs
+    ):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
-            index_points=X,
+            index_points=X[0],
             observation_index_points=self.observation_index_points,
             observations=self.observations,
             observation_noise_variance=self.observation_noise_variance_var,
@@ -261,7 +382,7 @@ class GaussianProcessTFP(Surrogate):
         else:
             return np.mean(samples, axis=0)
 
-    def update(self, new_X, new_y):
+    def _update(self, new_X, new_y, **kwargs):
         self.observation_index_points = np.concatenate(
             [self.observation_index_points, new_X]
         )
@@ -283,7 +404,18 @@ class Vanilla_NN(Surrogate):
     learning_rate_update = 0.001
     is_probabilistic = False
 
-    def __init__(self, epochs=10, batch_size=32, loss="mse"):
+    def __init__(
+        self,
+        epochs=10,
+        batch_size=32,
+        loss="mse",
+        input_transform=ExpandDims,
+        output_transform=ExpandDims,
+    ):
+
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
         self.model = None
 
         self.epochs = epochs
@@ -300,17 +432,17 @@ class Vanilla_NN(Surrogate):
         self.model = Model(inputs=inputs, outputs=out)
         self.model.compile(optimizer=Adam(learning_rate=learning_rate), loss="mse")
 
-    def fit(self, X, y):
+    def _fit(self, X, y, **kwargs):
         self.model.fit(X, y, epochs=self.epochs, batch_size=self.batch_size)
 
-    def update(self, X_new, y_new):
+    def _update(self, X_new, y_new, **kwargs):
         optimizer = Adam(learning_rate=self.learning_rate_update)
         self.model.compile(optimizer=optimizer, loss=self.loss)
         self.model.fit(
             X_new, y_new, epochs=self.epochs, batch_size=self.batch_size, verbose=False
         )
 
-    def predict(self, X):
+    def _predict(self, X, **kwargs):
         if self.model:
             if len(X.shape) == 1:
                 X = np.expand_dims(X, axis=0)
@@ -324,7 +456,17 @@ class Vanilla_BayesianNN(Surrogate):
     learning_rate_update = 0.001
     is_probabilistic = True
 
-    def __init__(self, epochs=10, batch_size=32):
+    def __init__(
+        self,
+        epochs=10,
+        batch_size=32,
+        input_transform=ExpandDims,
+        output_transform=ExpandDims,
+    ):
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
+
         self.model = None
         self.epochs = epochs
         self.batch_size = batch_size
@@ -382,21 +524,21 @@ class Vanilla_BayesianNN(Surrogate):
         self.model = Model(inputs=inputs, outputs=dist)
         self.model.compile(Adam(learning_rate=self.learning_rate_initial), loss=NLL)
 
-    def fit(self, X, y):
+    def _fit(self, X, y, **kwargs):
         self.X = X
         self.y = y
         self.model.fit(
             X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=True
         )
 
-    def update(self, X_new, y_new):
+    def _update(self, X_new, y_new, **kwargs):
         if self.model is None:
-            self._create_model()
+            self.create_model()
         else:
             self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
             self.model.fit(X_new, y_new, epochs=self.epochs, batch_size=self.batch_size)
 
-    def predict(self, X, iterations=50):
+    def _predict(self, X, iterations=50, **kwargs):
         if self.model:
             preds = np.zeros(shape=(X.shape[0], iterations))
 

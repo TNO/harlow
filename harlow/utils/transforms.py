@@ -151,3 +151,38 @@ class Normalize(Transform):
             )
 
         return X * (self.max - self.min) + self.min
+
+
+class ExpandDims(Transform):
+    """
+    Expands a two-dimensional feature array `X` to three dimensions,
+    or expands a one-dimensional target array `y` to two dimensions.
+    """
+
+    def __init__(self):
+        self.input_shape = None
+        self.input_dims = None
+
+    def forward(self, X):
+        self.input_shape = X.shape
+        self.input_dims = X.ndim
+
+        # If input is one-dimensional, assume it is a vector of target
+        # values
+        if self.input_dims == 1:
+            return np.expand_dims(X, 0).T
+
+        # If input is two-dimensional, assume it is an array of input
+        # values
+        elif self.input_dims == 2:
+            return np.expand_dims(X, 0)
+
+        # Otherwise raise error
+        else:
+            raise ValueError(
+                f"Input array must be one or two-dimensional "
+                f"but has {self.input_dims} dimensions."
+            )
+
+    def reverse(self, X):
+        return X.reshape(self.input_shape)

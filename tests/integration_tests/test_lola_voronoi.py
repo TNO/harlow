@@ -44,7 +44,7 @@ def test_sine_1d():
         # Check accuracy
         # ............................
         xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
-        yy_tf = target_function(xx).ravel()
+        yy_tf = target_function(xx)
         yy_sm = lv.surrogate_model.predict(xx)
 
         np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
@@ -70,7 +70,7 @@ def test_forrester_1d():
     plot_fig = True
 
     def target_function(x: np.ndarray):
-        return forrester_1d(x).ravel()
+        return forrester_1d(x)
 
     surrogate_model = VanillaGaussianProcess()
 
@@ -93,7 +93,7 @@ def test_forrester_1d():
     # Check accuracy
     # ............................
     xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
-    yy_tf = target_function(xx).ravel()
+    yy_tf = target_function(xx)
     yy_sm = lv.surrogate_model.predict(xx)
 
     np.testing.assert_allclose(yy_tf, yy_sm, atol=1)
