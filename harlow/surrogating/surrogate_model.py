@@ -45,8 +45,8 @@ class Surrogate(ABC):
         input_transform: Optional[Transform] = ExpandDims,
         output_transform: Optional[Transform] = ExpandDims,
     ):
-        self.input_transform = input_transform
-        self.output_transform = output_transform
+        self.input_transform = input_transform()
+        self.output_transform = output_transform()
         self.n_batches = None
         self.n_features = None
         self.n_training = None
@@ -72,7 +72,8 @@ class Surrogate(ABC):
     def _update(self, new_X: np.ndarray, new_y: np.ndarray, **kwargs):
         pass
 
-    def transform_inputs(self, X, y=None):
+    @staticmethod
+    def check_inputs(X, y=None):
 
         # Ensure `X` and `y` are numpy arrays
         if not isinstance(X, np.ndarray):
@@ -80,20 +81,11 @@ class Surrogate(ABC):
                 f"Parameters `X` must be of type {np.ndarray} but are"
                 f"type {type(X)} "
             )
-
-        # Apply transform
-        X = self.input_transform().forward(X)
-
         if X.ndim != 3:
             raise ValueError(
                 f"Input array `X` must have shape `(n_batch x n_points x n_features)`"
                 f"but has shape {X.shape}."
             )
-
-        # Get problem shape
-        self.n_batches = X.shape[0]
-        self.n_features = X.shape[-1]
-        self.n_training = X.shape[-2]
 
         # Check target points `y`
         if y is not None:
@@ -103,24 +95,17 @@ class Surrogate(ABC):
                     f"type {type(y)}."
                 )
 
-            # Apply transform
-            y = self.output_transform().forward(y)
-
             # Check shape of `y`
             if y.ndim != 2:
                 raise ValueError(
                     f"Target array `y` must have 2 dimensions but has {y.ndim}."
                 )
 
-            if (y.shape[0] != self.n_training) or (y.shape[-1] != self.n_batches):
+            if (y.shape[0] != X.shape[-2]) or (y.shape[-1] != X.shape[0]):
                 raise ValueError(
-                    f"Target `y` must have shape ({self.n_training}x{self.n_output})"
+                    f"Target `y` must have shape ({X.shape[-2]}x{X.shape[0]})"
                     f" but has shape {y.shape}."
                 )
-
-            return X, y
-
-        return X
 
     def fit(self, X, y, **kwargs):
         """
@@ -128,8 +113,11 @@ class Surrogate(ABC):
         transforms and checking inputs. A user specified surrogate model only
         has to implement the `_fit()` method.
         """
-        _X, _y = self.transform_inputs(X, y=y)
-        self._fit(_X, _y, **kwargs)
+
+        X = self.input_transform.forward(X)
+        y = self.output_transform.forward(y)
+        self.check_inputs(X, y=y)
+        self._fit(X, y, **kwargs)
 
     def update(self, X, y, **kwargs):
         """
@@ -137,8 +125,10 @@ class Surrogate(ABC):
         transforms and checking inputs. A user specified surrogate model only
         has to implement the `_update()` method.
         """
-        _X, _y = self.transform_inputs(X, y=y)
-        self._update(_X, _y, **kwargs)
+        X = self.input_transform.forward(X)
+        y = self.output_transform.forward(y)
+        self.check_inputs(X, y=y)
+        self._update(X, y, **kwargs)
 
     def predict(self, X, return_std=False, **kwargs):
         """
@@ -146,13 +136,14 @@ class Surrogate(ABC):
         transforms and checking inputs. A user specified surrogate model only
         has to implement the `_predict()` method.
         """
-        _X = self.transform_inputs(X)
+        X = self.input_transform.forward(X)
+        self.check_inputs(X)
 
         if return_std:
-            samples, std = self._predict(_X, return_std=return_std, **kwargs)
+            samples, std = self._predict(X, return_std=return_std, **kwargs)
             return samples, std
         else:
-            samples = self._predict(_X, return_std=return_std, **kwargs)
+            samples = self._predict(X, return_std=return_std, **kwargs)
             return samples
 
 
