@@ -44,8 +44,8 @@ def test_sine_1d():
         # Check accuracy
         # ............................
         xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
-        yy_tf = target_function(xx)
-        yy_sm = lv.surrogate_model.predict(xx)
+        yy_tf = target_function(xx).ravel()
+        yy_sm = lv.surrogate_model.predict(xx).ravel()
 
         np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
 
@@ -93,8 +93,8 @@ def test_forrester_1d():
     # Check accuracy
     # ............................
     xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
-    yy_tf = target_function(xx)
-    yy_sm = lv.surrogate_model.predict(xx)
+    yy_tf = target_function(xx).ravel()
+    yy_sm = lv.surrogate_model.predict(xx).ravel()
 
     np.testing.assert_allclose(yy_tf, yy_sm, atol=1)
 
