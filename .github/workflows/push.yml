@@ -26,6 +26,7 @@ jobs:
         run: |
           pip install pre-commit
           pip install flake8
+          pre-commit install
       - name: Lint and type check
         run: |
           pre-commit run --all-files --verbose --show-diff-on-failure

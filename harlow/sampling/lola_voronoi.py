@@ -4,8 +4,7 @@ import os
 import pickle
 import time
 from typing import Callable, Optional, Tuple
-import pickle
-import os
+
 # import numba as nb
 import numpy as np
 from loguru import logger
@@ -15,8 +14,7 @@ from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
-from harlow.utils.helper_functions import evaluate, \
-    latin_hypercube_sampling, rmse
+from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling, rmse
 from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
 
 # from harlow.distance import pdist_full_matrix
