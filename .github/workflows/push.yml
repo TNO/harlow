@@ -1,0 +1,79 @@
+# Based on https://github.com/TNO/lightkde/blob/main/.github/workflows/push.yaml
+# TODOs:
+#   * Generate coverage badge
+
+name: CI
+
+on:
+  push:
+  schedule:
+  - cron: '0 1 * * 6'  # weekly run at 01:00 UTC on Saturday
+
+jobs:
+
+  # Pre-commit and flake8
+  lint_and_type_check:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          pip install pre-commit
+          pip install flake8
+      - name: Lint and type check
+        run: |
+          pre-commit run --all-files --verbose --show-diff-on-failure
+
+
+  test:
+    name: Test on Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install .[tests]
+    - name: Test with pytest
+      run: |
+          # grab the coverage output and also print it to the sreen
+          COVERAGE_REPORT=$(coverage run -m pytest && coverage report -m | \
+            tee /dev/stderr)
+          # extract the percentage of the total coverage, e.g. `75%`
+          COVERAGE_PCT=$(echo $COVERAGE_REPORT | \
+            grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
+          # get only the coverage number without the percentage symbol
+          COVERAGE_NUM=$(echo $COVERAGE_PCT | grep -oP "\d+")
+          # get an indicative color
+          if (( COVERAGE_NUM <= 50 )); then
+            COVERAGE_COL="red"
+          elif (( COVERAGE_NUM <= 60 )); then
+            COVERAGE_COL="orange"
+          elif (( COVERAGE_NUM <= 70 )); then
+            COVERAGE_COL="yellow"
+          elif (( COVERAGE_NUM <= 80 )); then
+            COVERAGE_COL="yellowgreen"
+          elif (( COVERAGE_NUM <= 90 )); then
+            COVERAGE_COL="green"
+          else
+            COVERAGE_COL="brightgreen"
+          fi
+          # active branch name
+          BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
+          # add them to the github env for later usage
+          echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
+          echo "COVERAGE_COL=$(echo $COVERAGE_COL)" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
