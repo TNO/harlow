@@ -1,4 +1,8 @@
-# adaptive_sampling
+# harlow
+
+[![CI](https://github.com/JanKoune/harlow/actions/workflows/push.yml/badge.svg)](https://github.com/JanKoune/harlow/actions)
+[![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/JanKoune/812e7f877bc9e67a4b692669ddc71030/raw/harlow_master_coverage.json)](https://en.wikipedia.org/wiki/Code_coverage)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Adaptive surrogate modelling.
 

@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v2
         with:
           python-version: 3.8
       - name: Install dependencies
@@ -37,22 +37,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: [ "3.7", "3.8", "3.9", "3.10" ]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install .[tests]
-    - name: Test with pytest
-      run: |
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package with dependencies
+        run: |
+          pip install .[tests]
+      - name: Test with pytest
+        run: |
           # grab the coverage output and also print it to the sreen
-          COVERAGE_REPORT=$(coverage run -m pytest && coverage report -m | \
-            tee /dev/stderr)
+          coverage run -m pytest
+          COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | \
             grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
@@ -78,3 +78,14 @@ jobs:
           echo "COVERAGE_PCT=$(echo $COVERAGE_PCT)" >> $GITHUB_ENV
           echo "COVERAGE_COL=$(echo $COVERAGE_COL)" >> $GITHUB_ENV
           echo "BRANCH_NAME=$(echo $BRANCH_NAME)" >> $GITHUB_ENV
+      # Upload the coverage value to gist only once
+      - if: ${{ matrix.python-version == '3.8' }}
+        name: Upload coverage to gist
+        uses: schneegans/dynamic-badges-action@v1.1.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: 812e7f877bc9e67a4b692669ddc71030
+          filename: harlow_${{ env.BRANCH_NAME }}_coverage.json
+          label: coverage
+          message: ${{ env.COVERAGE_PCT }}
+          color: ${{ env.COVERAGE_COL }}
