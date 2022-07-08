@@ -30,16 +30,43 @@ def evaluate(metric, model, test_points_X, test_points_y):
 
     Returns:
     """
-    score_mtrx = np.zeros(len(metric))
-    count = 0
+    score_mtrx = np.zeros((len(metric), len(model)))
+    count_metric = 0
+    count_model = 0
     if metric is None or test_points_X is None:
-        score_mtrx[count] = 0.0
+        score_mtrx[count_metric, count_model] = 0.0
     else:
-        for metric_func in metric:
-            score_mtrx[count] = metric_func(model.predict(test_points_X), test_points_y)
-            count += 1
+        for m in model:
+            count_metric = 0
+            for metric_func in metric:
+                score_mtrx[count_metric, count_model] = metric_func(
+                    m.predict(test_points_X), test_points_y[:, count_model]
+                )
+                count_metric += 1
+            count_model += 1
 
     return score_mtrx
+
+
+def normalized_response(model: object, X: np.ndarray):
+    preds = model.predict(X)
+    return (model.predict(X) - np.min(preds)) / (np.max(preds) - np.min(preds))
+
+
+def nrmse(model: object, test_points_X: np.ndarray, test_points_y: np.ndarray):
+    """normalized root mean square error"""
+    preds = model.predict(test_points_X)
+
+    return np.sqrt(
+        1
+        / len(test_points_y)
+        * np.sum(
+            np.square(
+                (test_points_y - preds)
+                / (np.max(test_points_y) - np.min(test_points_y))
+            )
+        )
+    )
 
 
 def rrse(actual: np.ndarray, predicted: np.ndarray):
