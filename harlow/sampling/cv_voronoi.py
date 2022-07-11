@@ -34,8 +34,9 @@ from harlow.utils.helper_functions import (
     evaluate,
     latin_hypercube_sampling,
     normalized_response,
-    nrmse,
+    nrmse
 )
+from harlow.utils.log_writer import write_scores, write_timer
 
 
 # -----------------------------------------------------
@@ -154,7 +155,7 @@ class CVVoronoi(Sampler):
         )
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score[0])
+        self.step_score.append(score)
         self.step_iter.append(0)
         self.step_fit_time.append(time.time() - start_time)
 
@@ -231,29 +232,26 @@ class CVVoronoi(Sampler):
                 self.test_points_x,
                 self.test_points_y,
             )
+            logger.info(
+                f"Fitted a new surrogate model in {time.time() - start_time} sec."
+            )
             self.step_x.append(points_x)
             self.step_y.append(points_y)
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
-
+            timing_dict = {"Gen time": self.step_gen_time[ii + 1],
+                           "Fit time": self.step_fit_time[ii + 1]}
             # TODO we have refactor the logging to accomodate multi output.
             # Also better to work with metric dicts because we can't assume
             # the order of metrics is always the same
 
-            # Writer log & various metric scores
-            # if len(score) == 1:
-            #     self.writer.add_scalars("RMSE", score[0], ii + 1)
-            # elif len(score) == 2:
-            #     self.writer.add_scalars("RMSE", score[0], ii + 1)
-            #     self.writer.add_scalars("RRSE", score[1], ii + 1)
-            # elif len(score) == 3:
-            #     self.writer.add_scalars("RMSE", score[0], ii + 1)
-            #     self.writer.add_scalars("RRSE", score[1], ii + 1)
-            #     self.writer.add_scalars("MAE", score[2], ii + 1)
-            self.writer.add_scalar("Gen time", self.step_gen_time[ii + 1], ii + 1)
-            self.writer.add_scalar("Fit time", self.step_fit_time[ii + 1], ii + 1)
+            write_scores(self.writer, score, ii+1)
+            write_timer(self.writer, timing_dict, ii + 1)
+
+            # self.writer.add_scalar("Gen time", self.step_gen_time[ii + 1], ii + 1)
+            # self.writer.add_scalar("Fit time", self.step_fit_time[ii + 1], ii + 1)
             # Currently use RMSE for convergence
-            self.score = score[0]
+            self.score = score["rmse"][0]
             self.iterations = ii
             # Save model every 200 iterations
             if self.iterations % 200 == 0:

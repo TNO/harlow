@@ -33,19 +33,32 @@ def evaluate(metric, model, test_points_X, test_points_y):
     score_mtrx = np.zeros((len(metric), len(model)))
     count_metric = 0
     count_model = 0
+    metric_dict = {}
     if metric is None or test_points_X is None:
-        score_mtrx[count_metric, count_model] = 0.0
+        raise ValueError
+        #score_mtrx[count_metric, count_model] = 0.0
     else:
-        for m in model:
-            count_metric = 0
-            for metric_func in metric:
-                score_mtrx[count_metric, count_model] = metric_func(
-                    m.predict(test_points_X), test_points_y[:, count_model]
-                )
-                count_metric += 1
-            count_model += 1
+        for metric_fun in metric:
+            scores = []
+            for m in model:
+                scores.append(metric_fun(
+                    m.predict(test_points_X), test_points_y[:, count_model]))
+            metric_dict[metric_fun.__name__] = scores
 
-    return score_mtrx
+        #
+        #
+        # for m in model:
+        #     count_metric = 0
+        #     for metric_func in metric:
+        #         score_mtrx[count_metric, count_model] = metric_func(
+        #             m.predict(test_points_X), test_points_y[:, count_model]
+        #         )
+        #         count_metric += 1
+        #     count_model += 1
+
+    #return score_mtrx
+
+    return metric_dict
 
 
 def normalized_response(model: object, X: np.ndarray):
