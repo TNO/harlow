@@ -310,14 +310,14 @@ def test_gradient_linear():
     for n_dim in n_dims:
         grad_expected = np.arange(1, n_dim + 1)
 
-        def hyperplane(x):
-            return np.sum(grad_expected * x, axis=1, keepdims=True)
+        def hyperplane(x, grad):
+            return np.sum(grad * x, axis=1, keepdims=True)
 
         reference_point_x = np.random.randn(1, n_dim)
-        reference_point_y = float(hyperplane(reference_point_x))
+        reference_point_y = float(hyperplane(reference_point_x, grad_expected))
 
         neighbor_points_x = np.random.randn(2 * n_dim, n_dim)
-        neighbor_points_y = hyperplane(neighbor_points_x)
+        neighbor_points_y = hyperplane(neighbor_points_x, grad_expected)
 
         grad = gradient_estimate(
             reference_point_x=reference_point_x,
