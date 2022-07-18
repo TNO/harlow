@@ -13,16 +13,16 @@ import torch
 
 # from botorch.models.transforms import Normalize, Standardize
 from matplotlib import pyplot as plt
-from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
 from sklearn.metrics import mean_squared_error
 
-from harlow.surrogating.surrogate_model import (
+from harlow.surrogating import (
     BatchIndependentGaussianProcess,
     DeepKernelMultiTaskGaussianProcess,
     ModelListGaussianProcess,
     MultiTaskGaussianProcess,
 )
 from harlow.utils.helper_functions import latin_hypercube_sampling
+from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
 
 # ====================================================================
 # HELPER FUNCTIONS

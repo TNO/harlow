@@ -10,7 +10,7 @@ The main requirements towards each surrogate model are that they:
 import re
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 import gpytorch
 import numpy as np
@@ -18,7 +18,6 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import torch
 from botorch.models.gpytorch import GPyTorchModel
-from botorch.utils.containers import TrainingData
 from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
@@ -27,7 +26,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
 from harlow.utils.helper_functions import NLL, normal_sp
-from harlow.utils.transforms import ExpandDims, Transform
+from harlow.utils.transforms import ExpandDims, Identity, TensorTransform, Transform
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
@@ -38,21 +37,30 @@ tfk = tfp.math.psd_kernels
 
 class Surrogate(ABC):
     """
-    Abstract base class for the surrogate models.
-    Each surrogate model must implement methods for model creation, model fitting,
-    model prediction and model updating.
+    Abstract base class for the surrogate models. Each surrogate
+    model must initialize the abstact base class using the following
+    statement during initialization:
 
-    TODO:
-        * Is there a point to having a batch dimension for the input array?
+        super().__init__(
+            input_transform=input_transform,
+            output_transform=output_transform
+        )
+
+    All surrogates must also implement the following methods:
+    * `create_model`
+    * `_fit`
+    * `_predict`
+    * `_update`
     """
 
     def __init__(
         self,
-        input_transform: Optional[Transform] = ExpandDims,
-        output_transform: Optional[Transform] = ExpandDims,
+        input_transform: Optional[Transform] = Identity,
+        output_transform: Optional[Transform] = Identity,
+        **kwargs,
     ):
-        self.input_transform = input_transform()
-        self.output_transform = output_transform()
+        self.input_transform = input_transform
+        self.output_transform = output_transform
         self.n_batches = None
         self.n_features = None
         self.n_training = None
@@ -63,20 +71,20 @@ class Surrogate(ABC):
         pass
 
     @abstractmethod
+    def _fit(self, X, y, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _predict(self, X, **kwargs) -> Union[np.ndarray, torch.tensor]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def _update(self, new_X, new_y, **kwargs):
+        raise NotImplementedError
+
+    @abstractmethod
     def create_model(self):
-        pass
-
-    @abstractmethod
-    def _fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
-        pass
-
-    @abstractmethod
-    def _predict(self, X: np.ndarray, **kwargs) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def _update(self, new_X: np.ndarray, new_y: np.ndarray, **kwargs):
-        pass
+        raise NotImplementedError
 
     @staticmethod
     def check_inputs(X, y=None):
@@ -85,65 +93,77 @@ class Surrogate(ABC):
         if not isinstance(X, np.ndarray):
             raise ValueError(
                 f"Parameters `X` must be of type {np.ndarray} but are"
-                f"type {type(X)} "
+                f" of type {type(X)} "
             )
-        if X.ndim != 3:
+        if (X.ndim != 2) and (X.ndim != 3):
             raise ValueError(
-                f"Input array `X` must have shape `(n_batch x n_points x n_features)`"
-                f"but has shape {X.shape}."
+                f"Input array `X` must have shape `(n_batch, n_points, n_features)`"
+                f" or (n_points, n_features) but has shape {X.shape}."
             )
 
         # Check target points `y`
         if y is not None:
             if not isinstance(y, np.ndarray):
                 raise ValueError(
-                    f"Targets `y` must be of type {np.ndarray} but are"
-                    f"type {type(y)}."
+                    f"Targets `y` must be of type {np.ndarray} but are of"
+                    f" type {type(y)}."
                 )
 
             # Check shape of `y`
-            if y.ndim != 2:
+            if (y.ndim != 1) and (y.ndim != 2):
                 raise ValueError(
-                    f"Target array `y` must have 2 dimensions but has {y.ndim}."
+                    f"Target array `y` must have shape `(n_points, n_batch)` or  "
+                    f" `(n_points,)` but has shape {y.shape}."
                 )
 
-            if (y.shape[0] != X.shape[-2]) or (y.shape[-1] != X.shape[0]):
-                raise ValueError(
-                    f"Target `y` must have shape ({X.shape[-2]}x{X.shape[0]})"
-                    f" but has shape {y.shape}."
-                )
+            # If the batch dim of `X` has size 1, assume it is shared for all batches
+            if (X.shape[0] != 1) and (X.ndim != 2):
+                if (y.shape[0] != X.shape[1]) or (y.shape[1] != X.shape[0]):
+                    raise ValueError(
+                        f"Target `y` must have shape ({X.shape[1]}, {X.shape[0]})"
+                        f" but has shape {y.shape}."
+                    )
 
-    def fit(self, X, y, **kwargs):
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
         """
         Calls the `_fit()` method of the surrogate model instance after applying
         transforms and checking inputs. A user specified surrogate model only
-        has to implement the `_fit()` method.
+        has to implement the `_fit()` method. Note that `fit()` is a user-facing
+        method and should not be called from within the class.
         """
-
-        X = self.input_transform.forward(X)
-        y = self.output_transform.forward(y)
         self.check_inputs(X, y=y)
+        X = self.input_transform().forward(X)
+        y = self.output_transform().forward(y)
         self._fit(X, y, **kwargs)
 
-    def update(self, X, y, **kwargs):
+    def update(self, X: np.ndarray, y: np.ndarray, **kwargs):
         """
         Calls the `_update()` method of the surrogate model instance after applying
         transforms and checking inputs. A user specified surrogate model only
-        has to implement the `_update()` method.
+        has to implement the `_update()` method. Note that `update()` is a user-facing
+        method and should not be called from within the class.
         """
-        X = self.input_transform.forward(X)
-        y = self.output_transform.forward(y)
         self.check_inputs(X, y=y)
+        X = self.input_transform().forward(X)
+        y = self.output_transform().forward(y)
         self._update(X, y, **kwargs)
 
-    def predict(self, X, return_std=False, **kwargs):
+    def predict(
+        self, X: np.ndarray, return_std: Optional = False, **kwargs
+    ) -> Union[
+        torch.tensor,
+        np.ndarray,
+        Tuple[torch.tensor, torch.tensor],
+        Tuple[np.ndarray, np.ndarray],
+    ]:
         """
         Calls the `_predict()` method of the surrogate model instance after applying
         transforms and checking inputs. A user specified surrogate model only
-        has to implement the `_predict()` method.
+        has to implement the `_predict()` method. Note that `predict()` is a user-facing
+        method and should not be called from within the class.
         """
-        X = self.input_transform.forward(X)
         self.check_inputs(X)
+        X = self.input_transform().forward(X)
 
         if return_std:
             samples, std = self._predict(X, return_std=return_std, **kwargs)
@@ -164,6 +184,7 @@ class VanillaGaussianProcess(Surrogate):
         noise_std=None,
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
         super().__init__(
             input_transform=input_transform, output_transform=output_transform
@@ -220,18 +241,21 @@ class VanillaGaussianProcess(Surrogate):
             return samples
 
     def _update(self, new_X, new_y, **kwargs):
-        X = np.concatenate([self.X, new_X[0]])
+
+        if new_X.ndim > self.X.ndim:
+            self.X = np.expand_dims(self.X, axis=0)
+        self.X = np.concatenate([self.X, new_X], axis=1)
 
         if new_y.ndim > self.y.ndim:
-            new_y = new_y.flatten()
-        y = np.concatenate([self.y, new_y]).ravel()
+            self.y = np.expand_dims(self.y, axis=0)
+        self.y = np.concatenate([self.y, new_y])
 
         # TODO check if this the best way to use for incremental
         #  learning/online learning
         self.kernel.set_params(**(self.model.kernel_.get_params()))
         self.create_model()
 
-        self.fit(X, y)
+        self._fit(self.X, self.y)
 
 
 class GaussianProcessTFP(Surrogate):
@@ -242,11 +266,13 @@ class GaussianProcessTFP(Surrogate):
         train_iterations=50,
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
 
         super().__init__(
             input_transform=input_transform, output_transform=output_transform
         )
+
         self.model = None
         self.train_iterations = train_iterations
 
@@ -390,127 +416,6 @@ class GaussianProcessTFP(Surrogate):
         self.optimize_parameters(verbose=False)
 
 
-class ExactGPModel(gpytorch.models.ExactGP, GPyTorchModel):
-    """
-    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/ModelList_GP_Regression.html # noqa: E501
-    """
-
-    _num_outputs = 1  # to inform GPyTorchModel API
-
-    def __init__(self, train_x, train_y, likelihood):
-        super().__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-
-    @classmethod
-    def construct_inputs(cls, training_data: TrainingData, **kwargs):
-        r"""Construct kwargs for the `SimpleCustomGP` from `TrainingData` and other options.
-
-        Args:
-            training_data: `TrainingData` container with data for single outcome
-                or for multiple outcomes for batched multi-output case.
-            **kwargs: None expected for this class.
-        """
-        return {"train_X": training_data.X, "train_Y": training_data.Y}
-
-
-class MultitaskGPModel(gpytorch.models.ExactGP):
-    """
-    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html # noqa: E501
-    """
-
-    def __init__(self, train_x, train_y, likelihood, N_tasks):
-        super(MultitaskGPModel, self).__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.MultitaskMean(
-            gpytorch.means.ConstantMean(), num_tasks=N_tasks
-        )
-        self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.RBFKernel(), num_tasks=N_tasks, rank=1
-        )
-
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
-
-
-class BatchIndependentMultitaskGPModel(gpytorch.models.ExactGP):
-    """
-    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html  # noqa: E501
-    """
-
-    def __init__(self, train_x, train_y, likelihood, N_tasks):
-        super().__init__(train_x, train_y, likelihood)
-        self.mean_module = gpytorch.means.ConstantMean(
-            batch_shape=torch.Size([N_tasks])
-        )
-        self.covar_module = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.RBFKernel(batch_shape=torch.Size([N_tasks])),
-            batch_shape=torch.Size([N_tasks]),
-        )
-
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultitaskMultivariateNormal.from_batch_mvn(
-            gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-        )
-
-
-class LargeFeatureExtractor(torch.nn.Sequential):
-    """
-    From: https://docs.gpytorch.ai/en/stable/examples/02_Scalable_Exact_GPs/
-    Simple_GP_Regression_With_LOVE_Fast_Variances_and_Sampling.html
-    """
-
-    def __init__(self, input_dim, n_features):
-        super(LargeFeatureExtractor, self).__init__()
-        self.add_module("linear1", torch.nn.Linear(input_dim, 100))
-        self.add_module("relu1", torch.nn.ReLU())
-        self.add_module("linear2", torch.nn.Linear(100, 50))
-        self.add_module("relu2", torch.nn.ReLU())
-        self.add_module("linear3", torch.nn.Linear(50, 5))
-        self.add_module("relu3", torch.nn.ReLU())
-        self.add_module("linear4", torch.nn.Linear(5, n_features))
-
-
-class DeepKernelLearningGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, N_tasks, n_features):
-        super(DeepKernelLearningGPModel, self).__init__(train_x, train_y, likelihood)
-
-        self.mean_module = gpytorch.means.MultitaskMean(
-            gpytorch.means.ConstantMean(), num_tasks=N_tasks
-        )
-        self.covar_module = gpytorch.kernels.MultitaskKernel(
-            gpytorch.kernels.SpectralMixtureKernel(
-                num_mixtures=4, ard_num_dims=n_features
-            ),
-            num_tasks=N_tasks,
-            rank=1,
-        )
-
-        # Also add the deep net
-        self.feature_extractor = LargeFeatureExtractor(
-            input_dim=train_x.size(-1), n_features=n_features
-        )
-
-    def forward(self, x):
-        # We're first putting our data through a deep net (feature extractor)
-        # We're also scaling the features so that they're nice values
-        projected_x = self.feature_extractor(x)
-        projected_x = projected_x - projected_x.min(0)[0]
-        projected_x = 2 * (projected_x / projected_x.max(0)[0]) - 1
-
-        mean_x = self.mean_module(projected_x)
-        covar_x = self.covar_module(projected_x)
-        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
-
-
 class GaussianProcessRegression(Surrogate):
     """
     !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
@@ -539,10 +444,10 @@ class GaussianProcessRegression(Surrogate):
 
     def __init__(
         self,
-        train_X,
-        train_y,
         training_max_iter=100,
         learning_rate=0.1,
+        input_transform=TensorTransform,
+        output_transform=TensorTransform,
         min_loss_rate=None,
         optimizer=None,
         mean=None,
@@ -551,11 +456,14 @@ class GaussianProcessRegression(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        **kwargs,
     ):
 
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
+
         self.model = None
-        self.train_X = train_X
-        self.train_y = train_y
         self.training_max_iter = training_max_iter
         self.noise_std = None
         self.likelihood = None
@@ -580,19 +488,16 @@ class GaussianProcessRegression(Surrogate):
             warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
-            # Initialize model
-        self.create_model()
-
     def create_model(self):
 
         # Reset optimizer
         self.optimizer = None
 
         # Check input consistency
-        if self.train_y.shape[0] != self.train_X.shape[0]:
+        if self.train_y.shape[0] != self.train_X.shape[1]:
             raise ValueError(
                 f"Dim 0 of `train_y` must be equal to the number of training"
-                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
+                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[1]}."
             )
 
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
@@ -600,17 +505,11 @@ class GaussianProcessRegression(Surrogate):
             self.device
         )
 
-    def fit(self, train_X=None, train_y=None):
+    def _fit(self, train_X, train_y, **kwargs):
 
-        # If arguments are passed, delete the previously storred `train_X` and `train_y`
-        if (train_X is None) or (train_y is None):
-            warnings.warn(
-                "Calling `.fit()` with no input argumentss will re-instantiate "
-                "and fit the model for the currently stored training data."
-            )
-        else:
-            self.train_X = self.train_X.to(self.device)
-            self.train_y = self.train_X.to(self.device)
+        self.train_X = train_X.to(self.device)[0]
+        self.train_y = train_y.to(self.device)
+
         # Create model
         self.create_model()
 
@@ -670,10 +569,9 @@ class GaussianProcessRegression(Surrogate):
             f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
         )
 
-    def predict(self, X_pred, return_std=False):
+    def _predict(self, X_pred, return_std=False, **kwargs):
 
-        # Cast input to tensor for compatibility with sampling algorithms
-        # X_pred = torch.atleast_2d(torch.tensor(X_pred).float())
+        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -703,12 +601,16 @@ class GaussianProcessRegression(Surrogate):
 
         return self.prediction.n_sample(n_samples)
 
-    def update(self, new_X, new_y):
-        full_X = torch.cat([self.train_X, new_X], dim=0)
-        full_y = torch.cat([self.train_y, new_y], dim=0)
+    def _update(self, new_X, new_y, **kwargs):
+
+        new_X = new_X.to(self.device)[0]
+        new_y = new_y.to(self.device)
+
+        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self.fit(full_X, full_y)
+        self._fit(self.train_X, self.train_y)
 
     def get_noise(self):
         return self.model.likelihood.noise.sqrt()
@@ -744,11 +646,11 @@ class ModelListGaussianProcess(Surrogate):
 
     def __init__(
         self,
-        train_X,
-        train_y,
         model_names,
         training_max_iter=100,
         learning_rate=0.1,
+        input_transform=TensorTransform,
+        output_transform=TensorTransform,
         min_loss_rate=None,
         optimizer=None,
         mean=None,
@@ -758,12 +660,15 @@ class ModelListGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        **kwargs,
     ):
+
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
 
         self.model_names = model_names
         self.model = None
-        self.train_X = train_X
-        self.train_y = train_y
         self.training_max_iter = training_max_iter
         self.noise_std = None
         self.likelihood = None
@@ -797,9 +702,6 @@ class ModelListGaussianProcess(Surrogate):
             warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
-            # Initialize model
-        self.create_model()
-
     def create_model(self):
 
         # Reset optimizer
@@ -808,7 +710,7 @@ class ModelListGaussianProcess(Surrogate):
         # Check input consistency
         if self.train_y.shape[0] != self.train_X.shape[0]:
             raise ValueError(
-                f"Dim 0 of `train_y` must be equal to the number of training"
+                f"Dim 0 of `train_y` must be equal to the number of training "
                 f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
@@ -841,21 +743,11 @@ class ModelListGaussianProcess(Surrogate):
                 self.device
             )
 
-    def fit(self, train_X=None, train_y=None):
+    def _fit(self, train_X, train_y, **kwargs):
 
-        # If arguments are passed, delete the previously storred `train_X` and `train_y`
-        if (train_X is None) or (train_y is None):
-            warnings.warn(
-                "Calling `.fit()` with no input argumentss will re-instantiate "
-                "and fit the model for the currently stored training data."
-            )
-        else:
-            self.train_X = torch.atleast_2d(torch.tensor(train_X).float()).to(
-                self.device
-            )
-            self.train_y = torch.atleast_2d(torch.tensor(train_y).float()).to(
-                self.device
-            )
+        self.train_X = train_X.to(self.device)[0]
+        self.train_y = train_y.to(self.device)
+
         # Create model
         self.create_model()
 
@@ -915,10 +807,10 @@ class ModelListGaussianProcess(Surrogate):
             f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
         )
 
-    def predict(self, X_pred, return_std=False):
+    def _predict(self, X_pred, return_std=False, **kwargs):
 
         # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = torch.atleast_2d(torch.tensor(X_pred).float()).to(self.device)
+        X_pred = X_pred.to(self.device)[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -966,12 +858,16 @@ class ModelListGaussianProcess(Surrogate):
 
         return [prediction.n_sample(n_samples) for prediction in self.prediction]
 
-    def update(self, new_X, new_y):
-        full_X = torch.cat([self.train_X, new_X], dim=0)
-        full_y = torch.cat([self.train_y, new_y], dim=0)
+    def _update(self, new_X, new_y, **kwargs):
+
+        new_X = new_X.to(self.device)[0]
+        new_y = new_y.to(self.device)
+
+        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self.fit(full_X, full_y)
+        self._fit(self.train_X, self.train_y)
 
     def get_noise(self):
         return [
@@ -1009,11 +905,11 @@ class BatchIndependentGaussianProcess(Surrogate):
 
     def __init__(
         self,
-        train_X,
-        train_y,
         num_tasks,
         training_max_iter=100,
         learning_rate=0.1,
+        input_transform=TensorTransform,
+        output_transform=TensorTransform,
         min_loss_rate=None,
         optimizer=None,
         mean=None,
@@ -1022,11 +918,14 @@ class BatchIndependentGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        **kwargs,
     ):
 
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
+
         self.model = None
-        self.train_X = train_X
-        self.train_y = train_y
         self.num_tasks = num_tasks
         self.training_max_iter = training_max_iter
         self.noise_std = None
@@ -1051,9 +950,6 @@ class BatchIndependentGaussianProcess(Surrogate):
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
-
-            # Initialize model
-        self.create_model()
 
     def create_model(self):
 
@@ -1080,21 +976,11 @@ class BatchIndependentGaussianProcess(Surrogate):
             self.train_X, self.train_y, self.likelihood, self.num_tasks
         ).to(self.device)
 
-    def fit(self, train_X=None, train_y=None):
+    def _fit(self, train_X, train_y, **kwargs):
 
-        # If arguments are passed, delete the previously storred `train_X` and `train_y`
-        if (train_X is None) or (train_y is None):
-            warnings.warn(
-                "Calling `.fit()` with no input argumentss will re-instantiate "
-                "and fit the model for the currently stored training data."
-            )
-        else:
-            self.train_X = torch.atleast_2d(torch.tensor(train_X).float()).to(
-                self.device
-            )
-            self.train_y = torch.atleast_2d(torch.tensor(train_y).float()).to(
-                self.device
-            )
+        self.train_X = train_X.to(self.device)[0]
+        self.train_y = train_y.to(self.device)
+
         # Create model
         self.create_model()
 
@@ -1154,10 +1040,10 @@ class BatchIndependentGaussianProcess(Surrogate):
             f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
         )
 
-    def predict(self, X_pred, return_std=False):
+    def _predict(self, X_pred, return_std=False, **kwargs):
 
         # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = torch.atleast_2d(torch.tensor(X_pred).float()).to(self.device)
+        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1187,12 +1073,16 @@ class BatchIndependentGaussianProcess(Surrogate):
 
         return self.prediction.n_sample(n_samples)
 
-    def update(self, new_X, new_y):
-        full_X = torch.cat([self.train_X, new_X], dim=0)
-        full_y = torch.cat([self.train_y, new_y], dim=0)
+    def _update(self, new_X, new_y, **kwargs):
+
+        new_X = new_X.to(self.device)[0]
+        new_y = new_y.to(self.device)
+
+        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self.fit(full_X, full_y)
+        self._fit(self.train_X, self.train_y)
 
     def get_noise(self):
         return self.model.likelihood.noise.sqrt()
@@ -1228,11 +1118,11 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def __init__(
         self,
-        train_X,
-        train_y,
         num_tasks,
         training_max_iter=100,
         learning_rate=0.1,
+        input_transform=TensorTransform,
+        output_transform=TensorTransform,
         min_loss_rate=None,
         optimizer=None,
         mean=None,
@@ -1241,11 +1131,14 @@ class MultiTaskGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        **kwargs,
     ):
 
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
+        )
+
         self.model = None
-        self.train_X = train_X
-        self.train_y = train_y
         self.num_tasks = num_tasks
         self.training_max_iter = training_max_iter
         self.noise_std = None
@@ -1270,9 +1163,6 @@ class MultiTaskGaussianProcess(Surrogate):
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
-
-            # Initialize model
-        self.create_model()
 
     def create_model(self):
 
@@ -1299,21 +1189,11 @@ class MultiTaskGaussianProcess(Surrogate):
             self.train_X, self.train_y, self.likelihood, self.num_tasks
         ).to(self.device)
 
-    def fit(self, train_X=None, train_y=None):
+    def _fit(self, train_X, train_y, **kwargs):
 
-        # If arguments are passed, delete the previously storred `train_X` and `train_y`
-        if (train_X is None) or (train_y is None):
-            warnings.warn(
-                "Calling `.fit()` with no input argumentss will re-instantiate "
-                "and fit the model for the currently stored training data."
-            )
-        else:
-            self.train_X = torch.atleast_2d(torch.tensor(train_X).float()).to(
-                self.device
-            )
-            self.train_y = torch.atleast_2d(torch.tensor(train_y).float()).to(
-                self.device
-            )
+        self.train_X = train_X.to(self.device)[0]
+        self.train_y = train_y.to(self.device)
+
         # Create model
         self.create_model()
 
@@ -1373,10 +1253,9 @@ class MultiTaskGaussianProcess(Surrogate):
             f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
         )
 
-    def predict(self, X_pred, return_std=False):
+    def _predict(self, X_pred, return_std=False, **kwargs):
 
-        # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = torch.atleast_2d(torch.tensor(X_pred).float()).to(self.device)
+        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1406,12 +1285,16 @@ class MultiTaskGaussianProcess(Surrogate):
 
         return self.prediction.n_sample(n_samples)
 
-    def update(self, new_X, new_y):
-        full_X = torch.cat([self.train_X, new_X], dim=0)
-        full_y = torch.cat([self.train_y, new_y], dim=0)
+    def _update(self, new_X, new_y, **kwargs):
+
+        new_X = new_X.to(self.device)[0]
+        new_y = new_y.to(self.device)
+
+        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self.fit(full_X, full_y)
+        self._fit(self.train_X, self.train_y)
 
     def get_noise(self):
         return self.model.likelihood.noise.sqrt()
@@ -1448,10 +1331,10 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
     def __init__(
         self,
-        train_X,
-        train_y,
         num_tasks,
-        num_features=None,
+        num_features,
+        input_transform=TensorTransform,
+        output_transform=TensorTransform,
         training_max_iter=100,
         learning_rate=0.1,
         min_loss_rate=None,
@@ -1462,16 +1345,16 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        **kwargs,
     ):
 
-        self.model = None
-        self.train_X = train_X
-        self.train_y = train_y
-        self.num_tasks = num_tasks
-        self.num_features = (
-            num_features if num_features is not None else train_X.shape[-1]
+        super().__init__(
+            input_transform=input_transform, output_transform=output_transform
         )
 
+        self.model = None
+        self.num_tasks = num_tasks
+        self.num_features = num_features
         self.training_max_iter = training_max_iter
         self.noise_std = None
         self.likelihood = None
@@ -1495,9 +1378,6 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             warnings.filterwarnings("ignore", category=UserWarning)
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
-
-            # Initialize model
-        self.create_model()
 
     def create_model(self):
 
@@ -1528,21 +1408,11 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
             self.num_features,
         ).to(self.device)
 
-    def fit(self, train_X=None, train_y=None):
+    def _fit(self, train_X, train_y, **kwargs):
 
-        # If arguments are passed, delete the previously storred `train_X` and `train_y`
-        if (train_X is None) or (train_y is None):
-            warnings.warn(
-                "Calling `.fit()` with no input argumentss will re-instantiate "
-                "and fit the model for the currently stored training data."
-            )
-        else:
-            self.train_X = torch.atleast_2d(torch.tensor(train_X).float()).to(
-                self.device
-            )
-            self.train_y = torch.atleast_2d(torch.tensor(train_y).float()).to(
-                self.device
-            )
+        self.train_X = train_X.to(self.device)[0]
+        self.train_y = train_y.to(self.device)
+
         # Create model
         self.create_model()
 
@@ -1602,10 +1472,9 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
             f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
         )
 
-    def predict(self, X_pred, return_std=False):
+    def _predict(self, X_pred, return_std=False, **kwargs):
 
-        # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = torch.atleast_2d(torch.tensor(X_pred).float()).to(self.device)
+        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1635,18 +1504,22 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
         return self.prediction.n_sample(n_samples)
 
-    def update(self, new_X, new_y):
-        full_X = torch.cat([self.train_X, new_X], dim=0)
-        full_y = torch.cat([self.train_y, new_y], dim=0)
+    def _update(self, new_X, new_y, **kwargs):
+
+        new_X = new_X.to(self.device)[0]
+        new_y = new_y.to(self.device)
+
+        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self.fit(full_X, full_y)
+        self._fit(self.train_X, self.train_y)
 
     def get_noise(self):
         return self.model.likelihood.noise.sqrt()
 
 
-class Vanilla_NN(Surrogate):
+class NeuralNetwork(Surrogate):
     """
     Class for Neural Networks.
     The class takes an uncompiled tensorflow Model, e.g.
@@ -1664,6 +1537,7 @@ class Vanilla_NN(Surrogate):
         loss="mse",
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
 
         super().__init__(
@@ -1704,7 +1578,7 @@ class Vanilla_NN(Surrogate):
             return self.preds
 
 
-class Vanilla_BayesianNN(Surrogate):
+class BayesianNeuralNetwork(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
@@ -1715,6 +1589,7 @@ class Vanilla_BayesianNN(Surrogate):
         batch_size=32,
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
         super().__init__(
             input_transform=input_transform, output_transform=output_transform
@@ -1809,3 +1684,113 @@ class Vanilla_BayesianNN(Surrogate):
 
     def get_predictions(self):
         return self.predictions
+
+
+class ExactGPModel(gpytorch.models.ExactGP, GPyTorchModel):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/ModelList_GP_Regression.html # noqa: E501
+    """
+
+    _num_outputs = 1  # to inform GPyTorchModel API
+
+    def __init__(self, train_x, train_y, likelihood):
+        super().__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+
+class MultitaskGPModel(gpytorch.models.ExactGP):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html # noqa: E501
+    """
+
+    def __init__(self, train_x, train_y, likelihood, N_tasks):
+        super(MultitaskGPModel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=N_tasks
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.RBFKernel(), num_tasks=N_tasks, rank=1
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+
+
+class BatchIndependentMultitaskGPModel(gpytorch.models.ExactGP):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html  # noqa: E501
+    """
+
+    def __init__(self, train_x, train_y, likelihood, N_tasks):
+        super().__init__(train_x, train_y, likelihood)
+        self.mean_module = gpytorch.means.ConstantMean(
+            batch_shape=torch.Size([N_tasks])
+        )
+        self.covar_module = gpytorch.kernels.ScaleKernel(
+            gpytorch.kernels.RBFKernel(batch_shape=torch.Size([N_tasks])),
+            batch_shape=torch.Size([N_tasks]),
+        )
+
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultitaskMultivariateNormal.from_batch_mvn(
+            gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+        )
+
+
+class LargeFeatureExtractor(torch.nn.Sequential):
+    """
+    From: https://docs.gpytorch.ai/en/stable/examples/02_Scalable_Exact_GPs/
+    Simple_GP_Regression_With_LOVE_Fast_Variances_and_Sampling.html
+    """
+
+    def __init__(self, input_dim, n_features):
+        super(LargeFeatureExtractor, self).__init__()
+        self.add_module("linear1", torch.nn.Linear(input_dim, 100))
+        self.add_module("relu1", torch.nn.ReLU())
+        self.add_module("linear2", torch.nn.Linear(100, 50))
+        self.add_module("relu2", torch.nn.ReLU())
+        self.add_module("linear3", torch.nn.Linear(50, 5))
+        self.add_module("relu3", torch.nn.ReLU())
+        self.add_module("linear4", torch.nn.Linear(5, n_features))
+
+
+class DeepKernelLearningGPModel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood, N_tasks, n_features):
+        super(DeepKernelLearningGPModel, self).__init__(train_x, train_y, likelihood)
+
+        self.mean_module = gpytorch.means.MultitaskMean(
+            gpytorch.means.ConstantMean(), num_tasks=N_tasks
+        )
+        self.covar_module = gpytorch.kernels.MultitaskKernel(
+            gpytorch.kernels.SpectralMixtureKernel(
+                num_mixtures=4, ard_num_dims=n_features
+            ),
+            num_tasks=N_tasks,
+            rank=1,
+        )
+
+        # Also add the deep net
+        self.feature_extractor = LargeFeatureExtractor(
+            input_dim=train_x.size(-1), n_features=n_features
+        )
+
+    def forward(self, x):
+        # We're first putting our data through a deep net (feature extractor)
+        # We're also scaling the features so that they're nice values
+        projected_x = self.feature_extractor(x)
+        projected_x = projected_x - projected_x.min(0)[0]
+        projected_x = 2 * (projected_x / projected_x.max(0)[0]) - 1
+
+        mean_x = self.mean_module(projected_x)
+        covar_x = self.covar_module(projected_x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
