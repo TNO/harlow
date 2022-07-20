@@ -10,7 +10,7 @@ from tests.integration_tests.utils import plot_1d_lola_voronoi
 
 def test_sine_1d():
     n_new_points_per_iteration = [1, 2]
-    n_initial_point = 4
+    n_initial_point = 10
 
     domain_lower_bound = np.array([-3])
     domain_upper_bound = np.array([3])
@@ -45,7 +45,7 @@ def test_sine_1d():
         # ............................
         xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
         yy_tf = target_function(xx).ravel()
-        yy_sm = lv.surrogate_model.predict(xx)
+        yy_sm = lv.surrogate_model.predict(xx).ravel()
 
         np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
 
@@ -61,8 +61,8 @@ def test_sine_1d():
 
 
 def test_forrester_1d():
-    n_new_point_per_iteration = 2
-    n_initial_point = 5
+    n_new_point_per_iteration = 1
+    n_initial_point = 10
     n_iter = 10
 
     domain_lower_bound = np.array([0])
@@ -70,7 +70,7 @@ def test_forrester_1d():
     plot_fig = True
 
     def target_function(x: np.ndarray):
-        return forrester_1d(x).ravel()
+        return forrester_1d(x)
 
     surrogate_model = VanillaGaussianProcess()
 
@@ -94,7 +94,7 @@ def test_forrester_1d():
     # ............................
     xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
     yy_tf = target_function(xx).ravel()
-    yy_sm = lv.surrogate_model.predict(xx)
+    yy_sm = lv.surrogate_model.predict(xx).ravel()
 
     np.testing.assert_allclose(yy_tf, yy_sm, atol=1)
 
@@ -177,3 +177,8 @@ def test_peaks_2d():
         ax2.set_title("Surrogate function")
         # TODO: apply the same color range to both contourf plots
         plt.colorbar(cs, ax=axs)
+
+
+test_sine_1d()
+test_forrester_1d()
+test_peaks_2d()
