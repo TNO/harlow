@@ -6,7 +6,10 @@
 
 Adaptive surrogate modelling.
 
-`f_target(x) ~ f_surrogate(x)`
+`$`\begin{aligned} f_{target}(x) \sim f_{surrogate}(x) \end{aligned}`$
+
+Harlow is an Adaptive Surrogate Modeling package, in Python.
+The package offers a wide range of GPU-trainable Surrogate Models for single input-output and multi input-output pairs. Additionaly a series of Adaptive Samplers is implemented that work with multivariate data providing real-time web-logging. The package offers an intergration and benchmark test suite with numerous test functions and a real case study along with visualization functionality. 
 
 #### DISCLAIMER: This repository is in development. There's no guarantee in terms of code quality or output. 
 
