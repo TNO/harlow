@@ -8,13 +8,9 @@ Adaptive surrogate modelling.
 
 `f_target(x) ~ f_surrogate(x)`
 
+#### DISCLAIMER: This repository is in development. There's no guarantee in terms of code quality or output. 
+
 ## On using the repository
-
-#### DISCLAIMER: 
-This repository is in development. There's no guarantee in terms of code
- quality
- or output. 
-
 
 * Install dependencies and the code from this repo:
 
