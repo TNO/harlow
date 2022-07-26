@@ -50,8 +50,8 @@ def test_forrester_1d_against_sumo():
         domain_upper_bound=domain_upper_bound,
     )
     lv.sample(
-        n_iter=n_iter,
-        n_new_point_per_iteration=n_new_point_per_iteration,
+        max_n_iterations=n_iter,
+        n_new_points_per_iteration=n_new_point_per_iteration,
     )
 
     print(np.sort(lv.fit_points_x[len(start_points_x) :, :], axis=0))
@@ -99,8 +99,8 @@ def test_lldeh_1d_against_sumo():
         domain_upper_bound=domain_upper_bound,
     )
     lv.sample(
-        n_iter=n_iter,
-        n_new_point_per_iteration=n_new_point_per_iteration,
+        max_n_iterations=n_iter,
+        n_new_points_per_iteration=n_new_point_per_iteration,
     )
 
     print(np.sort(lv.fit_points_x[len(start_points_x) :, :], axis=0))

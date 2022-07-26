@@ -1,6 +1,8 @@
 """Cross Validation Voronoi adaptive design strategy for global surrogate
 modelling.
 
+Note that this
+
 The algorithm is proposed and described in this paper:
 [1] Xu, Shengli, et al. A robust error-pursuing sequential sampling approach
  for global metamodeling based on voronoi diagram and cross validation.
@@ -15,7 +17,7 @@ Mechanical Engineering Science 1989-1996 (vols 203-210)
 efficient batch k-fold cross-validation voronoi adaptive sampling technique
 for global surrogate modelling. Journal of Mechanical Design 143
  """
-import math
+
 import os
 import pickle
 import time
@@ -24,19 +26,17 @@ from typing import Callable, Tuple
 import numpy as np
 from loguru import logger
 from scipy.spatial.distance import cdist
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold
-from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import (
-    evaluate,
+    evaluate_modellist,
     latin_hypercube_sampling,
     normalized_response,
-    nrmse
 )
 from harlow.utils.log_writer import write_scores, write_timer
+from harlow.utils.metrics import nrmse, rmse
 
 
 # -----------------------------------------------------
@@ -53,44 +53,37 @@ class CVVoronoi(Sampler):
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
-        evaluation_metric: Callable = None,
+        evaluation_metric: Callable = rmse,
+        logging_metrics: list = None,
+        verbose: bool = False,
         run_name: str = None,
-        save_dir: str = None,
+        save_dir: str = "",
     ):
-        self.domain_lower_bound = domain_lower_bound
-        self.domain_upper_bound = domain_upper_bound
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
-        self.surrogate_model_fun = surrogate_model
-        self.fit_points_x = fit_points_x
-        self.fit_points_y = fit_points_y
-        self.test_points_x = test_points_x
-        self.test_points_y = test_points_y
-        self.metric = (
-            [evaluation_metric]
-            if not isinstance(evaluation_metric, list)
-            else evaluation_metric
-        )
-        self.run_name = run_name
-        self.save_dir = save_dir if save_dir is not None else ""
-        # self.verbose = verbose
 
-        # Internal storage for inspection
-        self.step_x = []
-        self.step_y = []
-        self.step_score = []
-        self.step_iter = []
-        self.step_fit_time = []
-        self.step_gen_time = []
-        # Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment="-" + run_name)
+        super(CVVoronoi, self).__init__(
+            target_function,
+            surrogate_model,
+            domain_lower_bound,
+            domain_upper_bound,
+            fit_points_x,
+            fit_points_y,
+            test_points_x,
+            test_points_y,
+            evaluation_metric,
+            logging_metrics,
+            verbose,
+            run_name,
+            save_dir,
+        )
+
         self.surrogates = []
 
     def sample(
         self,
-        n_initial_point: int = None,
-        n_iter: int = 20,
-        n_new_point_per_iteration: int = 1,
-        stopping_criterium: float = None,
+        n_initial_points: int = 20,
+        n_new_points_per_iteration: int = 1,
+        stopping_criterium: float = 0.05,
+        max_n_iterations: int = 5000,
     ):
         """TODO: allow for providing starting points"""
         # ..........................................
@@ -104,14 +97,8 @@ class CVVoronoi(Sampler):
         """This is to support multi-output"""
         dim_out = self.fit_points_y.shape[1]
 
-        if n_initial_point is None:
-            n_initial_point = 5 * n_dim
-
-        # if stopping_criterium:
-        #     n_iter = 1000
-
-        if stopping_criterium and not self.metric:
-            self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
+        if n_initial_points is None:
+            n_initial_points = 5 * n_dim
 
         # ..........................................
         # Initial sample of points
@@ -120,7 +107,7 @@ class CVVoronoi(Sampler):
         if self.fit_points_x is None:
             # latin hypercube sampling to get the initial sample of points
             points_x = latin_hypercube_sampling(
-                n_sample=n_initial_point,
+                n_sample=n_initial_points,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
             )
@@ -139,7 +126,7 @@ class CVVoronoi(Sampler):
         start_time = time.time()
 
         for i in range(0, dim_out):
-            s_i = self.surrogate_model_fun()
+            s_i = self.surrogate_model()
             s_i.fit(points_x, points_y[:, i])
             self.surrogates.append(s_i)
             logger.info(
@@ -150,21 +137,25 @@ class CVVoronoi(Sampler):
         # Additional class objects to help keep track of the sampling. `gen_time`
         # denotes the time to generate new points. `fit_time` is the time
         # to fit the surrogate.
-        score = evaluate(
-            self.metric, self.surrogates, self.test_points_x, self.test_points_y
+        score = evaluate_modellist(
+            self.logging_metrics,
+            self.surrogates,
+            self.test_points_x,
+            self.test_points_y,
         )
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score)
+        self.step_score.append(score[self.evaluation_metric.__name__])
         self.step_iter.append(0)
         self.step_fit_time.append(time.time() - start_time)
 
         # ..........................................
         # Iterative improvement (adaptive stage)
         # ..........................................
-        for ii in range(n_iter):
+        for ii in range(max_n_iterations):
             logger.info(
-                f"Started adaptive iteration step: {ii+1} (max steps:" f" {n_iter})."
+                f"Started adaptive iteration step: {ii+1} (max steps:"
+                f" {max_n_iterations})."
             )
 
             start_time = time.time()
@@ -183,7 +174,7 @@ class CVVoronoi(Sampler):
             # Step 2. Determine the Voronoi cell with the highest error
             most_sensitive_cell = identify_sensitive_voronoi_cell(
                 self.surrogates,
-                self.surrogate_model_fun,
+                self.surrogate_model,
                 points_x,
                 points_y,
                 dim_out,
@@ -204,7 +195,7 @@ class CVVoronoi(Sampler):
 
             self.step_gen_time.append(time.time() - start_time)
             logger.info(
-                f"Found the next best {n_new_point_per_iteration} point(s) in "
+                f"Found the next best {n_new_points_per_iteration} point(s) in "
                 f"{time.time() - start_time} sec."
             )
 
@@ -218,7 +209,8 @@ class CVVoronoi(Sampler):
             # refit the surrogate
             start_time = time.time()
             for i, surrogate in enumerate(self.surrogates):
-                surrogate.update(new_points_x, new_points_y[i])
+                # surrogate.update(new_points_x, new_points_y[i])
+                surrogate.fit(points_x, points_y[:, i])
                 self.step_fit_time.append(time.time() - start_time)
                 logger.info(
                     f"Fitted a new surrogate model in {time.time() - start_time} sec."
@@ -226,8 +218,9 @@ class CVVoronoi(Sampler):
 
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = evaluate(
-                self.metric,
+
+            score = evaluate_modellist(
+                self.logging_metrics,
                 self.surrogates,
                 self.test_points_x,
                 self.test_points_y,
@@ -237,21 +230,16 @@ class CVVoronoi(Sampler):
             )
             self.step_x.append(points_x)
             self.step_y.append(points_y)
-            self.step_score.append(score)
+            self.step_score.append(score[self.evaluation_metric.__name__])
             self.step_iter.append(ii + 1)
-            timing_dict = {"Gen time": self.step_gen_time[ii + 1],
-                           "Fit time": self.step_fit_time[ii + 1]}
-            # TODO we have refactor the logging to accomodate multi output.
-            # Also better to work with metric dicts because we can't assume
-            # the order of metrics is always the same
-
-            write_scores(self.writer, score, ii+1)
+            timing_dict = {
+                "Gen time": self.step_gen_time[ii + 1],
+                "Fit time": self.step_fit_time[ii + 1],
+            }
+            write_scores(self.writer, score, ii + 1)
             write_timer(self.writer, timing_dict, ii + 1)
 
-            # self.writer.add_scalar("Gen time", self.step_gen_time[ii + 1], ii + 1)
-            # self.writer.add_scalar("Fit time", self.step_fit_time[ii + 1], ii + 1)
-            # Currently use RMSE for convergence
-            self.score = score["rmse"][0]
+            self.score = score[self.evaluation_metric.__name__][0]
             self.iterations = ii
             # Save model every 200 iterations
             if self.iterations % 200 == 0:
@@ -262,29 +250,21 @@ class CVVoronoi(Sampler):
                     save_path = os.path.join(self.save_dir, save_name)
                     with open(save_path, "wb") as file:
                         pickle.dump(s, file)
-            if stopping_criterium:
-                logger.info(
-                    f"Evaluation metric {[name for name in self.metric]} score"
-                    f" on provided testset: {score}"
-                )
-                if self.score <= stopping_criterium:
-                    logger.info(f"Algorithm converged in {ii} iterations")
-                    # Save model if converged
-                    for s_i, s in enumerate(self.surrogates):
-                        save_name = (
-                            f"{self.run_name}_"
-                            f"out{s_i}_{self.iterations}_converged.pkl"
-                        )
-                        save_path = os.path.join(self.save_dir, save_name)
-                        with open(save_path, "wb") as file:
-                            pickle.dump(s, file)
-                    break
+
+            if self.score <= stopping_criterium:
+                logger.info(f"Algorithm converged in {ii} iterations")
+                # Save model if converged
+                for s_i, s in enumerate(self.surrogates):
+                    save_name = (
+                        f"{self.run_name}_" f"out{s_i}_{self.iterations}_converged.pkl"
+                    )
+                    save_path = os.path.join(self.save_dir, save_name)
+                    with open(save_path, "wb") as file:
+                        pickle.dump(s, file)
+                break
         self.writer.close()
 
         return self.fit_points_x, self.fit_points_y
-
-    def result_as_dict(self):
-        pass
 
 
 def pick_new_samples(
@@ -296,12 +276,12 @@ def pick_new_samples(
 
     max_dist_i = np.argpartition(voronoi_i_distances, -n)[-1:]
 
-    return voronoi_i_points[max_dist_i, :]
+    return voronoi_i_points[max_dist_i, :][:]
 
 
 def identify_sensitive_voronoi_cell(
     surrogates: list,
-    surrogate_model_fun: object,
+    surrogate_model: object,
     points_X: np.ndarray,
     points_y: np.ndarray,
     n_dim_out: int,
@@ -338,7 +318,7 @@ def identify_sensitive_voronoi_cell(
             X_train, X_test = points_X[train_index], points_X[test_index]
             y_train, y_test = points_y[train_index], points_y[test_index]
 
-            s_i = surrogate_model_fun()
+            s_i = surrogate_model()
             s_i.fit(X_train, y_train[:, s])
             y_pred = s_i.predict(X_test)
             kfold_results[i, s] = np.linalg.norm(y_test[:, s] - y_pred)
@@ -362,7 +342,7 @@ def identify_sensitive_voronoi_cell(
 
         # implements #13 #14 from [2]
         for j in range(0, n_dim_out):
-            s_i = surrogate_model_fun()
+            s_i = surrogate_model()
             s_i.fit(points_X_exc_i, points_y_exc_i[:, j])
             # predict X[i] with surrogate
             y_pred = s_i.predict(X_i.reshape((1, -1)))

@@ -1,20 +1,18 @@
 import itertools
-import math
 import os
 import pickle
 import time
 from typing import Callable, Optional, Tuple
 
-# import numba as nb
 import numpy as np
 from loguru import logger
 from scipy.spatial.distance import cdist
-from sklearn.metrics import mean_squared_error
-from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
-from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling, rmse
+from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
+from harlow.utils.log_writer import write_scores, write_timer
+from harlow.utils.metrics import rmse
 from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
 
 # from harlow.distance import pdist_full_matrix
@@ -56,47 +54,38 @@ class LolaVoronoi(Sampler):
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
-        evaluation_metric: Callable = None,
-        run_name: str = "",
+        evaluation_metric: Callable = rmse,
+        logging_metrics: list = None,
+        verbose: bool = False,
+        run_name: str = None,
         save_dir: str = "",
     ):
-        self.domain_lower_bound = domain_lower_bound
-        self.domain_upper_bound = domain_upper_bound
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
-        self.surrogate_model = surrogate_model
-        self.fit_points_x = fit_points_x
-        self.fit_points_y = fit_points_y
-        self.test_points_x = test_points_x
-        self.test_points_y = test_points_y
 
-        if evaluation_metric is None:
-            self.metric = [rmse]
-        else:
-            self.metric = evaluation_metric
-        self.run_name = run_name
-        self.save_dir = save_dir
-        # self.verbose = verbose
-
-        # Internal storage for inspection
-        self.step_x = []
-        self.step_y = []
-        self.step_score = []
-        self.step_iter = []
-        self.step_fit_time = []
-        self.step_gen_time = []
-        # Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment="-" + run_name)
+        super(LolaVoronoi, self).__init__(
+            target_function,
+            surrogate_model,
+            domain_lower_bound,
+            domain_upper_bound,
+            fit_points_x,
+            fit_points_y,
+            test_points_x,
+            test_points_y,
+            evaluation_metric,
+            logging_metrics,
+            verbose,
+            run_name,
+            save_dir,
+        )
 
     def sample(
         self,
-        n_initial_point: int = None,
-        n_iter: int = 20,
-        n_new_point_per_iteration: int = 1,
+        n_initial_points: int = None,
+        max_n_iterations: int = 20,
+        n_new_points_per_iteration: int = 1,
         stopping_criterium: float = None,
         ignore_far_neighborhoods: Optional[bool] = True,
         ignore_old_neighborhoods: Optional[bool] = True,
     ):
-        """TODO: allow for providing starting points"""
         # ..........................................
         # Initialize
         # ..........................................
@@ -105,14 +94,8 @@ class LolaVoronoi(Sampler):
         domain_upper_bound = self.domain_upper_bound
         n_dim = len(domain_lower_bound)
 
-        if n_initial_point is None:
-            n_initial_point = 5 * n_dim
-
-        if stopping_criterium:
-            n_iter = 1000
-
-        if stopping_criterium and not self.metric:
-            self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
+        if n_initial_points is None:
+            n_initial_points = 5 * n_dim
 
         # ..........................................
         # Initial sample of points
@@ -121,7 +104,7 @@ class LolaVoronoi(Sampler):
         if self.fit_points_x is None:
             # latin hypercube sampling to get the initial sample of points
             points_x = latin_hypercube_sampling(
-                n_sample=n_initial_point,
+                n_sample=n_initial_points,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
             )
@@ -143,11 +126,11 @@ class LolaVoronoi(Sampler):
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
 
-        # Additional class objects to help keep track of the sampling. `gen_time`
-        # denotes the time to generate new points. `fit_time` is the time
-        # to fit the surrogate.
         score = evaluate(
-            self.metric, self.surrogate_model, self.test_points_x, self.test_points_y
+            self.logging_metrics,
+            self.surrogate_model,
+            self.test_points_x,
+            self.test_points_y,
         )
         self.step_x.append(points_x)
         self.step_y.append(points_y)
@@ -158,9 +141,10 @@ class LolaVoronoi(Sampler):
         # Iterative improvement (adaptive stage)
         # ..........................................
         n_point_last_iter = 0
-        for ii in range(n_iter):
+        for ii in range(max_n_iterations):
             logger.info(
-                f"Started adaptive iteration step: {ii+1} (max steps:" f" {n_iter})."
+                f"Started adaptive iteration step: {ii+1} (max steps:"
+                f" {max_n_iterations})."
             )
 
             start_time = time.time()
@@ -170,14 +154,14 @@ class LolaVoronoi(Sampler):
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
                 n_point_last_iter=n_point_last_iter,
-                n_new_point=n_new_point_per_iteration,
+                n_new_point=n_new_points_per_iteration,
                 ignore_far_neighborhoods=ignore_far_neighborhoods,
                 ignore_old_neighborhoods=ignore_old_neighborhoods,
             )
             self.step_gen_time.append(time.time() - start_time)
             n_point_last_iter = points_x.shape[0]
             logger.info(
-                f"Found the next best {n_new_point_per_iteration} point(s) in "
+                f"Found the next best {n_new_points_per_iteration} point(s) in "
                 f"{time.time() - start_time} sec."
             )
 
@@ -200,7 +184,7 @@ class LolaVoronoi(Sampler):
             self.fit_points_x = points_x
             self.fit_points_y = points_y
             score = evaluate(
-                self.metric,
+                self.logging_metrics,
                 self.surrogate_model,
                 self.test_points_x,
                 self.test_points_y,
@@ -209,35 +193,26 @@ class LolaVoronoi(Sampler):
             self.step_y.append(points_y)
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
-            # Writer log
-            if len(score) == 1:
-                self.writer.add_scalar("RMSE", score[0], ii + 1)
-            elif len(score) == 2:
-                self.writer.add_scalar("RMSE", score[0], ii + 1)
-                self.writer.add_scalar("RRSE", score[1], ii + 1)
-            elif len(score) == 3:
-                self.writer.add_scalar("RMSE", score[0], ii + 1)
-                self.writer.add_scalar("RRSE", score[1], ii + 1)
-                self.writer.add_scalar("MAE", score[2], ii + 1)
-            self.writer.add_scalar("Gen time", self.step_gen_time[ii], ii + 1)
-            self.writer.add_scalar("Fit time", self.step_fit_time, ii + 1)
+            timing_dict = {
+                "Gen time": self.step_gen_time[ii + 1],
+                "Fit time": self.step_fit_time[ii + 1],
+            }
+            write_scores(self.writer, score, ii + 1)
+            write_timer(self.writer, timing_dict, ii + 1)
+
             logger.info(f"Evaluation metric score on provided testset: {score}")
-            self.score = score[0]
+            self.score = score[self.evaluation_metric.__name__]
             self.iterations = ii
             # Save model every 5 iterations
             if self.iterations % 5 == 0:
                 self.save_model()
-            if stopping_criterium:
-                if self.score <= stopping_criterium:
-                    logger.info(f"Algorithm converged in {ii} iterations")
-                    # Save model if converged
-                    self.save_model()
-                    break
-            if n_iter:
-                if ii > n_iter:
-                    logger.info(f"Max number of iterations ({n_iter}) " f"reached.")
-                    self.save_model()
-                    break
+
+            if self.score <= stopping_criterium or self.score <= stopping_criterium:
+                logger.info(f"Sampler ended in {ii} iterations")
+                # Save model if converged
+                self.save_model()
+                break
+
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
 
@@ -247,9 +222,6 @@ class LolaVoronoi(Sampler):
 
         with open(save_path, "wb") as file:
             pickle.dump(self.surrogate_model, file)
-
-    def result_as_dict(self):
-        pass
 
 
 # -----------------------------------------------------

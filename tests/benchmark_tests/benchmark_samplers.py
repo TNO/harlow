@@ -13,17 +13,18 @@ import os
 
 import numpy as np
 
+from harlow.sampling.cv_voronoi import CVVoronoi
 from harlow.sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from harlow.sampling.lola_voronoi import LolaVoronoi
 from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
 from harlow.sampling.random_sampling import Latin_hypercube_sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
-from harlow.utils.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
+from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.utils.metrics import mae, rmse, rrse
 from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
 
 np.random.seed(0)
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
-stop_thresh = None
 
 
 def create_test_set_2D(min_domain, max_domain, n):
@@ -64,7 +65,15 @@ def steps_to_array(list_of_dicts, key):
 
 
 def run_benchmark(
-    name, crt, method, adapt_steps, n_new_points, problem, n_initial_point, test_size
+    name,
+    evaluation_metric,
+    logging_metrics,
+    method,
+    adapt_steps,
+    n_new_points,
+    problem,
+    n_initial_point,
+    test_size,
 ):
     sampling_res_list = []
     save_path = os.path.join("saves", name)
@@ -117,7 +126,8 @@ def run_benchmark(
         domains_upper_bound,
         test_X,
         test_y,
-        crt,
+        evaluation_metric,
+        logging_metrics,
         method,
         adapt_steps,
         n_initial_point,
@@ -151,7 +161,8 @@ def test_sampler(
     domain_upper_bound,
     test_X,
     test_y,
-    metric,
+    evaluation_metric,
+    logging_metrics,
     sampler,
     n_iter_sampling,
     n_initial_point,
@@ -175,7 +186,8 @@ def test_sampler(
             fit_points_y=start_points_y,
             test_points_x=test_X,
             test_points_y=test_y,
-            evaluation_metric=metric,
+            evaluation_metric=evaluation_metric,
+            logging_metrics=logging_metrics,
             run_name=name,
             save_dir=save_path,
         )
@@ -189,7 +201,8 @@ def test_sampler(
             fit_points_y=start_points_y,
             test_points_x=test_X,
             test_points_y=test_y,
-            evaluation_metric=metric,
+            evaluation_metric=evaluation_metric,
+            logging_metrics=logging_metrics,
             run_name=name,
             save_dir=save_path,
         )
@@ -203,7 +216,8 @@ def test_sampler(
             fit_points_y=start_points_y,
             test_points_x=test_X,
             test_points_y=test_y,
-            evaluation_metric=metric,
+            evaluation_metric=evaluation_metric,
+            logging_metrics=logging_metrics,
             run_name=name,
         )
     elif sampler == "Random":
@@ -216,14 +230,30 @@ def test_sampler(
             fit_points_y=start_points_y,
             test_points_x=test_X,
             test_points_y=test_y,
-            evaluation_metric=metric,
+            evaluation_metric=evaluation_metric,
+            logging_metrics=logging_metrics,
             run_name=name,
         )
 
+    elif sampler == "CV":
+        lv = CVVoronoi(
+            target_function=target_f,
+            surrogate_model=surrogate_model,
+            domain_lower_bound=domain_lower_bound,
+            domain_upper_bound=domain_upper_bound,
+            fit_points_x=start_points_X,
+            fit_points_y=start_points_y,
+            test_points_x=test_X,
+            test_points_y=test_y,
+            evaluation_metric=evaluation_metric,
+            logging_metrics=logging_metrics,
+            run_name=name,
+            save_dir=save_path,
+        )
     lv.sample(
-        n_initial_point=n_initial_point,
-        n_iter=n_iter_sampling,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        n_initial_points=n_initial_point,
+        n_iterations=n_iter_sampling,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         stopping_criterium=stop_thresh,
     )
 
@@ -257,11 +287,18 @@ if __name__ == "__main__":
         help="Number of initial points to start sampling",
     )
     parser.add_argument(
-        "-m",
-        "--metric",
+        "-em",
+        "--evaluation_metric",
         default="rmse",
         type=str,
-        help="Define the meassure function",
+        help="Define the evaluation metric function",
+    )
+    parser.add_argument(
+        "-lm",
+        "--logging_metrics",
+        default=[],
+        type=list,
+        help="Define the logging metrics functions as list",
     )
     parser.add_argument(
         "-st",
@@ -280,10 +317,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     TEST_SIZE = 500
-    if args.metric == "all":
-        metric = [rmse, rrse, mae]
+    if args.logging_metric == "all":
+        evaluation_metric = rmse
+        logging_metrics = [rrse, mae]
     else:
-        metric = [rmse]
+        evaluation_metric = rmse
+        logging_metrics = []
 
     run_name = "Bench_{}_with_{}_initial_points_on_{}D_problem".format(
         args.sampler, args.init_p, args.problem
@@ -291,7 +330,8 @@ if __name__ == "__main__":
     print(run_name)
     flv_sampling_out = run_benchmark(
         run_name,
-        metric,
+        evaluation_metric,
+        logging_metrics,
         args.sampler,
         args.steps,
         args.n_points_iter,

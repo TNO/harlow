@@ -10,7 +10,7 @@ from sklearn.metrics import mean_squared_error
 
 from harlow.sampling.lola_voronoi import LolaVoronoi
 from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogating.surrogate_model import GaussianProcess
+from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.integration_tests.test_functions import peaks_2d
 
@@ -99,7 +99,7 @@ def test_LV_sampling(
     test_y,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -117,9 +117,9 @@ def test_LV_sampling(
     )
     main_start = time.time()
     lv.sample(
-        n_iter=None,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        max_n_iterations=None,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         stopping_criterium=rmse_criterium,
     )
 
@@ -141,7 +141,7 @@ def test_probabilistic_sampling(
     test_y,
 ):
 
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
 
     # ............................
     # Surrogating
@@ -180,7 +180,7 @@ def test_random_sampling(
     main_start = time.time()
 
     start_time = time.time()
-    surrogate_model = GaussianProcess()
+    surrogate_model = VanillaGaussianProcess()
     surrogate_model.fit(points_x, points_y)
     logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
 
