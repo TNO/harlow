@@ -19,12 +19,11 @@ from scipy.optimize import differential_evolution
 from sklearn.metrics import mean_squared_error
 from tensorboardX import SummaryWriter
 
-from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 
 
-class ProbabilisticSampler(Sampler):
+class Probabilistic_sampler:
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],

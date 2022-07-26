@@ -13,36 +13,24 @@ import os
 
 import numpy as np
 
+from harlow.offloading.offloader_hartmann import hartmann_offload
 from harlow.sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from harlow.sampling.lola_voronoi import LolaVoronoi
 from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
 from harlow.sampling.random_sampling import Latin_hypercube_sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
-from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
+
+# from integration_tests.offloader_hartmann import hartmann_offload
 
 np.random.seed(0)
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
 stop_thresh = None
 
 
-def create_test_set_2D(min_domain, max_domain, n):
-    test_X = latin_hypercube_sampling(min_domain, max_domain, n)
-    test_y = peaks_2d(test_X).reshape((-1, 1))
-
-    return test_X, test_y
-
-
 def create_test_set_6D(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
-    test_y = hartmann(test_X).reshape((-1, 1))
-
-    return test_X, test_y
-
-
-def create_test_set_8D(min_domain, max_domain, n):
-    test_X = latin_hypercube_sampling(min_domain, max_domain, n)
-    test_y = stybtang(test_X).reshape((-1, 1))
+    test_y = hartmann_offload(test_X).reshape((-1, 1))
 
     return test_X, test_y
 
@@ -70,19 +58,7 @@ def run_benchmark(
     save_path = os.path.join("saves", name)
     os.makedirs(save_path, exist_ok=True)
 
-    if problem == 2:
-        domains_lower_bound = np.array([-8.0, -8.0])
-        domains_upper_bound = np.array([8.0, 8.0])
-        test_X, test_y = create_test_set_2D(
-            domains_lower_bound, domains_upper_bound, test_size
-        )
-        start_points_X = latin_hypercube_sampling(
-            domains_lower_bound, domains_upper_bound, n_initial_point
-        )
-        start_points_y = peaks_2d(start_points_X).reshape((-1, 1))
-        target_func = peaks_2d
-
-    elif problem == 6:
+    if problem == 6:
         domains_lower_bound = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         domains_upper_bound = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
         test_X, test_y = create_test_set_6D(
@@ -92,23 +68,8 @@ def run_benchmark(
         start_points_X = latin_hypercube_sampling(
             domains_lower_bound, domains_upper_bound, n_initial_point
         )
-        start_points_y = hartmann(start_points_X).reshape((-1, 1))
-        target_func = hartmann
-
-    elif problem == 8:
-        domains_lower_bound = np.array([-5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0, -5.0])
-        domains_upper_bound = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0])
-        test_X, test_y = create_test_set_8D(
-            domains_lower_bound, domains_upper_bound, test_size
-        )
-        # print('TEST_X, TEST_y', test_X, test_X.shape, test_y, test_y.shape)
-        start_points_X = latin_hypercube_sampling(
-            domains_lower_bound, domains_upper_bound, n_initial_point
-        )
-        start_points_y = stybtang(start_points_X).reshape((-1, 1))
-        # print('START_X, START_y', start_points_X, start_points_X.shape,
-        # start_points_y, start_points_y.shape)
-        target_func = stybtang
+        start_points_y = hartmann_offload(start_points_X).reshape((-1, 1))
+        target_func = hartmann_offload
 
     sampling_run_res = test_sampler(
         start_points_X,
