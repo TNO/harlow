@@ -4,7 +4,7 @@ import numpy as np
 
 from harlow.sampling import LolaVoronoi
 from harlow.surrogating import VanillaGaussianProcess
-from tests.integration_tests.test_functions import forrester_1d, peaks_2d
+from harlow.utils.test_functions import forrester_1d, peaks_2d
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
 

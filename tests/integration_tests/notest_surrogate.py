@@ -7,8 +7,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 from harlow.sampling import LolaVoronoi, ProbabilisticSampler
 from harlow.surrogating import GaussianProcessTFP, VanillaGaussianProcess
+from harlow.utils.test_functions import bohachevsky_2D, forrester_1d, shekel
 from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
-from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 
 
 def test_2D():

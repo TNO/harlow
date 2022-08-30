@@ -16,7 +16,7 @@ from sklearn.metrics import mean_squared_error
 from harlow.sampling import FuzzyLolaVoronoi
 from harlow.surrogating import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
-from tests.integration_tests.test_functions import peaks_2d
+from harlow.utils.test_functions import peaks_2d
 
 domains_lower_bound = np.array([-8, -8])
 domains_upper_bound = np.array([8, 8])
