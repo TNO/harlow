@@ -30,12 +30,12 @@ def evaluate(metric, model, test_points_X, test_points_y):
 
     Returns:
     """
-    score_mtrx = np.zeros(len(metric))
+    score_mtrx = np.zeros(len(np.atleast_1d(metric)))
     count = 0
     if metric is None or test_points_X is None:
         score_mtrx[count] = 0.0
     else:
-        for metric_func in metric:
+        for metric_func in np.atleast_1d(metric):
             score_mtrx[count] = metric_func(model.predict(test_points_X), test_points_y)
             count += 1
 

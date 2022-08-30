@@ -13,11 +13,13 @@ import os
 
 import numpy as np
 
-from harlow.sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
-from harlow.sampling.lola_voronoi import LolaVoronoi
-from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
-from harlow.sampling.random_sampling import Latin_hypercube_sampler
-from harlow.surrogating.surrogate_model import VanillaGaussianProcess
+from harlow.sampling import (
+    FuzzyLolaVoronoi,
+    LatinHypercube,
+    LolaVoronoi,
+    ProbabilisticSampler,
+)
+from harlow.surrogating import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
 from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
 
@@ -194,7 +196,7 @@ def test_sampler(
             save_dir=save_path,
         )
     elif sampler == "Prob":
-        lv = Probabilistic_sampler(
+        lv = ProbabilisticSampler(
             target_function=target_f,
             surrogate_model=surrogate_model,
             domain_lower_bound=domain_lower_bound,
@@ -207,7 +209,7 @@ def test_sampler(
             run_name=name,
         )
     elif sampler == "Random":
-        lv = Latin_hypercube_sampler(
+        lv = LatinHypercube(
             target_function=target_f,
             surrogate_model=surrogate_model,
             domain_lower_bound=domain_lower_bound,
