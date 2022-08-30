@@ -56,7 +56,7 @@ class FuzzyLolaVoronoi(Sampler):
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
         self.metric = evaluation_metric
-        self.run_name = run_name
+        self.run_name = str(run_name)
         self.save_dir = save_dir
         # self.verbose = verbose
 
@@ -68,7 +68,7 @@ class FuzzyLolaVoronoi(Sampler):
         self.step_fit_time = []
         self.step_gen_time = []
         # Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment="-" + run_name)
+        self.writer = SummaryWriter(comment="-" + self.run_name)
 
     def sample(
         self,
@@ -203,7 +203,7 @@ class FuzzyLolaVoronoi(Sampler):
             self.score = score[0]
             self.iterations = ii
             # Save model every 200 iterations
-            if self.iterations % 200 == 0:
+            if (self.iterations % 200 == 0) and self.save_dir:
                 save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
                 save_path = os.path.join(self.save_dir, save_name)
                 with open(save_path, "wb") as file:

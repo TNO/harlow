@@ -2,8 +2,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from harlow.sampling.lola_voronoi import LolaVoronoi
-from harlow.surrogating.surrogate_model import VanillaGaussianProcess
+from harlow.sampling import LolaVoronoi
+from harlow.surrogating import VanillaGaussianProcess
 from tests.integration_tests.test_functions import forrester_1d, peaks_2d
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 

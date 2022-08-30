@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from harlow.sampling.lola_voronoi import LolaVoronoi
+from harlow.sampling import LolaVoronoi
 
 
 def plot_1d_lola_voronoi(

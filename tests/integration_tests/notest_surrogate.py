@@ -5,12 +5,8 @@ import numpy as np
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import MinMaxScaler
 
-from harlow.sampling.lola_voronoi import LolaVoronoi
-from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogating.surrogate_model import (
-    GaussianProcessTFP,
-    VanillaGaussianProcess,
-)
+from harlow.sampling import LolaVoronoi, ProbabilisticSampler
+from harlow.surrogating import GaussianProcessTFP, VanillaGaussianProcess
 from harlow.visualization.plotting import add_samples_to_plot, plot_function_custom
 from tests.integration_tests.test_functions import bohachevsky_2D, forrester_1d, shekel
 
@@ -256,7 +252,7 @@ def visual_test_probSampling_1D():
     plot.plot(X_range, y_range, "r")
 
     gpr = VanillaGaussianProcess()
-    lv = Probabilistic_sampler(
+    lv = ProbabilisticSampler(
         target_function=forrester_1d,
         surrogate_model=gpr,
         domain_lower_bound=np.array([0.0]),
