@@ -21,7 +21,7 @@ from harlow.sampling import (
 )
 from harlow.surrogating import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling, mae, rmse, rrse
-from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
+from harlow.utils.test_functions import hartmann, peaks_2d, stybtang
 
 np.random.seed(0)
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025

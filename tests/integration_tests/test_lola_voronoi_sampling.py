@@ -4,7 +4,7 @@ To reduce runtime a dummy surrogate model class is used: `EmptySurrogate`."""
 import numpy as np
 
 from harlow.sampling import LolaVoronoi
-from tests.integration_tests.test_functions import forrester_1d, lldeh_1d
+from harlow.utils.test_functions import forrester_1d, lldeh_1d
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
 

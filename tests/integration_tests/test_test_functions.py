@@ -1,6 +1,6 @@
 import numpy as np
 
-from tests.integration_tests.test_functions import ackley_nd
+from harlow.utils.test_functions import ackley_nd
 
 
 def test_ackley_nd():

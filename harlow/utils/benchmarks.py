@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error
 
 from harlow.sampling.lola_voronoi import LolaVoronoi
 from harlow.surrogating.surrogate_model import NN
-from tests.integration_tests.test_functions import shekel
+from harlow.utils.test_functions import shekel
 
 
 def shekel_benchmark():
