@@ -21,7 +21,8 @@ from harlow.sampling.random_sampling import Latin_hypercube_sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import mae, rmse, rrse
-from tests.integration_tests.test_functions import hartmann, peaks_2d, stybtang
+from tests.integration_tests.test_functions import hartmann, peaks_2d, \
+    stybtang, peaks_2d_multivariate
 
 np.random.seed(0)
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
@@ -30,6 +31,12 @@ stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
 def create_test_set_2D(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = peaks_2d(test_X).reshape((-1, 1))
+
+    return test_X, test_y
+
+def create_test_set_2Dmulti(min_domain, max_domain, n):
+    test_X = latin_hypercube_sampling(min_domain, max_domain, n)
+    test_y = peaks_2d_multivariate(test_X)
 
     return test_X, test_y
 
@@ -118,6 +125,18 @@ def run_benchmark(
         # print('START_X, START_y', start_points_X, start_points_X.shape,
         # start_points_y, start_points_y.shape)
         target_func = stybtang
+    elif problem == -2:
+        domains_lower_bound = np.array([-8.0, -8.0])
+        domains_upper_bound = np.array([8.0, 8.0])
+        test_X, test_y = create_test_set_2Dmulti(
+            domains_lower_bound, domains_upper_bound, test_size
+        )
+        start_points_X = latin_hypercube_sampling(
+            domains_lower_bound, domains_upper_bound, n_initial_point
+        )
+        start_points_y = peaks_2d_multivariate(start_points_X)
+
+        target_func = peaks_2d_multivariate
 
     sampling_run_res = test_sampler(
         start_points_X,
@@ -144,11 +163,11 @@ def run_benchmark(
         name, sampling_run_res.get("score")[-1]
     )
     json_save_path = os.path.join("json_saves", json_name)
-    os.makedirs(json_save_path, exist_ok=True)
-    with open(json_name, "w") as fout:
+    os.makedirs("json_saves", exist_ok=True)
+    with open(f"{json_save_path}.json", "w") as fout:
         sampling_run_res["step_x"] = [i.tolist() for i in sampling_run_res["step_x"]]
         sampling_run_res["step_y"] = [i.tolist() for i in sampling_run_res["step_y"]]
-        sampling_run_res["score"] = [i.tolist() for i in sampling_run_res["score"]]
+        sampling_run_res["score"] = [i for i in sampling_run_res["score"]]
         json.dump(sampling_run_res, fout)
 
     return sampling_res_list
@@ -172,7 +191,7 @@ def test_sampler(
     save_path,
 ):
 
-    surrogate_model = VanillaGaussianProcess()
+    surrogate_model = VanillaGaussianProcess
     # ............................
     # Surrogating
     # ............................
@@ -252,7 +271,7 @@ def test_sampler(
         )
     lv.sample(
         n_initial_points=n_initial_point,
-        n_iterations=n_iter_sampling,
+        max_n_iterations=n_iter_sampling,
         n_new_points_per_iteration=n_new_points_per_iteration,
         stopping_criterium=stop_thresh,
     )
@@ -296,9 +315,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-lm",
         "--logging_metrics",
-        default=[],
-        type=list,
-        help="Define the logging metrics functions as list",
+        nargs='+',
+        help="Define the logging metrics functions",
     )
     parser.add_argument(
         "-st",
@@ -317,7 +335,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     TEST_SIZE = 500
-    if args.logging_metric == "all":
+    if args.logging_metrics == "all":
         evaluation_metric = rmse
         logging_metrics = [rrse, mae]
     else:
@@ -328,6 +346,7 @@ if __name__ == "__main__":
         args.sampler, args.init_p, args.problem
     )
     print(run_name)
+
     flv_sampling_out = run_benchmark(
         run_name,
         evaluation_metric,
@@ -339,3 +358,4 @@ if __name__ == "__main__":
         args.init_p,
         TEST_SIZE,
     )
+
