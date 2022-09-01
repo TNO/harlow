@@ -58,7 +58,11 @@ def test_chain_transform():
     transform = ChainTransform(
         Identity(), Normalize(), Standardize(), TensorTransform()
     )
-    transformed_X = transform.forward(test_X)
-    untransformed_X = transform.reverse(transformed_X)
+    transformed_X = transform().forward(test_X)
+    untransformed_X = transform().reverse(transformed_X)
     assert torch.is_tensor(transformed_X)
     assert isinstance(untransformed_X, np.ndarray)
+
+
+if __name__ == "__main__":
+    test_chain_transform()

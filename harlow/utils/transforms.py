@@ -34,26 +34,63 @@ class Transform(ABC):
         raise NotImplementedError
 
 
+# class ChainTransform(Transform):
+#     """
+#     Class used to chain together a series of transforms
+#
+#     TODO:
+#         * Should this make a copy of `X` first or change it inplace?
+#     """
+#
+#     def __init__(self, *args, getinstance=True):
+#         self.lst_transforms = list(args)
+#
+#     def forward(self, X):
+#         for transf in self.lst_transforms:
+#             X = transf.forward(X)
+#         return X
+#
+#     def reverse(self, X):
+#         for transf in self.lst_transforms.__reversed__():
+#             X = transf.reverse(X)
+#         return X
+#
+#     @classmethod
+#     def getinstance(cls):
+#         return cls(self.lst)
+
+
 class ChainTransform(Transform):
     """
-    Class used to chain together a series of transforms
+    Class used to chain together a series of transforms. Returns a
+    `ChainTransformObject` class which can be instantiated and contains
+    the specified list of transforms as a class attribute.
 
     TODO:
         * Should this make a copy of `X` first or change it inplace?
     """
 
-    def __init__(self, *args):
-        self.lst_transforms = list(args)
+    def __new__(cls, *args):
+        """
+        Creates a `ChainTransformObject`, i.e. an uninitialized chain
+        transform class
+        """
 
-    def forward(self, X):
-        for transf in self.lst_transforms:
-            X = transf.forward(X)
-        return X
+        class ChainTransformObject(Transform):
+            def __init__(self):
+                self.lst_transforms = list(args)
 
-    def reverse(self, X):
-        for transf in self.lst_transforms.__reversed__():
-            X = transf.reverse(X)
-        return X
+            def forward(self, X):
+                for transf in self.lst_transforms:
+                    X = transf.forward(X)
+                return X
+
+            def reverse(self, X):
+                for transf in self.lst_transforms.__reversed__():
+                    X = transf.reverse(X)
+                return X
+
+        return ChainTransformObject
 
 
 class Identity(Transform):
