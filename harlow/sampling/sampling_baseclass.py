@@ -20,8 +20,8 @@ class Sampler(ABC):
         evaluation_metric: Callable = None,
         verbose: bool = False,
     ):
-        self.domain_lower_bound = domain_lower_bound
-        self.domain_upper_bound = domain_upper_bound
+        self.domain_lower_bound = np.array(domain_lower_bound)
+        self.domain_upper_bound = np.array(domain_upper_bound)
         self.target_function = lambda x: target_function(x).reshape((-1, 1))
         self.surrogate_model = surrogate_model
         self.fit_points_x = fit_points_x

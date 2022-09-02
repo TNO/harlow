@@ -170,7 +170,7 @@ class Surrogate(ABC):
             return samples, std
         else:
             samples = self._predict(X, return_std=return_std, **kwargs)
-            return samples
+            return self.output_transform().reverse(samples)
 
 
 class VanillaGaussianProcess(Surrogate):
