@@ -21,6 +21,7 @@ class LatinHypercube(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
+        verbose: bool = False,
         run_name: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
@@ -68,7 +69,7 @@ class LatinHypercube(Sampler):
         self.step_fit_time.append(time.time() - start_time)
 
         iteration = 0
-        while self.score > stopping_criterium:
+        while (self.score > stopping_criterium) and (iteration < n_iter):
             start_time = time.time()
             X_new = latin_hypercube_sampling(
                 n_sample=1,
@@ -122,3 +123,6 @@ class LatinHypercube(Sampler):
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
+
+    def result_as_dict(self):
+        raise NotImplementedError

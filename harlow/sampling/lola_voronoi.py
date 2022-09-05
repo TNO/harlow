@@ -57,7 +57,8 @@ class LolaVoronoi(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
-        run_name: str = "",
+        verbose: bool = False,
+        run_name: str = None,
         save_dir: str = "",
     ):
         self.domain_lower_bound = domain_lower_bound
@@ -249,7 +250,7 @@ class LolaVoronoi(Sampler):
             pickle.dump(self.surrogate_model, file)
 
     def result_as_dict(self):
-        pass
+        raise NotImplementedError
 
 
 # -----------------------------------------------------

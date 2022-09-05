@@ -251,7 +251,7 @@ class LolaVoronoi(Sampler):
             pickle.dump(self.surrogate_model, file)
 
     def result_as_dict(self):
-        pass
+        raise NotImplementedError
 
 
 # -----------------------------------------------------

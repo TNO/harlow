@@ -36,6 +36,7 @@ class ProbabilisticSampler(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
+        verbose: bool = False,
         run_name: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
@@ -201,4 +202,4 @@ class ProbabilisticSampler(Sampler):
         return self.fit_points_x, self.fit_points_y
 
     def result_as_dict(self):
-        pass
+        raise NotImplementedError

@@ -72,6 +72,7 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
         func_sample: Callable = latin_hypercube_sampling,
         evaluation_metric: Callable = None,
         verbose: bool = False,
+        run_name: str = None,
     ):
         self.target_function = lambda x: torch.tensor(
             target_function(x).reshape((-1, 1))
@@ -269,7 +270,7 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
         return self.fit_points_x, self.fit_points_y
 
     def result_as_dict(self):
-        pass
+        raise NotImplementedError
 
     def prediction_std(self, x):
         if x.ndim == 1:

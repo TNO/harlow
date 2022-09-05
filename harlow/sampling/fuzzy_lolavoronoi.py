@@ -44,18 +44,23 @@ class FuzzyLolaVoronoi(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
+        verbose: bool = False,
         run_name: str = None,
         save_dir: str = None,
     ):
-        self.domain_lower_bound = np.array(domain_lower_bound)
-        self.domain_upper_bound = np.array(domain_upper_bound)
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
-        self.surrogate_model = surrogate_model
-        self.fit_points_x = fit_points_x
-        self.fit_points_y = fit_points_y
-        self.test_points_x = test_points_x
-        self.test_points_y = test_points_y
-        self.metric = evaluation_metric
+        super().__init__(
+            target_function,
+            surrogate_model,
+            domain_lower_bound,
+            domain_upper_bound,
+            fit_points_x=fit_points_x,
+            fit_points_y=fit_points_y,
+            test_points_x=test_points_x,
+            test_points_y=test_points_y,
+            evaluation_metric=evaluation_metric,
+            verbose=verbose,
+        )
+
         self.run_name = str(run_name)
         self.save_dir = save_dir
         # self.verbose = verbose
@@ -83,7 +88,7 @@ class FuzzyLolaVoronoi(Sampler):
         # ..........................................
         # Initialize
         # ..........................................
-        target_function = self.target_function
+        target_function = self.observer
         domain_lower_bound = self.domain_lower_bound
         domain_upper_bound = self.domain_upper_bound
         n_dim = len(domain_lower_bound)
@@ -121,7 +126,7 @@ class FuzzyLolaVoronoi(Sampler):
 
         # fit the surrogate model
         start_time = time.time()
-        self.surrogate_model.fit(points_x, points_y.ravel())
+        self.surrogate_model.fit(points_x, points_y)
         logger.info(
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
@@ -223,7 +228,7 @@ class FuzzyLolaVoronoi(Sampler):
         return self.fit_points_x, self.fit_points_y
 
     def result_as_dict(self):
-        pass
+        raise NotImplementedError
 
 
 # -----------------------------------------------------

@@ -89,20 +89,20 @@ class Surrogate(ABC):
     @staticmethod
     def check_inputs(X, y=None):
 
-        # Ensure `X` and `y` are numpy arrays
+        # Check input points `X`
         if not isinstance(X, np.ndarray):
             raise ValueError(
                 f"Parameters `X` must be of type {np.ndarray} but are"
                 f" of type {type(X)} "
             )
-        if (X.ndim != 2) and (X.ndim != 3):
+        if X.ndim != 2:
             raise ValueError(
-                f"Input array `X` must have shape `(n_batch, n_points, n_features)`"
-                f" or (n_points, n_features) but has shape {X.shape}."
+                f"Input array `X` must have shape `(n_points, n_features)`"
+                f" but has shape {X.shape}."
             )
 
-        # Check target points `y`
         if y is not None:
+            # Check target `y` is a numpy array
             if not isinstance(y, np.ndarray):
                 raise ValueError(
                     f"Targets `y` must be of type {np.ndarray} but are of"
@@ -110,19 +110,19 @@ class Surrogate(ABC):
                 )
 
             # Check shape of `y`
-            if (y.ndim != 1) and (y.ndim != 2):
+            if y.ndim < 2:
                 raise ValueError(
-                    f"Target array `y` must have shape `(n_points, n_batch)` or  "
-                    f" `(n_points,)` but has shape {y.shape}."
+                    f"Target array `y` must have at least 2 dimensions and shape "
+                    f"(n_points, n_outputs) but has {y.ndim} dimensions and shape "
+                    f"{y.shape} "
                 )
 
-            # If the batch dim of `X` has size 1, assume it is shared for all batches
-            if (X.shape[0] != 1) and (X.ndim != 2):
-                if (y.shape[0] != X.shape[1]) or (y.shape[1] != X.shape[0]):
-                    raise ValueError(
-                        f"Target `y` must have shape ({X.shape[1]}, {X.shape[0]})"
-                        f" but has shape {y.shape}."
-                    )
+            # Check consistency of input and output shapes
+            if y.shape[0] != X.shape[0]:
+                raise ValueError(
+                    f"Size of input array `X` and output array `y` must match for "
+                    f"dimension 0 but are {X.shape[0]} and {y.shape[0]} respectively."
+                )
 
     def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
         """
@@ -172,6 +172,12 @@ class Surrogate(ABC):
             samples = self._predict(X, return_std=return_std, **kwargs)
             return self.output_transform().reverse(samples)
 
+    def save_model(self):
+        raise NotImplementedError
+
+    def load_model(self):
+        raise NotImplementedError
+
 
 class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
@@ -203,7 +209,7 @@ class VanillaGaussianProcess(Surrogate):
         )
 
     def _fit(self, X, y, **kwargs):
-        self.X = X[0]
+        self.X = X
         self.y = y
         self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
@@ -233,7 +239,7 @@ class VanillaGaussianProcess(Surrogate):
         return getattr(self.model.kernel, white_kernel_attr[0]).noise_level ** 0.5
 
     def _predict(self, X, return_std=False, **kwargs):
-        samples, std = self.model.predict(X[0], return_std=True)
+        samples, std = self.model.predict(X, return_std=True)
 
         if return_std:
             return samples, std
@@ -373,7 +379,7 @@ class GaussianProcessTFP(Surrogate):
         )
 
     def _fit(self, X, y, **kwargs):
-        self.observation_index_points = X[0]
+        self.observation_index_points = X
         self.observations = y
         self.optimize_parameters()
 
@@ -507,7 +513,7 @@ class GaussianProcessRegression(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -570,8 +576,6 @@ class GaussianProcessRegression(Surrogate):
         )
 
     def _predict(self, X_pred, return_std=False, **kwargs):
-
-        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -745,7 +749,7 @@ class ModelListGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -810,7 +814,7 @@ class ModelListGaussianProcess(Surrogate):
     def _predict(self, X_pred, return_std=False, **kwargs):
 
         # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = X_pred.to(self.device)[0]
+        X_pred = X_pred.to(self.device)
 
         # Switch the model to eval mode
         self.model.eval()
@@ -978,7 +982,7 @@ class BatchIndependentGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1041,9 +1045,6 @@ class BatchIndependentGaussianProcess(Surrogate):
         )
 
     def _predict(self, X_pred, return_std=False, **kwargs):
-
-        # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1191,7 +1192,7 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1254,8 +1255,6 @@ class MultiTaskGaussianProcess(Surrogate):
         )
 
     def _predict(self, X_pred, return_std=False, **kwargs):
-
-        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1410,7 +1409,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1473,8 +1472,6 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         )
 
     def _predict(self, X_pred, return_std=False, **kwargs):
-
-        X_pred = X_pred[0]
 
         # Switch the model to eval mode
         self.model.eval()
