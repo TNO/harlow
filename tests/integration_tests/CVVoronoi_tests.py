@@ -21,8 +21,9 @@ from harlow.surrogating.surrogate_model import (
     VanillaGaussianProcess,
 )
 from harlow.utils.helper_functions import latin_hypercube_sampling
-from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
-from tests.integration_tests.test_functions import peaks_2d_multivariate
+from harlow.model.model_twin_girder_betti import IJssel_bridge_model  # noqa:
+# I201
+from harlow.utils.test_functions import peaks_2d_multivariate
 
 domains_lower_bound = np.array([-8, -8])
 domains_upper_bound = np.array([8, 8])

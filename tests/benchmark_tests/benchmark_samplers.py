@@ -23,7 +23,7 @@ from harlow.sampling import (
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import mae, rmse, rrse
-from tests.integration_tests.test_functions import hartmann, peaks_2d, \
+from harlow.utils.test_functions import hartmann, peaks_2d, \
     stybtang, peaks_2d_multivariate
 
 np.random.seed(0)
