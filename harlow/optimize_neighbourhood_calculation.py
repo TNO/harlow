@@ -14,18 +14,18 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-from harlow.sampling.lola_voronoi import LolaVoronoi
-from harlow.surrogating.surrogate_model import VanillaGaussianProcess
-from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.helper_functions import latin_hypercube_sampling
+from harlow.lola_voronoi import LolaVoronoi
+from harlow.surrogate_model import GaussianProcess
 from harlow.utils.test_functions import peaks_2d
 
 domains_lower_bound = np.array([-8, -8])
 domains_upper_bound = np.array([8, 8])
-n_initial_point = 15
+n_initial_point = 10
 n_new_points_per_iteration = 1
 rmse_criterium = 0.001
 np.random.seed(123)
-n_iter_sampling = 30
+n_iter_sampling = 25
 n_iter_runs = 100
 
 
@@ -120,7 +120,7 @@ def test_sampling_full(
     n_iter,
 ):
 
-    surrogate_model = VanillaGaussianProcess()
+    surrogate_model = GaussianProcess()
 
     # ............................
     # Surrogating
@@ -138,9 +138,9 @@ def test_sampling_full(
     )
     # main_start = time.time()
     lv.sample(
-        max_n_iterations=n_iter,
-        n_initial_points=n_initial_point,
-        n_new_points_per_iteration=n_new_points_per_iteration,
+        n_iter=n_iter,
+        n_initial_point=n_initial_point,
+        n_new_point_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=False,
         ignore_far_neighborhoods=False,
     )
@@ -165,7 +165,7 @@ def test_sampling_median(
     n_iter,
 ):
 
-    surrogate_model = VanillaGaussianProcess()
+    surrogate_model = GaussianProcess()
 
     # ............................
     # Surrogating
@@ -183,9 +183,9 @@ def test_sampling_median(
     )
     # main_start = time.time()
     lv.sample(
-        max_n_iterations=n_iter,
-        n_initial_points=n_initial_point,
-        n_new_points_per_iteration=n_new_points_per_iteration,
+        n_iter=n_iter,
+        n_initial_point=n_initial_point,
+        n_new_point_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=False,
         ignore_far_neighborhoods=True,
     )
@@ -210,7 +210,7 @@ def test_sampling_new(
     n_iter,
 ):
 
-    surrogate_model = VanillaGaussianProcess()
+    surrogate_model = GaussianProcess()
 
     # ............................
     # Surrogating
@@ -228,9 +228,9 @@ def test_sampling_new(
     )
     # main_start = time.time()
     lv.sample(
-        max_n_iterations=n_iter,
-        n_initial_points=n_initial_point,
-        n_new_points_per_iteration=n_new_points_per_iteration,
+        n_iter=n_iter,
+        n_initial_point=n_initial_point,
+        n_new_point_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=True,
         ignore_far_neighborhoods=False,
     )
@@ -255,7 +255,7 @@ def test_sampling_both(
     n_iter,
 ):
 
-    surrogate_model = VanillaGaussianProcess()
+    surrogate_model = GaussianProcess()
 
     # ............................
     # Surrogating
@@ -273,9 +273,9 @@ def test_sampling_both(
     )
     # main_start = time.time()
     lv.sample(
-        max_n_iterations=n_iter,
-        n_initial_points=n_initial_point,
-        n_new_points_per_iteration=n_new_points_per_iteration,
+        n_iter=n_iter,
+        n_initial_point=n_initial_point,
+        n_new_point_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=True,
         ignore_far_neighborhoods=True,
     )

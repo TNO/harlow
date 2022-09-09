@@ -15,14 +15,13 @@ import torch
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-from harlow.surrogating.surrogate_model import (
+from harlow.surrogating import (
     BatchIndependentGaussianProcess,
     DeepKernelMultiTaskGaussianProcess,
     ModelListGaussianProcess,
     MultiTaskGaussianProcess,
 )
 from harlow.utils.helper_functions import latin_hypercube_sampling
-from harlow.utils.transforms import ExpandDims, TensorTransform
 from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
 
 # ====================================================================
@@ -35,7 +34,7 @@ def create_test_set(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = response(test_X, sensor_positions)
 
-    return test_X, test_y
+    return torch.FloatTensor(test_X), torch.FloatTensor(test_y)
 
 
 def rmse(x, y):
@@ -50,10 +49,10 @@ def get_param_idx(params_dict):
 # SURROGATING PARAMETERS
 # ====================================================================
 N_train = 200
-N_update = 50
-N_test = 50
-N_pred = 50
-N_iter = 100
+N_update = 100
+N_test = 100
+N_pred = 100
+N_iter = 1000
 rmse_criterium = 0.1
 silence_warnings = True
 
@@ -204,12 +203,15 @@ def func_model(X):
 
 
 # ====================================================================
-# TRANSFORMS
+# STANDARDIZING AND NORMALIZING
 # ====================================================================
+def input_transform(X):
+    return X  # Normalize(d=N_features, bounds=bounds)(X)
 
-expand_transform = ExpandDims
-input_transform = TensorTransform
-output_transform = TensorTransform
+
+def output_transform(y):
+    return y  # Standardize(m=N_tasks)(y)[0]
+
 
 # ====================================================================
 # GENERATE TEST AND TRAIN DATA
@@ -217,14 +219,11 @@ output_transform = TensorTransform
 # Each column of train_Y corresponds to one GP
 print(f"Create training set N = {N_train}:")
 train_X, train_y = create_test_set(domain_lower_bound, domain_upper_bound, N_train)
-train_X = expand_transform().forward(train_X)
-
 # test_X, test_y = create_test_set(domain_lower_bound, domain_upper_bound, N_test)
 
-# To check surrogate updating
-print(f"Create update set N = {N_update}:")
-update_X, update_y = create_test_set(domain_lower_bound, domain_upper_bound, N_update)
-update_X = expand_transform().forward(update_X)
+# print(f"Create update set N = {N_update}:")
+# # To check surrogate updating
+# update_X, update_y = create_test_set(domain_lower_bound, domain_upper_bound, N_update)
 
 # Check if machine is GPU compatible and assign the device to use
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
@@ -232,47 +231,44 @@ device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("
 print("Training on Device: {}".format(device))
 
 # gpu=False
-
 # ====================================================================
 # DEFINE SURROGATE
 # ====================================================================
 N_tasks = train_y.shape[1]
-N_features = train_X.shape[2]
 
 surrogate_MLGP = ModelListGaussianProcess(
+    input_transform(train_X),
+    output_transform(train_y),
     model_names=sensor_names,
     list_params=list_params,
     training_max_iter=N_iter,
-    input_transform=input_transform,
-    output_transform=output_transform,
     silence_warnings=silence_warnings,
     dev=device,
 )
 
 surrogate_BIGP = BatchIndependentGaussianProcess(
+    input_transform(train_X),
+    output_transform(train_y),
     num_tasks=N_tasks,
     training_max_iter=N_iter,
-    input_transform=input_transform,
-    output_transform=output_transform,
     silence_warnings=silence_warnings,
     dev=device,
 )
 
 surrogate_MTGP = MultiTaskGaussianProcess(
+    input_transform(train_X),
+    output_transform(train_y),
     num_tasks=N_tasks,
     training_max_iter=N_iter,
-    input_transform=input_transform,
-    output_transform=output_transform,
     silence_warnings=silence_warnings,
     dev=device,
 )
 
 surrogate_DKLGP = DeepKernelMultiTaskGaussianProcess(
+    input_transform(train_X),
+    output_transform(train_y),
     num_tasks=N_tasks,
-    num_features=N_features,
     training_max_iter=N_iter,
-    input_transform=input_transform,
-    output_transform=output_transform,
     silence_warnings=silence_warnings,
     dev=device,
 )
@@ -302,10 +298,10 @@ for i, surrogate_i in enumerate(list_surrogates):
 # ====================================================================
 # UPDATE
 # ====================================================================
-print("============= Update =====================")
-for i, surrogate_i in enumerate(list_surrogates):
-    print("Updating: " + list_GP_type[i])
-    surrogate_i.update(update_X, update_y)
+# print("============= Update =====================")
+# for i, surrogate_i in enumerate(list_surrogates):
+#     print("Updating: " + list_GP_type[i])
+#     surrogate_i.update(update_X, update_y)
 
 # ====================================================================
 # SURROGATE PREDICT
@@ -315,6 +311,7 @@ for i, surrogate_i in enumerate(list_surrogates):
 vec_Kv = np.linspace(Kv_low, Kv_high, N_pred)
 pred_X = np.tile(np.array([7.0, 7.0, 7.0, 7.0]), (N_pred, 1))
 pred_X = np.hstack((pred_X, vec_Kv.reshape(-1, 1)))
+pred_X = torch.FloatTensor(pred_X)
 
 # Physical model prediction
 print(f"Create test set: N = {N_pred}")
@@ -325,9 +322,7 @@ print("============= Predict =====================")
 y_pred = []
 for i, surrogate_i in enumerate(list_surrogates):
     print("Predicting: " + list_GP_type[i])
-    y_pred.append(
-        surrogate_i.predict(expand_transform().forward(pred_X), return_std=False)
-    )
+    y_pred.append(surrogate_i.predict(input_transform(pred_X), return_std=False))
     print("--------------------------------------------------")
 
 # Initialize plots
@@ -352,31 +347,31 @@ for i, surrogate_i in enumerate(list_surrogates):
 
         # Plot training data as black stars
         ax_i.plot(
-            expand_transform().reverse(train_X)[:, -1],
-            train_y[:, j],
+            input_transform(train_X)[:, -1],
+            output_transform(train_y)[:, j],
             "k*",
             label="Observations",
         )
 
         # Predictive mean as blue line
         ax_i.plot(
-            pred_X[:, -1],
-            output_transform().reverse(mean_i)[:, j],
+            input_transform(pred_X)[:, -1].numpy(),
+            output_transform(mean_i)[:, j].cpu().numpy(),
             "b",
             label="Mean",
         )
 
         # Shade in confidence
         ax_i.fill_between(
-            pred_X[:, -1],
-            output_transform().reverse(lower_i)[:, j],
-            output_transform().reverse(upper_i)[:, j],
+            input_transform(pred_X)[:, -1].numpy(),
+            output_transform(lower_i)[:, j].cpu().detach().numpy(),
+            output_transform(upper_i)[:, j].cpu().detach().numpy(),
             alpha=0.5,
             label="Confidence",
         )
         ax_i.plot(
-            pred_X[:, -1],
-            true_y[:, j],
+            input_transform(pred_X)[:, -1].numpy(),
+            output_transform(torch.from_numpy(true_y))[:, j],
             color="red",
             linestyle="dashed",
             label="Model",

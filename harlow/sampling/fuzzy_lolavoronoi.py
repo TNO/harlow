@@ -166,7 +166,6 @@ class FuzzyLolaVoronoi(Sampler):
             new_points_y = target_function(new_points_x)
 
             # add the new points to the old ones
-            points_x = np.concatenate((points_x, new_points_x))
             points_x = np.vstack((points_x, new_points_x))
             points_y = np.vstack((points_y, new_points_y))
 

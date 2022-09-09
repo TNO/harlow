@@ -44,7 +44,7 @@ dtype = torch.double
 SMOKE_TEST = os.environ.get("SMOKE_TEST")
 
 
-class qNIPV_sampler(Sampler):
+class NegativeIntegratedPosteriorVarianceSampler(Sampler):
     """
     TODO: Can we use q-batches to parallelize the task of finding a new point for each
     surrogate in a list of surrogates?

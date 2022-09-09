@@ -13,11 +13,13 @@ import os
 
 import numpy as np
 
-from harlow.sampling.cv_voronoi import CVVoronoi
-from harlow.sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
-from harlow.sampling.lola_voronoi import LolaVoronoi
-from harlow.sampling.probabilistic_sampling import Probabilistic_sampler
-from harlow.sampling.random_sampling import Latin_hypercube_sampler
+from harlow.sampling import (
+    CVVoronoi,
+    FuzzyLolaVoronoi,
+    LatinHypercube,
+    LolaVoronoi,
+    ProbabilisticSampler,
+)
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import mae, rmse, rrse
@@ -226,7 +228,7 @@ def test_sampler(
             save_dir=save_path,
         )
     elif sampler == "Prob":
-        lv = Probabilistic_sampler(
+        lv = ProbabilisticSampler(
             target_function=target_f,
             surrogate_model=surrogate_model,
             domain_lower_bound=domain_lower_bound,
@@ -240,7 +242,7 @@ def test_sampler(
             run_name=name,
         )
     elif sampler == "Random":
-        lv = Latin_hypercube_sampler(
+        lv = LatinHypercube(
             target_function=target_f,
             surrogate_model=surrogate_model,
             domain_lower_bound=domain_lower_bound,
@@ -335,11 +337,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     TEST_SIZE = 500
+    evaluation_metric = rmse
     if args.logging_metrics == "all":
-        evaluation_metric = rmse
         logging_metrics = [rrse, mae]
     else:
-        evaluation_metric = rmse
         logging_metrics = []
 
     run_name = "Bench_{}_with_{}_initial_points_on_{}D_problem".format(
@@ -358,4 +359,3 @@ if __name__ == "__main__":
         args.init_p,
         TEST_SIZE,
     )
-

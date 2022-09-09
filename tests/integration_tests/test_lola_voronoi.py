@@ -2,9 +2,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from harlow.sampling.lola_voronoi import LolaVoronoi
-from harlow.surrogating.surrogate_model import VanillaGaussianProcess
-from tests.integration_tests.test_functions import forrester_1d, peaks_2d
+from harlow.sampling import LolaVoronoi
+from harlow.surrogating import VanillaGaussianProcess
+from harlow.utils.test_functions import forrester_1d, peaks_2d
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
 
@@ -179,9 +179,6 @@ def test_peaks_2d():
         plt.colorbar(cs, ax=axs)
 
 
-if __name__ == "__main__":
-    print("Start")
-    test_sine_1d()
-    test_forrester_1d()
-    test_peaks_2d()
-    print("Done")
+test_sine_1d()
+test_forrester_1d()
+test_peaks_2d()

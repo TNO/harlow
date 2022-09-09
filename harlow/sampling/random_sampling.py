@@ -4,17 +4,17 @@ from typing import Callable
 import numpy as np
 from loguru import logger
 
-from harlow.surrogating.surrogate_model import Surrogate
+from harlow.sampling.sampling_baseclass import Sampler
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
 
 
-class Latin_hypercube_sampler:
+class LatinHypercube(Sampler):
     def __init__(
         self,
-        target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model: Surrogate,
+        target_function,
+        surrogate_model,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -27,7 +27,7 @@ class Latin_hypercube_sampler:
         run_name: str = None,
         save_dir: str = "",
     ):
-        super(Latin_hypercube_sampler, self).__init__(
+        super(LatinHypercube, self).__init__(
             target_function,
             surrogate_model,
             domain_lower_bound,

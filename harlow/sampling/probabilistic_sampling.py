@@ -16,13 +16,14 @@ import numpy as np
 from loguru import logger
 from scipy.optimize import differential_evolution
 
+from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
 
 
-class Probabilistic_sampler:
+class ProbabilisticSampler(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],

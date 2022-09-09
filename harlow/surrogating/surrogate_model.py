@@ -18,7 +18,6 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import torch
 from botorch.models.gpytorch import GPyTorchModel
-from botorch.utils.containers import TrainingData
 from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
@@ -58,6 +57,7 @@ class Surrogate(ABC):
         self,
         input_transform: Optional[Transform] = Identity,
         output_transform: Optional[Transform] = Identity,
+        **kwargs,
     ):
         self.input_transform = input_transform
         self.output_transform = output_transform
@@ -190,6 +190,7 @@ class VanillaGaussianProcess(Surrogate):
         noise_std=None,
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
         super().__init__(
             input_transform=input_transform, output_transform=output_transform
@@ -260,7 +261,7 @@ class VanillaGaussianProcess(Surrogate):
         self.kernel.set_params(**(self.model.kernel_.get_params()))
         self.create_model()
 
-        self.fit(self.X, self.y)
+        self._fit(self.X, self.y)
 
 
 class GaussianProcessTFP(Surrogate):
@@ -272,6 +273,7 @@ class GaussianProcessTFP(Surrogate):
         train_iterations=50,
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
 
         super().__init__(
@@ -462,6 +464,7 @@ class GaussianProcessRegression(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        **kwargs,
     ):
 
         super().__init__(
@@ -1527,7 +1530,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         return self.model.likelihood.noise.sqrt()
 
 
-class Vanilla_NN(Surrogate):
+class NeuralNetwork(Surrogate):
     """
     Class for Neural Networks.
     The class takes an uncompiled tensorflow Model, e.g.
@@ -1546,6 +1549,7 @@ class Vanilla_NN(Surrogate):
         loss="mse",
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
 
         super().__init__(
@@ -1588,7 +1592,7 @@ class Vanilla_NN(Surrogate):
             return self.preds
 
 
-class Vanilla_BayesianNN(Surrogate):
+class BayesianNeuralNetwork(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
@@ -1600,6 +1604,7 @@ class Vanilla_BayesianNN(Surrogate):
         batch_size=32,
         input_transform=ExpandDims,
         output_transform=ExpandDims,
+        **kwargs,
     ):
         super().__init__(
             input_transform=input_transform, output_transform=output_transform
@@ -1712,17 +1717,6 @@ class ExactGPModel(gpytorch.models.ExactGP, GPyTorchModel):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-
-    @classmethod
-    def construct_inputs(cls, training_data: TrainingData, **kwargs):
-        r"""Construct kwargs for the `SimpleCustomGP` from `TrainingData` and other options.
-
-        Args:
-            training_data: `TrainingData` container with data for single outcome
-                or for multiple outcomes for batched multi-output case.
-            **kwargs: None expected for this class.
-        """
-        return {"train_X": training_data.X, "train_Y": training_data.Y}
 
 
 class MultitaskGPModel(gpytorch.models.ExactGP):
