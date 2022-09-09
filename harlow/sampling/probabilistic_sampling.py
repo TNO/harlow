@@ -151,7 +151,6 @@ class ProbabilisticSampler(Sampler):
             elif stopping_criterium:
                 score = evaluate(
                     self.logging_metrics,
-                    self.surrogate_model,
                     self.test_points_x,
                     self.test_points_y,
                 )

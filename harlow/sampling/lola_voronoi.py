@@ -128,7 +128,6 @@ class LolaVoronoi(Sampler):
 
         score = evaluate(
             self.logging_metrics,
-            self.surrogate_model,
             self.test_points_x,
             self.test_points_y,
         )
@@ -185,7 +184,6 @@ class LolaVoronoi(Sampler):
             self.fit_points_y = points_y
             score = evaluate(
                 self.logging_metrics,
-                self.surrogate_model,
                 self.test_points_x,
                 self.test_points_y,
             )
