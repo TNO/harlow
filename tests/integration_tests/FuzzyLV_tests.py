@@ -11,6 +11,7 @@ seed to determine:
 import math
 
 import numpy as np
+from sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from sklearn.metrics import mean_squared_error
 
 from harlow.sampling import FuzzyLolaVoronoi

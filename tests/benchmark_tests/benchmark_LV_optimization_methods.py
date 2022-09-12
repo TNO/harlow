@@ -138,9 +138,9 @@ def test_sampling_full(
     )
     # main_start = time.time()
     lv.sample(
-        n_iter=n_iter,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        max_n_iterations=n_iter,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=False,
         ignore_far_neighborhoods=False,
     )
@@ -183,9 +183,9 @@ def test_sampling_median(
     )
     # main_start = time.time()
     lv.sample(
-        n_iter=n_iter,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        max_n_iterations=n_iter,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=False,
         ignore_far_neighborhoods=True,
     )
@@ -228,9 +228,9 @@ def test_sampling_new(
     )
     # main_start = time.time()
     lv.sample(
-        n_iter=n_iter,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        max_n_iterations=n_iter,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=True,
         ignore_far_neighborhoods=False,
     )
@@ -273,9 +273,9 @@ def test_sampling_both(
     )
     # main_start = time.time()
     lv.sample(
-        n_iter=n_iter,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        max_n_iterations=n_iter,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         ignore_old_neighborhoods=True,
         ignore_far_neighborhoods=True,
     )

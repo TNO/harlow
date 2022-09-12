@@ -70,6 +70,11 @@ class Surrogate(ABC):
     def is_probabilistic(self):
         pass
 
+    @property
+    @abstractmethod
+    def is_multioutput(self):
+        pass
+
     @abstractmethod
     def _fit(self, X, y, **kwargs):
         raise NotImplementedError
@@ -175,6 +180,7 @@ class Surrogate(ABC):
 
 class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
+    is_multioutput = False
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
     def __init__(
@@ -241,14 +247,14 @@ class VanillaGaussianProcess(Surrogate):
             return samples
 
     def _update(self, new_X, new_y, **kwargs):
-
+        new_X = new_X[0]
         if new_X.ndim > self.X.ndim:
             self.X = np.expand_dims(self.X, axis=0)
-        self.X = np.concatenate([self.X, new_X], axis=1)
+        self.X = np.concatenate([self.X, new_X], axis=0)
 
         if new_y.ndim > self.y.ndim:
             self.y = np.expand_dims(self.y, axis=0)
-        self.y = np.concatenate([self.y, new_y])
+        self.y = np.concatenate([self.y, new_y], axis=0)
 
         # TODO check if this the best way to use for incremental
         #  learning/online learning
@@ -260,6 +266,7 @@ class VanillaGaussianProcess(Surrogate):
 
 class GaussianProcessTFP(Surrogate):
     is_probabilistic = True
+    is_multioutput = False
 
     def __init__(
         self,
@@ -441,6 +448,7 @@ class GaussianProcessRegression(Surrogate):
     """
 
     is_probabilistic = True
+    is_multioutput = False
 
     def __init__(
         self,
@@ -643,6 +651,7 @@ class ModelListGaussianProcess(Surrogate):
     """
 
     is_probabilistic = True
+    is_multioutput = True
 
     def __init__(
         self,
@@ -660,7 +669,6 @@ class ModelListGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
-        **kwargs,
     ):
 
         super().__init__(
@@ -807,7 +815,7 @@ class ModelListGaussianProcess(Surrogate):
             f" Loss = {loss.item()}, Loss_ratio = {loss_ratio}"
         )
 
-    def _predict(self, X_pred, return_std=False, **kwargs):
+    def _predict(self, X_pred, return_std=False, as_array=False, **kwargs):
 
         # Cast input to tensor for compatibility with sampling algorithms
         X_pred = X_pred.to(self.device)[0]
@@ -846,9 +854,12 @@ class ModelListGaussianProcess(Surrogate):
             self.cr_l[:, j], self.cr_u[:, j] = _prediction.confidence_region()
 
         if return_std:
-            return sample, self.std
+            return (
+                sample.numpy() if as_array else sample,
+                self.std.numpy() if as_array else self.std,
+            )
         else:
-            return sample
+            return sample.numpy() if as_array else sample
 
     def sample_posterior(self, n_samples=1):
 
@@ -902,6 +913,7 @@ class BatchIndependentGaussianProcess(Surrogate):
     """
 
     is_probabilistic = True
+    is_multioutput = True
 
     def __init__(
         self,
@@ -918,7 +930,6 @@ class BatchIndependentGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
-        **kwargs,
     ):
 
         super().__init__(
@@ -1115,6 +1126,7 @@ class MultiTaskGaussianProcess(Surrogate):
     """
 
     is_probabilistic = True
+    is_multioutput = True
 
     def __init__(
         self,
@@ -1131,7 +1143,6 @@ class MultiTaskGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
-        **kwargs,
     ):
 
         super().__init__(
@@ -1328,6 +1339,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
     """
 
     is_probabilistic = True
+    is_multioutput = True
 
     def __init__(
         self,
@@ -1345,7 +1357,6 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
-        **kwargs,
     ):
 
         super().__init__(
@@ -1529,6 +1540,7 @@ class NeuralNetwork(Surrogate):
 
     learning_rate_update = 0.001
     is_probabilistic = False
+    is_multioutput = True
 
     def __init__(
         self,
@@ -1549,12 +1561,14 @@ class NeuralNetwork(Surrogate):
         self.batch_size = batch_size
         self.loss = loss
 
-    def create_model(self, input_dim=(2,), activation="relu", learning_rate=0.01):
+    def create_model(
+        self, input_dim=(2,), output_dim=1, activation="relu", learning_rate=0.01
+    ):
         inputs = Input(shape=input_dim)
         hidden = Dense(64, activation=activation)(inputs)
         hidden = Dense(32, activation=activation)(hidden)
         hidden = Dense(16, activation=activation)(hidden)
-        out = Dense(1)(hidden)
+        out = Dense(output_dim)(hidden)
 
         self.model = Model(inputs=inputs, outputs=out)
         self.model.compile(optimizer=Adam(learning_rate=learning_rate), loss="mse")
@@ -1582,6 +1596,7 @@ class BayesianNeuralNetwork(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
+    is_multioutput = False
 
     def __init__(
         self,
