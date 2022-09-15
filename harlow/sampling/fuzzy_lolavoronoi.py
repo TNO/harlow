@@ -45,6 +45,7 @@ class FuzzyLolaVoronoi(Sampler):
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
         run_name: str = None,
+        verbose: bool = False,
         save_dir: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
@@ -58,7 +59,7 @@ class FuzzyLolaVoronoi(Sampler):
         self.metric = evaluation_metric
         self.run_name = str(run_name)
         self.save_dir = save_dir
-        # self.verbose = verbose
+        self.verbose = verbose
 
         # Internal storage for inspection
         self.step_x = []

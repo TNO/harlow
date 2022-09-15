@@ -36,6 +36,7 @@ class ProbabilisticSampler(Sampler):
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
+        verbose: bool = False,
         run_name: str = None,
     ):
         self.domain_lower_bound = domain_lower_bound
@@ -47,7 +48,7 @@ class ProbabilisticSampler(Sampler):
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
         self.metric = evaluation_metric
-        # self.verbose = verbose
+        self.verbose = verbose
         # Internal storage for inspection
         self.step_x = []
         self.step_y = []

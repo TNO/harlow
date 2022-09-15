@@ -22,10 +22,11 @@ class LatinHypercube(Sampler):
         test_points_y: np.ndarray = None,
         evaluation_metric: Callable = None,
         run_name: str = None,
+        verbose: bool = False,
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
+        self.target_function = target_function
         self.surrogate_model = surrogate_model
         self.fit_points_x = fit_points_x
         self.fit_points_y = fit_points_y
@@ -49,13 +50,35 @@ class LatinHypercube(Sampler):
         n_new_point_per_iteration: int = 1,
         stopping_criterium: float = None,
     ):
-        start_time = time.time()
+
         points_x = self.fit_points_x
         points_y = self.fit_points_y
-
         surrogate_model = self.surrogate_model
-        surrogate_model.fit(points_x, points_y)
-        logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
+        start_time = time.time()
+        if self.fit_points_x:
+            surrogate_model.fit(points_x, points_y)
+            logger.info(
+                f"Fitted a new surrogate model in {time.time() - start_time} sec."
+            )
+
+        # Initial sampling
+        if n_initial_point:
+            X_new = latin_hypercube_sampling(
+                n_sample=n_initial_point,
+                domain_lower_bound=self.domain_lower_bound,
+                domain_upper_bound=self.domain_upper_bound,
+            )
+            self.step_gen_time.append(time.time() - start_time)
+            y_new = self.target_function(X_new)
+
+            if points_x:
+                points_x = np.concatenate((points_x, X_new))
+                points_y = np.concatenate((points_y, y_new))
+            else:
+                points_x = X_new
+                points_y = y_new
+
+            surrogate_model.fit(points_x, points_y)
 
         score = evaluate(
             self.metric, self.surrogate_model, self.test_points_x, self.test_points_y
@@ -68,15 +91,15 @@ class LatinHypercube(Sampler):
         self.step_fit_time.append(time.time() - start_time)
 
         iteration = 0
-        while self.score > stopping_criterium:
+        while (self.score > stopping_criterium) and (iteration < n_iter):
             start_time = time.time()
             X_new = latin_hypercube_sampling(
-                n_sample=1,
+                n_sample=n_new_point_per_iteration,
                 domain_lower_bound=self.domain_lower_bound,
                 domain_upper_bound=self.domain_upper_bound,
             )
             self.step_gen_time.append(time.time() - start_time)
-            y_new = self.target_function(X_new).reshape((-1, 1))
+            y_new = self.target_function(X_new)
             points_x = np.concatenate((points_x, X_new))
             points_y = np.concatenate((points_y, y_new))
 
@@ -122,3 +145,6 @@ class LatinHypercube(Sampler):
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
+
+    def result_as_dict(self):
+        raise NotImplementedError
