@@ -210,7 +210,7 @@ class VanillaGaussianProcess(Surrogate):
 
     def _fit(self, X, y, **kwargs):
         self.X = X[0]
-        self.y = y
+        self.y = y.flatten()
         self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
 
