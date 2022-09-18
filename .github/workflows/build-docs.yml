@@ -3,9 +3,9 @@ name: build-sphinx-docs
 # Only run for master
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "docs" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "docs" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
