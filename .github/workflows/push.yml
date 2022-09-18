@@ -6,6 +6,9 @@ name: CI
 
 on:
   push:
+    branches-ignore:
+      - "docs"
+      - "gh-pages"
   schedule:
   - cron: '0 1 * * 6'  # weekly run at 01:00 UTC on Saturday
 
