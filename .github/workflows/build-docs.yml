@@ -17,6 +17,8 @@ jobs:
     steps:
       # Check out your repo under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
+      - with:
+          fetch-depth: 0
 
       # Set up Python
       - name: Set up Python39
@@ -29,6 +31,16 @@ jobs:
           pip install .[docs]
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: sphinx-build
         run: |
           sphinx-build -b html "./docs/source" "./docs"
+
+      - name: Commit to gh-pages branch
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Push docs build to gh-pages branch
+          branch: gh-pages
+          skip_dirty_check: false
+          skip_fetch: true
+          skip_checkout: true
+          create_branch: true
