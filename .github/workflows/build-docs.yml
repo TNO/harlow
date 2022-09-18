@@ -17,7 +17,7 @@ jobs:
     steps:
       # Check out your repo under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
-      - with:
+        with:
           fetch-depth: 0
 
       # Set up Python
