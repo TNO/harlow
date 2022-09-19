@@ -6,6 +6,7 @@ on:
     branches: [ "master", "docs" ]
   pull_request:
     branches: [ "master", "docs" ]
+    types: [ "closed" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
