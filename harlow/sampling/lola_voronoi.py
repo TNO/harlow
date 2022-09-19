@@ -131,9 +131,10 @@ class LolaVoronoi(Sampler):
             self.test_points_x,
             self.test_points_y,
         )
+
+        self.step_score.append(score)
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score)
         self.step_iter.append(0)
         self.step_fit_time.append(time.time() - start_time)
         # ..........................................
@@ -182,14 +183,16 @@ class LolaVoronoi(Sampler):
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
+
             score = evaluate(
                 self.logging_metrics,
                 self.test_points_x,
                 self.test_points_y,
             )
+
+            self.step_score.append(score)
             self.step_x.append(points_x)
             self.step_y.append(points_y)
-            self.step_score.append(score)
             self.step_iter.append(ii + 1)
             timing_dict = {
                 "Gen time": self.step_gen_time[ii + 1],
