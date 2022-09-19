@@ -88,8 +88,8 @@ def test_example_of_section_4_2_3():
     x1_mx, x2_mx = np.meshgrid(np.linspace(-3, 3, n_grid), np.linspace(-3, 3, n_grid))
     added_neighbor_points_x = np.vstack((x1_mx.ravel(), x2_mx.ravel())).T
 
-    ns_vec = np.empty(n_grid ** 2)
-    cpr_vec = np.empty(n_grid ** 2)
+    ns_vec = np.empty(n_grid**2)
+    cpr_vec = np.empty(n_grid**2)
     for ii, added_neighbor_point_x in enumerate(added_neighbor_points_x):
         neighbor_points_x = np.vstack((base_neighbor_points_x, added_neighbor_point_x))
         ns, cpr = neighborhood_score(

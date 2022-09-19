@@ -312,11 +312,11 @@ def signif_ceil(x, digits: int = 3):
     x[idx] = 3 * np.finfo(float).eps
     # scientific notation
     sci_exp = np.array([int(np.floor(np.log10(np.abs(x))))])
-    sci_scale = 10.0 ** sci_exp
+    sci_scale = 10.0**sci_exp
     sci_coeff = x / sci_scale
 
     # number of digits
-    dig_scale = 10.0 ** digits
+    dig_scale = 10.0**digits
 
     sx = np.ceil(sci_coeff * dig_scale) * sci_scale / dig_scale
     return sx
@@ -331,11 +331,11 @@ def signif_floor(x, digits: int = 3):
     x[idx] = 3 * np.finfo(float).eps
     # scientific notation
     sci_exp = np.array([int(np.floor(np.log10(np.abs(x))))])
-    sci_scale = 10.0 ** sci_exp
+    sci_scale = 10.0**sci_exp
     sci_coeff = x / sci_scale
 
     # number of digits
-    dig_scale = 10.0 ** digits
+    dig_scale = 10.0**digits
 
     sx = np.floor(sci_coeff * dig_scale) * sci_scale / dig_scale
     return sx

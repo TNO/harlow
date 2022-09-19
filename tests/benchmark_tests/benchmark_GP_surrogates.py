@@ -191,7 +191,7 @@ def response(X, pts):
             res[idx_x, idx_t] = np.interp(
                 t,
                 model.node_xs,
-                model.il_stress_truckload(c, lane="left", Kr=10 ** arr_Kr, Kv=10 ** Kv),
+                model.il_stress_truckload(c, lane="left", Kr=10**arr_Kr, Kv=10**Kv),
             )
 
     return res

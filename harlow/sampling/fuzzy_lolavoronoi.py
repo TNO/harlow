@@ -436,7 +436,7 @@ def adh_high(x, A_max, s_ah=0.3):
     """
     Adhesion High membership function
     """
-    return np.exp(((-(x ** 2)) / 2 * ((A_max * s_ah) ** 2)))
+    return np.exp(((-(x**2)) / 2 * ((A_max * s_ah) ** 2)))
 
 
 def adh_low(x, A_max, s_al=0.27):
