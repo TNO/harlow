@@ -18,7 +18,8 @@ jobs:
       # Check out your repo under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+          # fetch-depth: 0
 
       # Set up Python
       - name: Set up Python39
@@ -46,7 +47,6 @@ jobs:
         with:
           commit_message: Push docs build to gh-pages branch
           branch: gh-pages
-          skip_dirty_check: false
-          skip_fetch: true
-          skip_checkout: true
+          skip_fetch: false
+          skip_checkout: false
           create_branch: true
