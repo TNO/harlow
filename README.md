@@ -1,6 +1,6 @@
 # harlow
 
-[![Docs](https://github.com/TNO/harlow/.github/workflows/build-docs.yml/badge.svg?branch=master)](https://tno.github.io/harlow/)
+[![Docs](https://github.com/TNO/harlow/actions/workflows/build-docs.yml/badge.svg?branch=master)](https://tno.github.io/harlow/)
 [![CI](https://github.com/TNO/harlow/actions/workflows/push.yml/badge.svg)](https://github.com/TNO/harlow/actions)
 [![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/JanKoune/812e7f877bc9e67a4b692669ddc71030/raw/harlow_master_coverage.json)](https://en.wikipedia.org/wiki/Code_coverage)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)

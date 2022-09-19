@@ -47,6 +47,7 @@ jobs:
         with:
           commit_message: Push docs build to gh-pages branch
           branch: gh-pages
+          push_options: '--force'
           skip_fetch: false
           skip_checkout: false
           create_branch: true
