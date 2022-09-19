@@ -14,6 +14,7 @@ import numpy as np
 import torch
 from sklearn.metrics import mean_squared_error
 
+from harlow.model.model_twin_girder_betti import IJssel_bridge_model  # noqa:
 from harlow.sampling.cv_voronoi import CVVoronoi
 from harlow.sampling.fuzzy_lolavoronoi import FuzzyLolaVoronoi
 from harlow.surrogating.surrogate_model import (
@@ -21,7 +22,7 @@ from harlow.surrogating.surrogate_model import (
     VanillaGaussianProcess,
 )
 from harlow.utils.helper_functions import latin_hypercube_sampling
-from harlow.model.model_twin_girder_betti import IJssel_bridge_model  # noqa:
+
 # I201
 from harlow.utils.test_functions import peaks_2d_multivariate
 
@@ -136,6 +137,7 @@ list_params = [
     [param_idx[param] for param in params_model[key] + params_common]
     for key in params_model.keys()
 ]
+
 
 # # ====================================================================
 # # MODEL FUNCTION

@@ -23,8 +23,12 @@ from harlow.sampling import (
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import mae, rmse, rrse
-from harlow.utils.test_functions import hartmann, peaks_2d, \
-    stybtang, peaks_2d_multivariate
+from harlow.utils.test_functions import (
+    hartmann,
+    peaks_2d,
+    peaks_2d_multivariate,
+    stybtang,
+)
 
 np.random.seed(0)
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
@@ -35,6 +39,7 @@ def create_test_set_2D(min_domain, max_domain, n):
     test_y = peaks_2d(test_X).reshape((-1, 1))
 
     return test_X, test_y
+
 
 def create_test_set_2Dmulti(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
@@ -317,7 +322,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-lm",
         "--logging_metrics",
-        nargs='+',
+        nargs="+",
         help="Define the logging metrics functions",
     )
     parser.add_argument(

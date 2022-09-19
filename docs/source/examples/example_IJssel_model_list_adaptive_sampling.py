@@ -15,11 +15,11 @@ Gaussian Process surrogates, each approximating an output of a function.
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
 from sklearn.metrics import mean_squared_error
 
 from harlow.helper_functions import latin_hypercube_sampling
 from harlow.surrogate_model import ModelListGaussianProcess
+from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
 
 # ====================================================================
 # HELPER FUNCTIONS

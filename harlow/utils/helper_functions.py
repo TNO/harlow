@@ -41,7 +41,6 @@ def evaluate(metric, true_y, predicted_y):
 
     Returns:
     """
-    count_model = 0
     metric_dict = {}
     if not isinstance(metric, list):
         metric = [metric]

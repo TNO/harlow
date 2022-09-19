@@ -66,8 +66,7 @@ class FuzzyLolaVoronoi(Sampler):
         )
 
         self.dim_in = len(domain_lower_bound)
-        self.dim_out = None if self.fit_points_x is None else \
-            self.fit_points_y.shape[1]
+        self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
 
         self.surrogate_model = surrogate_model()
 
