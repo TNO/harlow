@@ -1,6 +1,9 @@
 ### Log files ###
 *.log
 
+### Pickle ###
+*.pkl
+
 ### Virtual environments ###
 
 ### VirtualEnv ###
