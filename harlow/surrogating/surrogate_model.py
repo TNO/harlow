@@ -26,7 +26,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
 from harlow.utils.helper_functions import NLL, normal_sp
-from harlow.utils.transforms import ExpandDims, Identity, TensorTransform, Transform
+from harlow.utils.transforms import Identity, TensorTransform, Transform
 
 tfb = tfp.bijectors
 tfd = tfp.distributions
@@ -188,8 +188,8 @@ class VanillaGaussianProcess(Surrogate):
         train_restarts: int = 10,
         kernel=kernel,
         noise_std=None,
-        input_transform=ExpandDims,
-        output_transform=ExpandDims,
+        input_transform=Identity,
+        output_transform=Identity,
         **kwargs,
     ):
         super().__init__(
@@ -209,7 +209,7 @@ class VanillaGaussianProcess(Surrogate):
         )
 
     def _fit(self, X, y, **kwargs):
-        self.X = X[0]
+        self.X = X
         self.y = y
         self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
@@ -239,7 +239,7 @@ class VanillaGaussianProcess(Surrogate):
         return getattr(self.model.kernel, white_kernel_attr[0]).noise_level ** 0.5
 
     def _predict(self, X, return_std=False, **kwargs):
-        samples, std = self.model.predict(X[0], return_std=True)
+        samples, std = self.model.predict(X, return_std=True)
 
         if return_std:
             return samples, std
@@ -247,7 +247,7 @@ class VanillaGaussianProcess(Surrogate):
             return samples
 
     def _update(self, new_X, new_y, **kwargs):
-        new_X = new_X[0]
+        new_X = new_X
         if new_X.ndim > self.X.ndim:
             self.X = np.expand_dims(self.X, axis=0)
         self.X = np.concatenate([self.X, new_X], axis=0)
@@ -271,8 +271,8 @@ class GaussianProcessTFP(Surrogate):
     def __init__(
         self,
         train_iterations=50,
-        input_transform=ExpandDims,
-        output_transform=ExpandDims,
+        input_transform=Identity,
+        output_transform=Identity,
         **kwargs,
     ):
 
@@ -380,7 +380,7 @@ class GaussianProcessTFP(Surrogate):
         )
 
     def _fit(self, X, y, **kwargs):
-        self.observation_index_points = X[0]
+        self.observation_index_points = X
         self.observations = y
         self.optimize_parameters()
 
@@ -389,7 +389,7 @@ class GaussianProcessTFP(Surrogate):
     ):
         gprm = tfd.GaussianProcessRegressionModel(
             kernel=self.kernel,
-            index_points=X[0],
+            index_points=X,
             observation_index_points=self.observation_index_points,
             observations=self.observations,
             observation_noise_variance=self.observation_noise_variance_var,
@@ -1547,8 +1547,8 @@ class NeuralNetwork(Surrogate):
         epochs=10,
         batch_size=32,
         loss="mse",
-        input_transform=ExpandDims,
-        output_transform=ExpandDims,
+        input_transform=Identity,
+        output_transform=Identity,
         **kwargs,
     ):
 
@@ -1602,8 +1602,8 @@ class BayesianNeuralNetwork(Surrogate):
         self,
         epochs=10,
         batch_size=32,
-        input_transform=ExpandDims,
-        output_transform=ExpandDims,
+        input_transform=Identity,
+        output_transform=Identity,
         **kwargs,
     ):
         super().__init__(

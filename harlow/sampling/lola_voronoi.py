@@ -121,7 +121,7 @@ class LolaVoronoi(Sampler):
 
         # fit the surrogate model
         start_time = time.time()
-        self.surrogate_model.fit(points_x, points_y.ravel())
+        self.surrogate_model.fit(points_x, points_y)
         logger.info(
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
@@ -131,10 +131,12 @@ class LolaVoronoi(Sampler):
             self.test_points_x,
             self.test_points_y,
         )
+
+        self.step_score.append(score)
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score)
         self.step_iter.append(0)
+
         self.step_fit_time.append(time.time() - start_time)
         # ..........................................
         # Iterative improvement (adaptive stage)
@@ -173,8 +175,8 @@ class LolaVoronoi(Sampler):
 
             # refit the surrogate
             start_time = time.time()
-            self.surrogate_model.update(new_points_x, new_points_y.ravel())
-            self.step_fit_time = time.time() - start_time
+            self.surrogate_model.update(new_points_x, new_points_y)
+            self.step_fit_time.append(time.time() - start_time)
             logger.info(
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
             )
@@ -182,14 +184,16 @@ class LolaVoronoi(Sampler):
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
+
             score = evaluate(
                 self.logging_metrics,
                 self.test_points_x,
                 self.test_points_y,
             )
+
+            self.step_score.append(score)
             self.step_x.append(points_x)
             self.step_y.append(points_y)
-            self.step_score.append(score)
             self.step_iter.append(ii + 1)
             timing_dict = {
                 "Gen time": self.step_gen_time[ii + 1],
@@ -205,11 +209,12 @@ class LolaVoronoi(Sampler):
             if self.iterations % 5 == 0:
                 self.save_model()
 
-            if self.score <= stopping_criterium or self.score <= stopping_criterium:
-                logger.info(f"Sampler ended in {ii} iterations")
-                # Save model if converged
-                self.save_model()
-                break
+            if len(self.score) > 0:
+                if self.score <= stopping_criterium:
+                    logger.info(f"Sampler ended in {ii} iterations")
+                    # Save model if converged
+                    self.save_model()
+                    break
 
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
@@ -240,7 +245,7 @@ def best_new_points(
     points_x = points_x.reshape((-1, n_dim))
     points_y = points_y.reshape((-1, 1))
 
-    # Find the best neighborhoods for each row of `points_x`
+    # Find the best neighborhoods for each srow of `points_x`
     (
         best_neighborhood_scores,
         best_neighborhood_idxs,

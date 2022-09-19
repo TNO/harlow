@@ -17,9 +17,11 @@ import torch
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.surrogate_model import ModelListGaussianProcess
-from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
+from harlow.surrogating import ModelListGaussianProcess
+from harlow.utils.examples.model_twin_girder_betti import (  # noqa: I201
+    IJssel_bridge_model,
+)
+from harlow.utils.helper_functions import latin_hypercube_sampling
 
 # ====================================================================
 # HELPER FUNCTIONS
@@ -182,7 +184,7 @@ def response(X, pts):
             res[idx_x, idx_t] = np.interp(
                 t,
                 model.node_xs,
-                model.il_stress_truckload(c, lane="left", Kr=10 ** arr_Kr, Kv=10 ** Kv),
+                model.il_stress_truckload(c, lane="left", Kr=10**arr_Kr, Kv=10**Kv),
             )
 
     return res
