@@ -2,64 +2,68 @@
 Helper functions for the adaptive sampling strategies.
 """
 
-import math
-
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 from skopt.sampler import Lhs
 from skopt.space import Space
 
 tfd = tfp.distributions
 
 
-# TODO RRSE code should be checked for correctness
-def _rrse(x, y):
-    dims = x.shape
-    x_bar = np.mean(y)
-    x_bar_arr = np.zeros(dims)
-    x_bar_arr.fill(x_bar)
-
-    return math.sqrt(mean_squared_error(x, y) / mean_squared_error(x, x_bar_arr))
-
-
-def evaluate(metric, model, test_points_X, test_points_y):
+def evaluate_modellist(metric, model, test_points_X, test_points_y):
     """
     Evaluate user specified metric for the current iteration
 
     Returns:
     """
-    score_mtrx = np.zeros(len(np.atleast_1d(metric)))
-    count = 0
+    count_model = 0
+    metric_dict = {}
+    if not isinstance(metric, list):
+        metric = [metric]
     if metric is None or test_points_X is None:
-        score_mtrx[count] = 0.0
+        raise ValueError
     else:
-        for metric_func in np.atleast_1d(metric):
-            score_mtrx[count] = metric_func(model.predict(test_points_X), test_points_y)
-            count += 1
+        for metric_fun in metric:
+            scores = []
+            for m in model:
+                scores.append(
+                    metric_fun(m.predict(test_points_X), test_points_y[:, count_model])
+                )
+            metric_dict[metric_fun.__name__] = scores
 
-    return score_mtrx
+    return metric_dict
 
 
-def rrse(actual: np.ndarray, predicted: np.ndarray):
-    """Root Relative Squared Error"""
-    return np.sqrt(
-        np.sum(np.square(actual - predicted))
-        / np.sum(np.square(actual - np.mean(actual)))
-    )
+def evaluate(metric, true_y, predicted_y):
+    """
+    Evaluate user specified metric for the current iteration
+
+    Returns:
+    """
+    metric_dict = {}
+    if not isinstance(metric, list):
+        metric = [metric]
+    if metric is None or true_y is None:
+        for metric_fun in metric:
+            metric_dict[metric_fun.__name__] = []
+    else:
+        for metric_fun in metric:
+            scores = []
+            for m in range(predicted_y.shape[1]):
+                scores.append(metric_fun(true_y[:, m], predicted_y[:, m]))
+            metric_dict[metric_fun.__name__] = scores
+
+    return metric_dict
+
+
+def normalized_response(model: object, X: np.ndarray):
+    preds = model.predict(X)
+    return (model.predict(X) - np.min(preds)) / (np.max(preds) - np.min(preds))
 
 
 def NLL(y, distr):
     return -distr.log_prob(y)
-
-
-def rmse(x, y):
-    return math.sqrt(mean_squared_error(x, y))
-
-
-def mae(x, y):
-    return mean_absolute_error(x, y)
 
 
 def normal_sp(params):

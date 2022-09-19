@@ -16,7 +16,7 @@ def lldeh_1d(x: np.ndarray, a: float) -> np.ndarray:
 
     """
     g = np.tan(0.5 * a)
-    return 2 * x ** 2 / (x ** 2 + g * x + 1)
+    return 2 * x**2 / (x**2 + g * x + 1)
 
 
 def peaks_2d(x: np.ndarray) -> np.ndarray:
@@ -26,10 +26,24 @@ def peaks_2d(x: np.ndarray) -> np.ndarray:
     x2 = x[:, 1]
 
     return (
-        3 * (1 - x1) ** 2 * np.exp(-(x1 ** 2) - (x2 + 1) ** 2)
-        - 10 * (x1 / 5 - x1 ** 3 - x2 ** 5) * np.exp(-(x1 ** 2) - x2 ** 2)
-        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2 ** 2)
+        3 * (1 - x1) ** 2 * np.exp(-(x1**2) - (x2 + 1) ** 2)
+        - 10 * (x1 / 5 - x1**3 - x2**5) * np.exp(-(x1**2) - x2**2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2**2)
     )
+
+
+def peaks_2d_multivariate(x: np.ndarray) -> np.ndarray:
+    # https://nl.mathworks.com/help/matlab/ref/peaks.html
+    x = np.atleast_2d(x)
+    x1 = x[:, 0]
+    x2 = x[:, 1]
+
+    result = (
+        3 * (1 - x1) ** 2 * np.exp(-(x1**2) - (x2 + 1) ** 2)
+        - 10 * (x1 / 5 - x1**3 - x2**5) * np.exp(-(x1**2) - x2**2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2**2)
+    )
+    return np.stack((result, result**2), -1)
 
 
 def ackley_nd(
@@ -53,13 +67,13 @@ def ackley_nd(
         Dependent variable values.
     """
     x_mx = np.atleast_2d(x_mx)
-    t1 = -a * np.exp(-b * np.sqrt(np.mean(x_mx ** 2, axis=1)))
+    t1 = -a * np.exp(-b * np.sqrt(np.mean(x_mx**2, axis=1)))
     t2 = -np.exp(np.mean(np.cos(c * x_mx), axis=1))
 
     return t1 + t2 + a + np.exp(1)
 
 
-def six_hump_camel_2D(X):
+def six_hump_camel_2D(X: np.ndarray) -> np.ndarray:
     x = X[:, 0]
     y = X[:, 1]
 
@@ -70,7 +84,7 @@ def six_hump_camel_2D(X):
     return ((4.0 - 2.1 * x2 + (x4 / 3.0)) * x2) + (x * y) + ((-4.0 + 4.0 * y2) * y2)
 
 
-def six_hump_camel_2D_2input(x, y):
+def six_hump_camel_2D_2input(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     x2 = np.power(x, 2)
     x4 = np.power(x, 4)
     y2 = np.power(y, 2)
@@ -84,7 +98,7 @@ def forrester_1d(x: np.ndarray) -> np.ndarray:
     return np.power(term_a, 2) * np.sin(term_b)
 
 
-def bohachevsky_2D(X):
+def bohachevsky_2D(X: np.ndarray) -> np.ndarray:
     x1 = X[:, 0]
     x2 = X[:, 1]
 
@@ -96,7 +110,7 @@ def bohachevsky_2D(X):
     return t1 + t2 + t3 + t4 + 0.7
 
 
-def shekel(X):
+def shekel(X: np.ndarray) -> np.ndarray:
     xx = [X[:, 0], X[:, 1], X[:, 2], X[:, 3]]
     m = 10
     b = 0.1 * np.array([1, 2, 2, 4, 4, 6, 3, 7, 5, 5])
@@ -122,10 +136,9 @@ def shekel(X):
     return -1.0 * outer
 
 
-def hartmann(X):
+def hartmann(X: np.ndarray) -> np.ndarray:
     n = X.shape[0]
     results = []
-    outer = 0.0
     for i in range(n):
         alpha = np.array([1.0, 1.2, 3.0, 3.2])
         A = np.array(
@@ -161,7 +174,7 @@ def hartmann(X):
     return np.asarray(results)
 
 
-def stybtang(X):
+def stybtang(X: np.ndarray) -> np.ndarray:
     # https://www.sfu.ca/~ssurjano/stybtang.html
     n = X.shape[0]
     d = X.shape[1]

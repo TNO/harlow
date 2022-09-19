@@ -117,9 +117,9 @@ def test_LV_sampling(
     )
     main_start = time.time()
     lv.sample(
-        n_iter=None,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_points_per_iteration,
+        max_n_iterations=None,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_points_per_iteration,
         stopping_criterium=rmse_criterium,
     )
 

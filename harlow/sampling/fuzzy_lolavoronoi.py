@@ -10,23 +10,22 @@ A fuzzy hybrid sequential design strategy for global surrogate modeling of
  high-dimensional computer experiments.
 SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
 """
-import math
 import os
 import pickle
 import time
-from typing import Callable, Optional, Tuple
+from typing import Callable, Tuple
 
 import numpy as np
 import skfuzzy as fuzz
 from loguru import logger
 from scipy.spatial.distance import cdist, pdist, squareform
 from skfuzzy import control as ctrl
-from sklearn.metrics import mean_squared_error
-from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
+from harlow.utils.log_writer import write_scores, write_timer
+from harlow.utils.metrics import rmse
 
 
 # -----------------------------------------------------
@@ -43,42 +42,48 @@ class FuzzyLolaVoronoi(Sampler):
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
-        evaluation_metric: Callable = None,
-        run_name: str = None,
+        evaluation_metric: Callable = rmse,
+        logging_metrics: list = None,
         verbose: bool = False,
-        save_dir: str = None,
+        run_name: str = None,
+        save_dir: str = "",
     ):
-        self.domain_lower_bound = domain_lower_bound
-        self.domain_upper_bound = domain_upper_bound
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
-        self.surrogate_model = surrogate_model
-        self.fit_points_x = fit_points_x
-        self.fit_points_y = fit_points_y
-        self.test_points_x = test_points_x
-        self.test_points_y = test_points_y
-        self.metric = evaluation_metric
-        self.run_name = str(run_name)
-        self.save_dir = save_dir
-        self.verbose = verbose
 
-        # Internal storage for inspection
-        self.step_x = []
-        self.step_y = []
-        self.step_score = []
-        self.step_iter = []
-        self.step_fit_time = []
-        self.step_gen_time = []
-        # Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment="-" + self.run_name)
+        super(FuzzyLolaVoronoi, self).__init__(
+            target_function,
+            surrogate_model,
+            domain_lower_bound,
+            domain_upper_bound,
+            fit_points_x,
+            fit_points_y,
+            test_points_x,
+            test_points_y,
+            evaluation_metric,
+            logging_metrics,
+            verbose,
+            run_name,
+            save_dir,
+        )
+
+        self.dim_in = len(domain_lower_bound)
+        self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
+
+        self.surrogate_model = surrogate_model()
+
+        if self.dim_out > 1:
+            self.multiresponse_sampling = True
+            if not self.surrogate_model.is_multioutput:
+                raise ValueError(
+                    "Multiresponse target requires \
+                                 multiresponse surrogate"
+                )
 
     def sample(
         self,
-        n_initial_point: int = None,
-        n_iter: int = 20,
-        n_new_point_per_iteration: int = 1,
+        n_initial_points: int = 20,
+        n_new_points_per_iteration: int = 1,
         stopping_criterium: float = None,
-        ignore_far_neighborhoods: Optional[bool] = True,
-        ignore_old_neighborhoods: Optional[bool] = True,
+        max_n_iterations: int = 5000,
     ):
         """TODO: allow for providing starting points"""
         # ..........................................
@@ -87,16 +92,9 @@ class FuzzyLolaVoronoi(Sampler):
         target_function = self.target_function
         domain_lower_bound = self.domain_lower_bound
         domain_upper_bound = self.domain_upper_bound
-        n_dim = len(domain_lower_bound)
 
-        if n_initial_point is None:
-            n_initial_point = 5 * n_dim
-
-        # if stopping_criterium:
-        #     n_iter = 1000
-
-        if stopping_criterium and not self.metric:
-            self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
+        if n_initial_points is None:
+            n_initial_points = 5 * self.dim_in
 
         # ..........................................
         # Initial sample of points
@@ -105,7 +103,7 @@ class FuzzyLolaVoronoi(Sampler):
         if self.fit_points_x is None:
             # latin hypercube sampling to get the initial sample of points
             points_x = latin_hypercube_sampling(
-                n_sample=n_initial_point,
+                n_sample=n_initial_points,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
             )
@@ -114,6 +112,7 @@ class FuzzyLolaVoronoi(Sampler):
 
             self.fit_points_x = points_x
             self.fit_points_y = points_y
+            self.dim_out = self.fit_points_x.shape[0]
         else:
             points_x = self.fit_points_x
             points_y = self.fit_points_y
@@ -122,29 +121,29 @@ class FuzzyLolaVoronoi(Sampler):
 
         # fit the surrogate model
         start_time = time.time()
-        self.surrogate_model.fit(points_x, points_y.ravel())
+
+        self.surrogate_model.fit(points_x, points_y)
         logger.info(
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
 
-        # Additional class objects to help keep track of the sampling. `gen_time`
-        # denotes the time to generate new points. `fit_time` is the time
-        # to fit the surrogate.
-        score = evaluate(
-            self.metric, self.surrogate_model, self.test_points_x, self.test_points_y
-        )
+        predicted_y = self.surrogate_model.predict(self.test_points_x, as_array=True)
+
+        score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
         self.step_x.append(points_x)
         self.step_y.append(points_y)
-        self.step_score.append(score[0])
+        self.step_score.append(score[self.evaluation_metric.__name__])
         self.step_iter.append(0)
         self.step_fit_time.append(time.time() - start_time)
 
         # ..........................................
         # Iterative improvement (adaptive stage)
         # ..........................................
-        for ii in range(n_iter):
+
+        for ii in range(max_n_iterations):
             logger.info(
-                f"Started adaptive iteration step: {ii+1} (max steps:" f" {n_iter})."
+                f"Started adaptive iteration step: {ii+1} (max steps:"
+                f" {max_n_iterations})."
             )
 
             start_time = time.time()
@@ -153,11 +152,12 @@ class FuzzyLolaVoronoi(Sampler):
                 points_y=points_y,
                 domain_lower_bound=domain_lower_bound,
                 domain_upper_bound=domain_upper_bound,
-                n_new_point=n_new_point_per_iteration,
+                n_new_point=n_new_points_per_iteration,
+                dim_in=self.dim_in,
             )
             self.step_gen_time.append(time.time() - start_time)
             logger.info(
-                f"Found the next best {n_new_point_per_iteration} point(s) in "
+                f"Found the next best {n_new_points_per_iteration} point(s) in "
                 f"{time.time() - start_time} sec."
             )
 
@@ -178,53 +178,38 @@ class FuzzyLolaVoronoi(Sampler):
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = evaluate(
-                self.metric,
-                self.surrogate_model,
-                self.test_points_x,
-                self.test_points_y,
-            )
+            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
+
             self.step_x.append(points_x)
             self.step_y.append(points_y)
             self.step_score.append(score)
             self.step_iter.append(ii + 1)
-            # Writer log & various metric scores
-            if len(score) == 1:
-                self.writer.add_scalar("RMSE", score[0], ii + 1)
-            elif len(score) == 2:
-                self.writer.add_scalar("RMSE", score[0], ii + 1)
-                self.writer.add_scalar("RRSE", score[1], ii + 1)
-            elif len(score) == 3:
-                self.writer.add_scalar("RMSE", score[0], ii + 1)
-                self.writer.add_scalar("RRSE", score[1], ii + 1)
-                self.writer.add_scalar("MAE", score[2], ii + 1)
-            self.writer.add_scalar("Gen time", self.step_gen_time[ii + 1], ii + 1)
-            self.writer.add_scalar("Fit time", self.step_fit_time[ii + 1], ii + 1)
+            timing_dict = {
+                "Gen time": self.step_gen_time[ii + 1],
+                "Fit time": self.step_fit_time[ii + 1],
+            }
+            write_scores(self.writer, score, ii + 1)
+            write_timer(self.writer, timing_dict, ii + 1)
+
             # Currently use RMSE for convergence
-            self.score = score[0]
+            self.score = score[self.evaluation_metric.__name__]
             self.iterations = ii
             # Save model every 200 iterations
-            if (self.iterations % 200 == 0) and self.save_dir:
+            if self.iterations % 200 == 0:
                 save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
                 save_path = os.path.join(self.save_dir, save_name)
                 with open(save_path, "wb") as file:
                     pickle.dump(self.surrogate_model, file)
-            if stopping_criterium:
-                logger.info(
-                    f"Evaluation metric {[name for name in self.metric]} score"
-                    f" on provided testset: {score}"
-                )
-                if self.score <= stopping_criterium:
-                    logger.info(f"Algorithm converged in {ii} iterations")
-                    # Save model if converged
-                    with open(save_path, "wb") as file:
-                        pickle.dump(self.surrogate_model, file)
-                    break
+
+            if self.score <= stopping_criterium or ii >= max_n_iterations:
+                logger.info(f"Algorithm converged in {ii} iterations")
+                # Save model if converged
+                with open(save_path, "wb") as file:
+                    pickle.dump(self.surrogate_model, file)
+                break
+
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
-
-    def result_as_dict(self):
-        pass
 
 
 # -----------------------------------------------------
@@ -236,6 +221,7 @@ def best_new_points(
     domain_lower_bound: np.ndarray,
     domain_upper_bound: np.ndarray,
     n_new_point: int,
+    dim_in: int,
 ) -> np.ndarray:
     """
     Hybrid Sequential Strategy - Alg. (2) [2].
@@ -252,11 +238,10 @@ def best_new_points(
     """
 
     # shape the input if not in the right shape
-    n_dim = len(domain_lower_bound)
-    points_x = points_x.reshape((-1, n_dim))
+    points_x = points_x.reshape((-1, dim_in))
     points_y = points_y.reshape((-1, 1))
     # Calculate distance matrix P
-    distance_matrix = calculate_distance_matrix(points_x, n_dim)
+    distance_matrix = calculate_distance_matrix(points_x, dim_in)
     # Calculate the V for every Pr
     (
         relative_volumes,
@@ -276,7 +261,7 @@ def best_new_points(
     # TODO: check np.partition as an alternative
     idxs_new_neighbor = np.argsort(-neighborhoods_scores)[:n_new_point]
 
-    new_reference_points_x = np.empty((n_new_point, n_dim))
+    new_reference_points_x = np.empty((n_new_point, dim_in))
     for ii, idx_new_neighbor in enumerate(idxs_new_neighbor):
         # all the distances to reference point whose neighborhood will get a new
         # point where the target function is evaluated
@@ -451,7 +436,7 @@ def adh_high(x, A_max, s_ah=0.3):
     """
     Adhesion High membership function
     """
-    return np.exp(((-(x ** 2)) / 2 * ((A_max * s_ah) ** 2)))
+    return np.exp(((-(x**2)) / 2 * ((A_max * s_ah) ** 2)))
 
 
 def adh_low(x, A_max, s_al=0.27):

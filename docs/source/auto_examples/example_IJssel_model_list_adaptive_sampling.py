@@ -1,21 +1,27 @@
 """
-Also check:
+ModelListGP example.
+====================
+This example demonstrates the usage of the ``ModelListGP``, a list of independent
+Gaussian Process surrogates, each approximating an output of a function.
 
-https://www.sciencedirect.com/science/article/pii/S002199911630184X
-https://github.com/PredictiveScienceLab/py-aspgp
+.. math::
+
+    \\mathbf{X}_{\\mathrm{model}}(\\mathbf{\\theta}) =
+    \\mathbf{K}(\\boldsymbol{\\theta}) \\cdot f(\\mathbf{t})
+     + \\mathbf{E}_{\\mathrm{meas}},
+
 """
 
 import numpy as np
 import torch
-from model.model_twin_girder_betti import IJssel_bridge_model  # noqa: I201
+from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error
 
-from harlow.helper_functions import latin_hypercube_sampling
-from harlow.probabilistic_sampling import Probabilistic_sampler
-from harlow.surrogate_model import ModelListGaussianProcess
-
-# from matplotlib import pyplot as plt
-
+from harlow.surrogating import ModelListGaussianProcess
+from harlow.utils.examples.model_twin_girder_betti import (  # noqa: I201
+    IJssel_bridge_model,
+)
+from harlow.utils.helper_functions import latin_hypercube_sampling
 
 # ====================================================================
 # HELPER FUNCTIONS
@@ -31,11 +37,7 @@ def create_test_set(min_domain, max_domain, n):
 
 
 def rmse(x, y):
-
-    list_rmse = []
-    for xi, yi in zip(x, y.T):
-        list_rmse.append(mean_squared_error(xi, yi, squared=False))
-    return np.max(list_rmse)
+    return mean_squared_error(x, y, squared=False)
 
 
 def get_param_idx(params_dict):
@@ -46,12 +48,11 @@ def get_param_idx(params_dict):
 # SURROGATING PARAMETERS
 # ====================================================================
 N_train = 10
-N_test = 50
-N_pred = 50
-N_max_iter = 1000
+N_test = 200
+N_pred = 100
+N_iter = 200
 N_update = 100
 rmse_criterium = 0.1
-min_loss_rate = 0.001
 
 # ====================================================================
 # INITIALIZE MODEL
@@ -183,7 +184,7 @@ def response(X, pts):
             res[idx_x, idx_t] = np.interp(
                 t,
                 model.node_xs,
-                model.il_stress_truckload(c, lane="left", Kr=10 ** arr_Kr, Kv=10 ** Kv),
+                model.il_stress_truckload(c, lane="left", Kr=10**arr_Kr, Kv=10**Kv),
             )
 
     return res
@@ -215,99 +216,73 @@ surrogate = ModelListGaussianProcess(
     train_y,
     model_names=sensor_names,
     list_params=list_params,
-    training_max_iter=N_max_iter,
-    min_loss_rate=min_loss_rate,
-    show_progress=True,
-    silence_warnings=True,
+    training_iter=N_iter,
 )
+
 
 # ====================================================================
-# DEFINE SAMPLER
+# FIT
+# ====================================================================
+surrogate.fit(train_X, train_y)
+
+# ====================================================================
+# UPDATE
+# ====================================================================
+surrogate.update(update_X, update_y)
+
+# ====================================================================
+# SURROGATE PREDICT
 # ====================================================================
 
-ps = Probabilistic_sampler(
-    target_function=func_model,
-    surrogate_model=surrogate,
-    domain_lower_bound=domain_lower_bound,
-    domain_upper_bound=domain_upper_bound,
-    fit_points_x=train_X,
-    fit_points_y=train_y,
-    test_points_x=test_X,
-    test_points_y=test_y,
-    evaluation_metric=rmse,
-)
+# Tensor of prediction points
+vec_Kv = np.linspace(Kv_low, Kv_high, N_pred)
+pred_X = np.tile(np.array([7.0, 7.0, 7.0, 7.0]), (N_pred, 1))
+pred_X = np.hstack((pred_X, vec_Kv.reshape(-1, 1)))
+pred_X = torch.tensor(pred_X).float()
 
-ps.sample(
-    n_iter=None,
-    n_initial_point=N_train,
-    stopping_criterium=rmse_criterium,
-)
+# Physical model prediction
+true_y = response(pred_X, sensor_positions)
 
+# Surrogate model prediction
+pred_y = surrogate.predict(pred_X, return_std=False)
 
-#
-# # ====================================================================
-# # FIT
-# # ====================================================================
-# #surrogate.fit(train_X, train_y)
-#
-# # ====================================================================
-# # UPDATE
-# # ====================================================================
-# #surrogate.update(update_X, update_y)
-#
-# # ====================================================================
-# # SURROGATE PREDICT
-# # ====================================================================
-#
-# # Tensor of prediction points
-# vec_Kv = np.linspace(Kv_low, Kv_high, N_pred)
-# pred_X = np.tile(np.array([7.0, 7.0, 7.0, 7.0]), (N_pred, 1))
-# pred_X = np.hstack((pred_X, vec_Kv.reshape(-1, 1)))
-# pred_X = torch.tensor(pred_X).float()
-#
-# # Physical model prediction
-# true_y = response(pred_X, sensor_positions)
-#
-# # Surrogate model prediction
-# pred_y = surrogate.predict(pred_X, return_std = False)
-#
-# # Initialize plots
-# nrows = 3
-# ncols = int(np.ceil(N_tasks/3))
-# f, axes = plt.subplots(nrows, ncols, figsize=(3 * ncols, 3 * nrows))
-#
-# for idx, ax_i in enumerate(axes.ravel()):
-#
-#     mean_i = surrogate.mean[idx]
-#     upper_i = surrogate.upper[idx]
-#     lower_i = surrogate.lower[idx]
-#
-#     grid_idx = np.unravel_index(idx, (nrows, ncols))
-#
-#     train_X_i = surrogate.model.train_inputs[idx][0].detach().numpy()
-#     train_y_i = surrogate.model.train_targets[idx].detach().numpy()
-#
-#     # Plot training data as black stars
-#     ax_i.plot(train_X[:, -1], train_y[:, idx], 'k*', label = "Observations")
-#
-#     # Predictive mean as blue line
-#     ax_i.plot(pred_X[:, -1].numpy(), mean_i.numpy(), 'b', label = "Mean")
-#
-#     # Shade in confidence
-#     ax_i.fill_between(
-#     pred_X[:, -1].numpy(),
-#     lower_i.detach().numpy(),
-#     upper_i.detach().numpy(),
-#     alpha=0.5,
-#     label = "Confidence"
-#     )
-#     ax_i.plot(
-#     pred_X[:, -1].numpy(),
-#     true_y[:, idx],
-#     color="red",
-#     linestyle="dashed",
-#     label = "Model"
-#     )
-#     ax_i.set_title(f"Sensor: {sensor_names[idx]}")
-#
-# axes[0,0].legend()
+# Initialize plots
+nrows = 3
+ncols = int(np.ceil(N_tasks / 3))
+f, axes = plt.subplots(nrows, ncols, figsize=(3 * ncols, 3 * nrows))
+
+for idx, ax_i in enumerate(axes.ravel()):
+
+    mean_i = surrogate.mean[idx]
+    upper_i = surrogate.upper[idx]
+    lower_i = surrogate.lower[idx]
+
+    grid_idx = np.unravel_index(idx, (nrows, ncols))
+
+    train_X_i = surrogate.model.train_inputs[idx][0].detach().numpy()
+    train_y_i = surrogate.model.train_targets[idx].detach().numpy()
+
+    # Plot training data as black stars
+    ax_i.plot(train_X[:, -1], train_y[:, idx], "k*", label="Observations")
+
+    # Predictive mean as blue line
+    ax_i.plot(pred_X[:, -1].numpy(), mean_i.numpy(), "b", label="Mean")
+
+    # Shade in confidence
+    ax_i.fill_between(
+        pred_X[:, -1].numpy(),
+        lower_i.detach().numpy(),
+        upper_i.detach().numpy(),
+        alpha=0.5,
+        label="Confidence",
+    )
+    ax_i.plot(
+        pred_X[:, -1].numpy(),
+        true_y[:, idx],
+        color="red",
+        linestyle="dashed",
+        label="Model",
+    )
+    ax_i.set_title(f"Sensor: {sensor_names[idx]}")
+
+axes[0, 0].legend()

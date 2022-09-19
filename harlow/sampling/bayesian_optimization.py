@@ -268,9 +268,6 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
 
         return self.fit_points_x, self.fit_points_y
 
-    def result_as_dict(self):
-        pass
-
     def prediction_std(self, x):
         if x.ndim == 1:
             x = np.expand_dims(x, axis=0)

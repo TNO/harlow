@@ -35,9 +35,9 @@ def test_sine_1d():
             domain_upper_bound=domain_upper_bound,
         )
         lv.sample(
-            n_iter=n_iter,
-            n_initial_point=n_initial_point,
-            n_new_point_per_iteration=n_new_point_per_iteration,
+            max_n_iterations=n_iter,
+            n_initial_points=n_initial_point,
+            n_new_points_per_iteration=n_new_point_per_iteration,
         )
 
         # ............................
@@ -84,9 +84,9 @@ def test_forrester_1d():
         domain_upper_bound=domain_upper_bound,
     )
     lv.sample(
-        n_iter=n_iter,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_point_per_iteration,
+        max_n_iterations=n_iter,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_point_per_iteration,
     )
 
     # ............................
@@ -136,9 +136,9 @@ def test_peaks_2d():
         domain_upper_bound=domain_upper_bound,
     )
     lv.sample(
-        n_iter=n_iter,
-        n_initial_point=n_initial_point,
-        n_new_point_per_iteration=n_new_point_per_iteration,
+        max_n_iterations=n_iter,
+        n_initial_points=n_initial_point,
+        n_new_points_per_iteration=n_new_point_per_iteration,
     )
 
     # ............................

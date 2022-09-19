@@ -44,11 +44,11 @@ def pdist_condensed(x_mx: np.ndarray) -> np.ndarray:
         Condensed distance matrix.
     """
     n_point = x_mx.shape[0]
-    n_elem = int((n_point ** 2 - n_point) / 2)
+    n_elem = int((n_point**2 - n_point) / 2)
     dist = np.empty(n_elem)
     for ii in prange(n_point):
         for jj in prange(ii + 1, n_point):
-            kk = int(ii * n_point - (ii ** 2 + 3 * ii) / 2 + jj - 1)
+            kk = int(ii * n_point - (ii**2 + 3 * ii) / 2 + jj - 1)
             dist[kk] = euclidean_distance(x_mx[ii], x_mx[jj])
     return dist
 

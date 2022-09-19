@@ -9,19 +9,18 @@ Adapted from implementation in Prob_Taralli:
     prob_taralli/surrogating/adaptive_infill_gpr.py
 
 """
-import math
 import time
 from typing import Callable
 
 import numpy as np
 from loguru import logger
 from scipy.optimize import differential_evolution
-from sklearn.metrics import mean_squared_error
-from tensorboardX import SummaryWriter
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
+from harlow.utils.log_writer import write_scores, write_timer
+from harlow.utils.metrics import rmse
 
 
 class ProbabilisticSampler(Sampler):
@@ -35,50 +34,44 @@ class ProbabilisticSampler(Sampler):
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
-        evaluation_metric: Callable = None,
+        evaluation_metric: Callable = rmse,
+        logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
+        save_dir: str = "",
     ):
-        self.domain_lower_bound = domain_lower_bound
-        self.domain_upper_bound = domain_upper_bound
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
-        self.surrogate_model = surrogate_model
-        self.fit_points_x = fit_points_x
-        self.fit_points_y = fit_points_y
-        self.test_points_x = test_points_x
-        self.test_points_y = test_points_y
-        self.metric = evaluation_metric
-        self.verbose = verbose
-        # Internal storage for inspection
-        self.step_x = []
-        self.step_y = []
-        self.step_score = []
-        self.step_iter = []
-        self.step_fit_time = []
-        self.step_gen_time = []
-        # Init writer for live web-based logging.
-        self.writer = SummaryWriter(comment="-" + run_name)
+
+        super(ProbabilisticSampler, self).__init__(
+            target_function,
+            surrogate_model,
+            domain_lower_bound,
+            domain_upper_bound,
+            fit_points_x,
+            fit_points_y,
+            test_points_x,
+            test_points_y,
+            evaluation_metric,
+            logging_metrics,
+            verbose,
+            run_name,
+            save_dir,
+        )
+
         self.iterations = 0
 
     def sample(
         self,
-        n_initial_point: int = None,
-        n_iter: int = 20,
-        n_new_point_per_iteration: int = None,
+        n_initial_points: int = 20,
+        n_new_points_per_iteration: int = 1,
         stopping_criterium: float = None,
+        max_n_iterations: int = 5000,
         epsilon: float = 0.005,
     ):
 
         n_dim = len(self.domain_lower_bound)
 
-        if n_initial_point is None:
+        if n_initial_points is None:
             n_initial_point = 5 * n_dim
-
-        # if stopping_criterium:
-        #    n_iter = 1000
-
-        if stopping_criterium and not self.metric:
-            self.metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
 
         logger.info(f"Adaptive sampling iteration {self.iterations}.")
 
@@ -151,19 +144,17 @@ class ProbabilisticSampler(Sampler):
             points_x = np.concatenate((points_x, x_new))
             points_y = np.concatenate((points_y, y_new))
 
-            if not stopping_criterium or (
-                std_max <= epsilon or self.iterations > n_iter
-            ):
+            if std_max <= epsilon or self.iterations > max_n_iterations:
+
                 logger.info("std_max <= epsilon or max iterations reached")
                 convergence = True
             elif stopping_criterium:
                 score = evaluate(
-                    self.metric,
-                    self.surrogate_model,
+                    self.logging_metrics,
                     self.test_points_x,
                     self.test_points_y,
                 )
-                self.score = score[0]
+                self.score = score[self.evaluation_metric.__name__]
                 logger.info(f"Evaluation metric score on provided testset: {score}")
                 if self.score <= stopping_criterium:
                     self.number_of_iterations_at_convergence = self.iterations
@@ -177,22 +168,12 @@ class ProbabilisticSampler(Sampler):
             self.step_score.append(self.score)
             self.step_iter.append(self.iterations + 1)
 
-            # Writer log
-            if len(score) == 1:
-                self.writer.add_scalar("RMSE", score[0], self.iterations + 1)
-            elif len(score) == 2:
-                self.writer.add_scalar("RMSE", score[0], self.iterations + 1)
-                self.writer.add_scalar("RRSE", score[1], self.iterations + 1)
-            elif len(score) == 3:
-                self.writer.add_scalar("RMSE", score[0], self.iterations + 1)
-                self.writer.add_scalar("RRSE", score[1], self.iterations + 1)
-                self.writer.add_scalar("MAE", score[2], self.iterations + 1)
-            self.writer.add_scalar(
-                "Gen time", self.step_gen_time[self.iterations], self.iterations + 1
-            )
-            self.writer.add_scalar(
-                "Fit time", self.step_fit_time[self.iterations], self.iterations + 1
-            )
+            timing_dict = {
+                "Gen time": self.step_gen_time[self.iterations + 1],
+                "Fit time": self.step_fit_time[self.iterations + 1],
+            }
+            write_scores(self.writer, score, self.iterations + 1)
+            write_timer(self.writer, timing_dict, self.iterations + 1)
 
             self.score = score
             self.iterations += 1
@@ -200,6 +181,3 @@ class ProbabilisticSampler(Sampler):
         self.writer.close()
 
         return self.fit_points_x, self.fit_points_y
-
-    def result_as_dict(self):
-        pass
