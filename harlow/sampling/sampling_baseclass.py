@@ -28,7 +28,7 @@ class Sampler(ABC):
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
-        self.target_function = lambda x: target_function(x).reshape((-1, 1))
+        self.target_function = target_function
         self.surrogate_model = surrogate_model
         self.fit_points_x = fit_points_x
         self.fit_points_y = fit_points_y
@@ -95,9 +95,9 @@ class Sampler(ABC):
             )
 
         # Check shape of `y`
-        if y.ndim < 2:
+        if y.ndim != 2:
             raise ValueError(
-                f"Target array `y` must have at least 2 dimensions and shape "
+                f"Target array `y` must have exactly 2 dimensions and shape "
                 f"(n_points, n_outputs) but has {y.ndim} dimensions and shape "
                 f"{y.shape} "
             )
