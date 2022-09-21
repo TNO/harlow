@@ -75,6 +75,11 @@ class Surrogate(ABC):
     def is_multioutput(self):
         pass
 
+    @property
+    @abstractmethod
+    def is_torch(self):
+        pass
+
     @abstractmethod
     def _fit(self, X, y, **kwargs):
         raise NotImplementedError
@@ -94,20 +99,20 @@ class Surrogate(ABC):
     @staticmethod
     def check_inputs(X, y=None):
 
-        # Ensure `X` and `y` are numpy arrays
+        # Check input points `X`
         if not isinstance(X, np.ndarray):
             raise ValueError(
                 f"Parameters `X` must be of type {np.ndarray} but are"
                 f" of type {type(X)} "
             )
-        if (X.ndim != 2) and (X.ndim != 3):
+        if X.ndim != 2:
             raise ValueError(
-                f"Input array `X` must have shape `(n_batch, n_points, n_features)`"
-                f" or (n_points, n_features) but has shape {X.shape}."
+                f"Input array `X` must have shape `(n_points, n_features)`"
+                f" but has shape {X.shape}."
             )
 
-        # Check target points `y`
         if y is not None:
+            # Check target `y` is a numpy array
             if not isinstance(y, np.ndarray):
                 raise ValueError(
                     f"Targets `y` must be of type {np.ndarray} but are of"
@@ -115,19 +120,19 @@ class Surrogate(ABC):
                 )
 
             # Check shape of `y`
-            if (y.ndim != 1) and (y.ndim != 2):
+            if y.ndim < 2:
                 raise ValueError(
-                    f"Target array `y` must have shape `(n_points, n_batch)` or  "
-                    f" `(n_points,)` but has shape {y.shape}."
+                    f"Target array `y` must have at least 2 dimensions and shape "
+                    f"(n_points, n_outputs) but has {y.ndim} dimensions and shape "
+                    f"{y.shape} "
                 )
 
-            # If the batch dim of `X` has size 1, assume it is shared for all batches
-            if (X.shape[0] != 1) and (X.ndim != 2):
-                if (y.shape[0] != X.shape[1]) or (y.shape[1] != X.shape[0]):
-                    raise ValueError(
-                        f"Target `y` must have shape ({X.shape[1]}, {X.shape[0]})"
-                        f" but has shape {y.shape}."
-                    )
+            # Check consistency of input and output shapes
+            if y.shape[0] != X.shape[0]:
+                raise ValueError(
+                    f"Size of input array `X` and output array `y` must match for "
+                    f"dimension 0 but are {X.shape[0]} and {y.shape[0]} respectively."
+                )
 
     def fit(self, X: np.ndarray, y: np.ndarray, **kwargs):
         """
@@ -181,6 +186,7 @@ class Surrogate(ABC):
 class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
     is_multioutput = False
+    is_torch = False
     kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
 
     def __init__(
@@ -267,6 +273,7 @@ class VanillaGaussianProcess(Surrogate):
 class GaussianProcessTFP(Surrogate):
     is_probabilistic = True
     is_multioutput = False
+    is_torch = False
 
     def __init__(
         self,
@@ -375,13 +382,14 @@ class GaussianProcessTFP(Surrogate):
                 "amplitude": amplitude,
                 "length_scale": length_scale,
                 "observation_noise_variance": observation_noise_variance,
-                "observations": self.observations,
+                "observations": tf.squeeze(self.observations),
             }
         )
 
     def _fit(self, X, y, **kwargs):
         self.observation_index_points = X
         self.observations = y
+        self.create_model()
         self.optimize_parameters()
 
     def _predict(
@@ -449,6 +457,7 @@ class GaussianProcessRegression(Surrogate):
 
     is_probabilistic = True
     is_multioutput = False
+    is_torch = True
 
     def __init__(
         self,
@@ -502,10 +511,10 @@ class GaussianProcessRegression(Surrogate):
         self.optimizer = None
 
         # Check input consistency
-        if self.train_y.shape[0] != self.train_X.shape[1]:
+        if self.train_y.shape[0] != self.train_X.shape[0]:
             raise ValueError(
                 f"Dim 0 of `train_y` must be equal to the number of training"
-                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[1]}."
+                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
@@ -515,7 +524,7 @@ class GaussianProcessRegression(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -541,7 +550,7 @@ class GaussianProcessRegression(Surrogate):
 
             self.optimizer.zero_grad()
             output = self.model(self.train_X)
-            loss = -self.mll(output, self.train_y)
+            loss = -self.mll(output, torch.ravel(self.train_y))
             loss.backward()
             self.vec_loss.append(loss.item())
             self.optimizer.step()
@@ -579,8 +588,6 @@ class GaussianProcessRegression(Surrogate):
 
     def _predict(self, X_pred, return_std=False, **kwargs):
 
-        X_pred = X_pred[0]
-
         # Switch the model to eval mode
         self.model.eval()
         self.likelihood.eval()
@@ -611,7 +618,7 @@ class GaussianProcessRegression(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
         self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
@@ -652,10 +659,11 @@ class ModelListGaussianProcess(Surrogate):
 
     is_probabilistic = True
     is_multioutput = True
+    is_torch = True
 
     def __init__(
         self,
-        model_names,
+        model_names=None,
         training_max_iter=100,
         learning_rate=0.1,
         input_transform=TensorTransform,
@@ -691,14 +699,6 @@ class ModelListGaussianProcess(Surrogate):
         self.prediction = None
         self.fast_pred_var = fast_pred_var
         self.device = dev
-        # Check input consistency
-        if self.model_names is None:
-            raise ValueError("An iterable of model names must be specified")
-
-        if self.list_params is None:
-            raise ValueError(
-                "An iterable of parameter indices per model must" "be specified"
-            )
 
         if self.optimizer is None:
             warnings.warn("No optimizer specified, using default.", UserWarning)
@@ -715,6 +715,14 @@ class ModelListGaussianProcess(Surrogate):
         # Reset optimizer
         self.optimizer = None
 
+        if self.list_params is None:
+            self.list_params = [
+                [idx for idx in range(self.train_X.shape[1])]
+            ] * self.train_y.shape[1]
+
+        if self.model_names is None:
+            self.model_names = [f"model_{idx}" for idx in range(self.train_y.shape[1])]
+
         # Check input consistency
         if self.train_y.shape[0] != self.train_X.shape[0]:
             raise ValueError(
@@ -726,6 +734,12 @@ class ModelListGaussianProcess(Surrogate):
             raise ValueError(
                 f"Dim 1 of `train_y` must be equal to the number of models"
                 f" but is {self.train_y.shape[1]} != {len(self.model_names)}"
+            )
+
+        if self.train_y.shape[1] != len(self.list_params):
+            raise ValueError(
+                f"Dim 1 of `train_y` must be equal to the length of the list of "
+                f"parameters but is {self.train_y.shape[1]} != {len(self.list_params)}"
             )
 
         # Assemble the models and likelihoods
@@ -753,7 +767,7 @@ class ModelListGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -817,8 +831,7 @@ class ModelListGaussianProcess(Surrogate):
 
     def _predict(self, X_pred, return_std=False, as_array=False, **kwargs):
 
-        # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = X_pred.to(self.device)[0]
+        X_pred = X_pred.to(self.device)
 
         # Switch the model to eval mode
         self.model.eval()
@@ -871,7 +884,7 @@ class ModelListGaussianProcess(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
         self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
@@ -914,10 +927,10 @@ class BatchIndependentGaussianProcess(Surrogate):
 
     is_probabilistic = True
     is_multioutput = True
+    is_torch = True
 
     def __init__(
         self,
-        num_tasks,
         training_max_iter=100,
         learning_rate=0.1,
         input_transform=TensorTransform,
@@ -937,7 +950,6 @@ class BatchIndependentGaussianProcess(Surrogate):
         )
 
         self.model = None
-        self.num_tasks = num_tasks
         self.training_max_iter = training_max_iter
         self.noise_std = None
         self.likelihood = None
@@ -966,6 +978,7 @@ class BatchIndependentGaussianProcess(Surrogate):
 
         # Reset optimizer
         self.optimizer = None
+        self.num_tasks = self.train_y.shape[1]
 
         # Check input consistency
         if self.train_y.shape[0] != self.train_X.shape[0]:
@@ -974,22 +987,17 @@ class BatchIndependentGaussianProcess(Surrogate):
                 f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
-        if self.train_y.shape[1] != self.num_tasks:
-            raise ValueError(
-                f"Dim 1 of `train_y` must be equal to the number of tasks"
-                f"but is {self.train_y.shape[1]} != {self.num_tasks}"
-            )
-
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
             num_tasks=self.num_tasks
         ).to(self.device)
+
         self.model = BatchIndependentMultitaskGPModel(
             self.train_X, self.train_y, self.likelihood, self.num_tasks
         ).to(self.device)
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1053,8 +1061,7 @@ class BatchIndependentGaussianProcess(Surrogate):
 
     def _predict(self, X_pred, return_std=False, **kwargs):
 
-        # Cast input to tensor for compatibility with sampling algorithms
-        X_pred = X_pred[0]
+        X_pred = X_pred.to(self.device)
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1086,7 +1093,7 @@ class BatchIndependentGaussianProcess(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
         self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
@@ -1127,10 +1134,11 @@ class MultiTaskGaussianProcess(Surrogate):
 
     is_probabilistic = True
     is_multioutput = True
+    is_torch = True
 
     def __init__(
         self,
-        num_tasks,
+        num_tasks=None,
         training_max_iter=100,
         learning_rate=0.1,
         input_transform=TensorTransform,
@@ -1177,6 +1185,9 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def create_model(self):
 
+        if self.num_tasks is None:
+            self.num_tasks = self.train_y.shape[1]
+
         # Reset optimizer
         self.optimizer = None
 
@@ -1202,7 +1213,7 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1266,7 +1277,7 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _predict(self, X_pred, return_std=False, **kwargs):
 
-        X_pred = X_pred[0]
+        X_pred = X_pred.to(self.device)
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1298,7 +1309,7 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
         self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
@@ -1340,11 +1351,10 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
     is_probabilistic = True
     is_multioutput = True
+    is_torch = True
 
     def __init__(
         self,
-        num_tasks,
-        num_features,
         input_transform=TensorTransform,
         output_transform=TensorTransform,
         training_max_iter=100,
@@ -1364,8 +1374,6 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         )
 
         self.model = None
-        self.num_tasks = num_tasks
-        self.num_features = num_features
         self.training_max_iter = training_max_iter
         self.noise_std = None
         self.likelihood = None
@@ -1379,6 +1387,8 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         self.predictions = None
         self.fast_pred_var = fast_pred_var
         self.device = dev
+        self.num_tasks = None
+        self.num_features = None
 
         if self.optimizer is None:
             warnings.warn("No optimizer specified, using default.", UserWarning)
@@ -1391,6 +1401,9 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
             warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
     def create_model(self):
+
+        self.num_tasks = self.train_y.shape[1]
+        self.num_features = self.train_X.shape[1]
 
         # Reset optimizer
         self.optimizer = None
@@ -1421,7 +1434,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1485,8 +1498,6 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
     def _predict(self, X_pred, return_std=False, **kwargs):
 
-        X_pred = X_pred[0]
-
         # Switch the model to eval mode
         self.model.eval()
         self.likelihood.eval()
@@ -1517,7 +1528,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
         self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
@@ -1541,6 +1552,7 @@ class NeuralNetwork(Surrogate):
     learning_rate_update = 0.001
     is_probabilistic = False
     is_multioutput = True
+    is_torch = False
 
     def __init__(
         self,
@@ -1574,6 +1586,12 @@ class NeuralNetwork(Surrogate):
         self.model.compile(optimizer=Adam(learning_rate=learning_rate), loss="mse")
 
     def _fit(self, X, y, **kwargs):
+
+        self.X = X
+        self.y = y
+        n_features = self.X.shape[1]
+        self.create_model(input_dim=(n_features,))
+
         self.model.fit(X, y, epochs=self.epochs, batch_size=self.batch_size)
 
     def _update(self, X_new, y_new, **kwargs):
@@ -1597,6 +1615,7 @@ class BayesianNeuralNetwork(Surrogate):
     learning_rate_update = 0.001
     is_probabilistic = True
     is_multioutput = False
+    is_torch = False
 
     def __init__(
         self,
@@ -1670,6 +1689,9 @@ class BayesianNeuralNetwork(Surrogate):
     def _fit(self, X, y, **kwargs):
         self.X = X
         self.y = y
+        n_features = self.X.shape[1]
+
+        self.create_model(input_dim=(n_features,))
         self.model.fit(
             X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=True
         )
