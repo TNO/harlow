@@ -23,7 +23,6 @@ Usefull:
     https://github.com/pytorch/botorch/issues/573
 """
 
-import math
 import os
 import time
 from typing import Callable
@@ -33,11 +32,11 @@ import torch
 from botorch.acquisition.active_learning import qNegIntegratedPosteriorVariance
 from botorch.optim import optimize_acqf
 from loguru import logger
-from sklearn.metrics import mean_squared_error
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.utils.metrics import rmse
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dtype = torch.double
@@ -46,8 +45,7 @@ SMOKE_TEST = os.environ.get("SMOKE_TEST")
 
 class NegativeIntegratedPosteriorVarianceSampler(Sampler):
     """
-    TODO: Can we use q-batches to parallelize the task of finding a new point for each
-    surrogate in a list of surrogates?
+    NOTE: This sampler is experimental and currently only works with GPyTorch surrogates
     """
 
     def __init__(
@@ -56,63 +54,52 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
         surrogate_model: Surrogate,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
-        n_init_points: int = 10,
         fit_points_x: np.ndarray = None,
         fit_points_y: np.ndarray = None,
         test_points_x: np.ndarray = None,
         test_points_y: np.ndarray = None,
-        n_max_iter: int = None,
-        stopping_criterion: float = None,
+        evaluation_metric: Callable = rmse,
+        logging_metrics: list = None,
+        verbose: bool = False,
+        run_name: str = None,
+        save_dir: str = "",
         n_mc_points: int = 256,
         q: int = 1,
         num_restarts: int = 10,
         raw_samples: int = 512,
         optimizer_options: dict = None,
-        surrogate_kwargs: dict = None,
         func_sample: Callable = latin_hypercube_sampling,
-        evaluation_metric: Callable = None,
-        verbose: bool = False,
     ):
-        self.target_function = lambda x: torch.tensor(
-            target_function(x).reshape((-1, 1))
+
+        super(NegativeIntegratedPosteriorVarianceSampler, self).__init__(
+            target_function,
+            surrogate_model,
+            domain_lower_bound,
+            domain_upper_bound,
+            fit_points_x,
+            fit_points_y,
+            test_points_x,
+            test_points_y,
+            evaluation_metric,
+            logging_metrics,
+            verbose,
+            run_name,
+            save_dir,
         )
-        self.surrogate_model_u = surrogate_model
-        self.domain_lower_bound = domain_lower_bound
-        self.domain_upper_bound = domain_upper_bound
-        self.n_init_points = n_init_points
-        self.n_max_iter = n_max_iter
-        self.stopping_criterion = stopping_criterion
+
+        # Sampler specific initialization
         self.n_mc_points = n_mc_points
         self.q = q
         self.num_restarts = num_restarts
         self.raw_samples = raw_samples
-        self.surrogate_kwargs = surrogate_kwargs
         self.func_sample = func_sample
         self.metric = evaluation_metric
         self.verbose = verbose
-
-        # TODO: Replace `torch.tensor` with user-specified input/output transforms
-        # To avoid torch errors for parameters set to None
-        self.fit_points_x = (
-            torch.tensor(fit_points_x) if fit_points_x is not None else None
-        )
-        self.fit_points_y = (
-            torch.tensor(fit_points_y) if fit_points_y is not None else None
-        )
-        self.test_points_x = (
-            torch.tensor(test_points_x) if test_points_x is not None else None
-        )
-        self.test_points_y = (
-            torch.tensor(test_points_y) if test_points_y is not None else None
-        )
+        self.mc_samples = None
 
         # Search space
         self.bounds = torch.tensor(np.vstack((domain_lower_bound, domain_upper_bound)))
         self.ndim = self.bounds.shape[-1]
-
-        # Convergence
-        self.iterations = 0
-        self.score = None
 
         # Check if sampling function is provided, otherwise use default
         self.func_sample = lambda n: func_sample(
@@ -126,27 +113,22 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
         if not self.optimizer_options:
             self.optimizer_options = {"batch_limit": 5, "maxiter": 200}
 
-        # Surrogate kwargs
-        if not self.surrogate_kwargs:
-            self.surrogate_kwargs = {}
-
-        # Initial sampling
-        if (self.n_init_points is None) and (
-            (self.fit_points_x is None) or (self.fit_points_y is None)
-        ):
-            raise ValueError(
-                "Either `n_init_points` or a pair of samples and target values"
-                "`fit_points_x` and `fit_points_y` must be specified"
+        # Check surrogate model
+        if not self.surrogate_model.is_probabilistic:
+            raise NotImplementedError(
+                "Uncertainty based sampling only implemented for probabilistic \
+                surrogate models."
             )
 
-        if self.n_init_points is None:
-            self.n_init_points = self.fit_points_x.shape[0]
-
-        # Draw mc samples
-        self.mc_samples = self.func_sample(self.n_mc_points)
+        if not self.surrogate_model.is_torch:
+            raise AttributeError(
+                "This BoTorch-based sampler is experimental and currently only "
+                "supports GPyTorch GP surrogates"
+            )
 
     def optimize_acqf_and_get_observation(self, acq_func):
-        """Optimizes the acquisition function, and returns a new candidate and a
+        """
+        Optimizes the acquisition function, and returns a new candidate and a
         noisy observation.
         """
         # optimize
@@ -160,30 +142,40 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
             return_best_only=True,
         )
         # observe new values
-        new_x = candidates.detach()
-        new_y = self.target_function(new_x).unsqueeze(-1)  # add output dimension
+        new_x = candidates.detach().cpu().numpy()
+        new_y = self.observer(new_x)
         return new_x, new_y
 
-    def get_model(self):
-        """
-        Initialize a GP surrogate model
-        """
-        self.surrogate_model = self.surrogate_model_u(
-            self.fit_points_x, self.fit_points_y, **self.surrogate_kwargs
-        )
+    def sample(
+        self,
+        n_initial_points: int = 20,
+        n_new_points_per_iteration: int = 1,
+        stopping_criterion: float = 0.05,
+        max_n_iterations: int = 5000,
+    ):
 
-    def sample(self):
+        # Initial sampling
+        if (n_initial_points is None) and (
+            (self.fit_points_x is None) or (self.fit_points_y is None)
+        ):
+            raise ValueError(
+                "Either `n_initial_points` or a pair of samples and target values"
+                "`fit_points_x` and `fit_points_y` must be specified"
+            )
 
-        if self.stopping_criterion is not None:
-            self.n_max_iter = 1000
+        if n_initial_points is None:
+            n_initial_points = self.fit_points_x.shape[0]
 
-        if self.stopping_criterion and not self.evaluation_metric:
-            self.evaluation_metric = lambda x, y: math.sqrt(mean_squared_error(x, y))
+        # Draw mc samples
+        self.mc_samples = self.func_sample(self.n_mc_points)
+
+        if stopping_criterion and not self.evaluation_metric:
+            raise ValueError("Specified stopping criterion but no evaluation metric.")
 
         logger.info(
-            f"qNIPV sampling for {self.n_max_iter} iterations with"
-            f"{self.n_init_points} initial points and stopping"
-            f"criterion = {self.stopping_criterion}."
+            f"qNIPV sampling for {max_n_iterations} max iterations with "
+            f"{n_initial_points} initial points and stopping "
+            f"criterion = {stopping_criterion}."
         )
 
         # If no initial points are passed, use latin hypercube sampling.
@@ -191,28 +183,15 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
 
             # Draw samples
             self.fit_points_x = self.func_sample(
-                n=self.n_init_points,
+                n=n_initial_points,
             )
 
             # Evaluate
-            self.fit_points_y = self.target_function(self.fit_points_x)
-            self.fit_points_x = torch.tensor(self.fit_points_x)
-            self.fit_points_y = torch.tensor(self.fit_points_y).squeeze()
+            self.fit_points_y = self.observer(self.fit_points_x)
 
-        # Initialize model
-        # TODO: The GPyTorch models must be initialized with data and
-        # therefore behave differently than other models in harlow.
-        # The GPyTorch models should be harmonized with the other
-        # surrogates
-        self.get_model()
-        if not self.surrogate_model.is_probabilistic:
-            raise NotImplementedError(
-                "Uncertainty based sampling only implemented for probabilistic \
-                surrogate models."
-            )
-
+        iteration = 0
         convergence = False
-        while (convergence is False) and (self.iterations < self.n_max_iter):
+        while (convergence is False) and (iteration < max_n_iterations):
 
             start_time = time.time()
 
@@ -242,14 +221,13 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
             )
 
             # Check user-specified stopping criterion
-            self.score = self.metric(
+            score = self.metric(
                 self.surrogate_model.predict(self.test_points_x), self.test_points_y
             )
 
-            if self.stopping_criterion:
-                if self.score <= self.stopping_criterion:
-                    self.number_of_iterations_at_convergence = self.iterations
-                    logger.info(f"Algorithm converged in {self.iterations} iterations")
+            if stopping_criterion:
+                if score <= stopping_criterion:
+                    logger.info(f"Algorithm converged in {iteration} iterations")
                     convergence = True
 
             # Update training points
@@ -257,34 +235,15 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
             self.fit_points_y = torch.cat(
                 [
                     self.fit_points_y,
-                    new_y.reshape(
+                    new_y.mreshape(
                         -1,
                     ),
                 ]
             )
 
-            self.iterations += 1
-            print(f"Sampling iteration = {self.iterations} / {self.n_max_iter}")
+            iteration += 1
+
+            if self.verbose:
+                print(f"Sampling iteration = {iteration} / {max_n_iterations}")
 
         return self.fit_points_x, self.fit_points_y
-
-    def prediction_std(self, x):
-        if x.ndim == 1:
-            x = np.expand_dims(x, axis=0)
-
-        # Return minimum across all models
-        std_model = np.atleast_1d(self.surrogate_model.predict(x, return_std=True)[1])
-
-        # TODO: This part should be improved
-        try:
-            std_noise = np.atleast_1d(self.surrogate_model.noise_std)
-        except:  # noqa: E722, B001
-            std_noise = [
-                std_i.detach().numpy() for std_i in self.surrogate_model.noise_std
-            ]
-
-        std = [
-            -(std_model_i - std_noise[idx]) for idx, std_model_i in enumerate(std_model)
-        ]
-
-        return np.min(std)
