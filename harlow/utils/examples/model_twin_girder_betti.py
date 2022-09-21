@@ -11,12 +11,13 @@ import pickle
 # IMPORTS
 # ============================================================================
 from copy import copy, deepcopy
+from pathlib import Path
 
 import numpy as np
 from numba import jit
 from scipy.linalg import cho_factor, cho_solve
 
-from harlow.utils.examples.model_data import truck_data
+from harlow.utils.examples.model_data.truck_data import *  # noqa: F403
 
 
 # ============================================================================
@@ -104,9 +105,10 @@ class IJssel_bridge_model:
         self.E = E
 
         # Load model data
+        fpath = Path(__file__).resolve().parent
         fname = f"model_dict#max_elem_length={self.max_elem_length}#E={self.E}.dat"
 
-        with open(fname, "rb") as handle:
+        with open(str(fpath / "model_data" / fname), "rb") as handle:
             model_properties = pickle.load(handle)
 
         # Get sensor names and positions
@@ -204,18 +206,22 @@ class IJssel_bridge_model:
         # ====================================================================
 
         # Wheel z positions
-        z_truck_r_wheel_r = truck_data[truck_load]["right"]["z_wheel_r"]
-        z_truck_r_wheel_l = truck_data[truck_load]["right"]["z_wheel_l"]
-        z_truck_l_wheel_r = truck_data[truck_load]["left"]["z_wheel_r"]
-        z_truck_l_wheel_l = truck_data[truck_load]["left"]["z_wheel_l"]
+        z_truck_r_wheel_r = truck_data[truck_load]["right"]["z_wheel_r"]  # noqa: F405
+        z_truck_r_wheel_l = truck_data[truck_load]["right"]["z_wheel_l"]  # noqa: F405
+        z_truck_l_wheel_r = truck_data[truck_load]["left"]["z_wheel_r"]  # noqa: F405
+        z_truck_l_wheel_l = truck_data[truck_load]["left"]["z_wheel_l"]  # noqa: F405
 
         # Forces
-        right_truck_force = truck_data[truck_load]["right"]["force"]
-        left_truck_force = truck_data[truck_load]["left"]["force"]
+        right_truck_force = truck_data[truck_load]["right"]["force"]  # noqa: F405
+        left_truck_force = truck_data[truck_load]["left"]["force"]  # noqa: F405
 
         # Axle distances
-        right_truck_axle_dist_x = truck_data[truck_load]["right"]["axle_dist"]
-        left_truck_axle_dist_x = truck_data[truck_load]["left"]["axle_dist"]
+        right_truck_axle_dist_x = truck_data[truck_load]["right"][  # noqa: F405
+            "axle_dist"
+        ]
+        left_truck_axle_dist_x = truck_data[truck_load]["left"][  # noqa: F405
+            "axle_dist"
+        ]
 
         # Create objects holding the parameter values for left, right and double
         # case. This is to avoid the if-else statements that were used previously.
