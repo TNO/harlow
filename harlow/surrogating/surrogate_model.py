@@ -914,8 +914,6 @@ class ModelListGaussianProcess(Surrogate):
 
 class BatchIndependentGaussianProcess(Surrogate):
     """
-    !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
-
     Utility class to generate a surrogate composed of multiple independent
     Gaussian processes with the same covariance and likelihood:
     https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html
@@ -1585,6 +1583,8 @@ class NeuralNetwork(Surrogate):
         self.epochs = epochs
         self.batch_size = batch_size
         self.loss = loss
+        self.n_output_dim = None
+        self.n_features = None
 
     def create_model(
         self, input_dim=(2,), output_dim=1, activation="relu", learning_rate=0.01
@@ -1602,16 +1602,25 @@ class NeuralNetwork(Surrogate):
 
         self.X = X
         self.y = y
-        n_features = self.X.shape[1]
-        self.create_model(input_dim=(n_features,))
+        self.n_features = self.X.shape[1]
+        self.n_output_dim = self.y.shape[1]
+        self.create_model(input_dim=(self.n_features,), output_dim=self.n_output_dim)
 
         self.model.fit(X, y, epochs=self.epochs, batch_size=self.batch_size)
 
     def _update(self, X_new, y_new, **kwargs):
         optimizer = Adam(learning_rate=self.learning_rate_update)
         self.model.compile(optimizer=optimizer, loss=self.loss)
+
+        self.X = np.vstack([self.X, X_new])
+        self.y = np.vstack([self.y, y_new])
+
         self.model.fit(
-            X_new, y_new, epochs=self.epochs, batch_size=self.batch_size, verbose=False
+            self.X,
+            self.y,
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+            verbose=False,
         )
 
     def _predict(self, X, **kwargs):

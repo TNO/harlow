@@ -9,7 +9,7 @@ Surrogate model unit tests, to ensure that all surrogates:
 
 import numpy as np
 
-from harlow.surrogating.surrogate_model import (  # noqa F401; DeepKernelMultiTaskGaussianProcess,; GaussianProcessRegression,
+from harlow.surrogating.surrogate_model import (  # noqa F401; DeepKernelMultiTaskGaussianProcess,
     BatchIndependentGaussianProcess,
     BayesianNeuralNetwork,
     GaussianProcessTFP,
@@ -23,7 +23,6 @@ surrogate_list = [
     BatchIndependentGaussianProcess(),
     BayesianNeuralNetwork(),
     # DeepKernelMultiTaskGaussianProcess(),
-    # GaussianProcessRegression(),
     GaussianProcessTFP(),
     ModelListGaussianProcess(),
     MultiTaskGaussianProcess(),
@@ -47,40 +46,44 @@ pred_X = np.random.rand(N_pred, N_features)
 
 def test_surrogate_multi_output():
 
-    # Training step
     for surrogate in surrogate_list:
-        try:
-            surrogate.fit(train_X, train_y)
-        except Exception as e:
-            raise Exception(f"Surrogate fit failed for {surrogate} with exception: {e}")
 
-    # TODO: Check number of samples internally for each surrogate model to make
-    #   sure that `update_X` and `update_y` are added to the existing samples.
+        if surrogate.is_multioutput is True:
 
-    # Training step
-    for surrogate in surrogate_list:
-        try:
-            surrogate.update(update_X, update_y)
-        except Exception as e:
-            raise Exception(
-                f"Surrogate update failed for {surrogate} with exception: {e}"
-            )
+            # Training step
+            try:
+                surrogate.fit(train_X, train_y)
+            except Exception as e:
+                raise Exception(
+                    f"Surrogate fit failed for {surrogate} with exception: {e}"
+                )
 
-    # Prediction step
-    for surrogate in surrogate_list:
-        try:
-            pred_y = surrogate.predict(pred_X)
-        except Exception as e:
-            raise Exception(
-                f"Surrogate prediction failed for {surrogate} with exception: {e}"
-            )
+            # TODO: Check number of samples internally for each surrogate model to make
+            #   sure that `update_X` and `update_y` are added to the existing samples.
 
-        print(f"Assertions for surrogate {surrogate}")
-        assert isinstance(pred_y, np.ndarray)
-        assert pred_y.ndim == 2
-        assert pred_y.shape[0] == N_pred
-        assert pred_y.shape[1] == N_outputs
+            # Training step
+            try:
+                surrogate.update(update_X, update_y)
+            except Exception as e:
+                raise Exception(
+                    f"Surrogate update failed for {surrogate} with exception: {e}"
+                )
+
+            # Prediction step
+            try:
+                pred_y = surrogate.predict(pred_X)
+            except Exception as e:
+                raise Exception(
+                    f"Surrogate prediction failed for {surrogate} with exception: {e}"
+                )
+
+            print(f"Assertions for surrogate {surrogate}")
+            assert isinstance(pred_y, np.ndarray)
+            assert pred_y.ndim == 2
+            assert pred_y.shape[0] == N_pred
+            assert pred_y.shape[1] == N_outputs
 
 
-if __name__ == "__main__":
-    test_surrogate_multi_output()
+#
+# if __name__ == "__main__":
+#     test_surrogate_multi_output()
