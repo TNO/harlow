@@ -1,8 +1,7 @@
-from harlow.surrogating.surrogate_model import (  # noqa F401
+from harlow.surrogating.surrogate_model import (  # noqa F401; GaussianProcessRegression,
     BatchIndependentGaussianProcess,
     BayesianNeuralNetwork,
     DeepKernelMultiTaskGaussianProcess,
-    GaussianProcessRegression,
     GaussianProcessTFP,
     ModelListGaussianProcess,
     MultiTaskGaussianProcess,

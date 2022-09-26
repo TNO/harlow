@@ -177,10 +177,10 @@ class Surrogate(ABC):
 
         if return_std:
             samples, std = self._predict(X, return_std=return_std, **kwargs)
-            return samples, std
+            return self.output_transform().reverse(samples), std
         else:
             samples = self._predict(X, return_std=return_std, **kwargs)
-            return samples
+            return self.output_transform().reverse(samples)
 
 
 class VanillaGaussianProcess(Surrogate):
@@ -246,6 +246,11 @@ class VanillaGaussianProcess(Surrogate):
 
     def _predict(self, X, return_std=False, **kwargs):
         samples, std = self.model.predict(X, return_std=True)
+
+        # Sklearn reshapes the predictions into a 1d array if there is only one
+        # output. Reshape to column.
+        if samples.ndim == 1:
+            samples = samples.reshape(-1, 1)
 
         if return_std:
             return samples, std
@@ -388,7 +393,7 @@ class GaussianProcessTFP(Surrogate):
 
     def _fit(self, X, y, **kwargs):
         self.observation_index_points = X
-        self.observations = y
+        self.observations = y.flatten()
         self.create_model()
         self.optimize_parameters()
 
@@ -409,16 +414,18 @@ class GaussianProcessTFP(Surrogate):
         if return_samples:
             if return_std:
                 return (
-                    np.mean(samples, axis=0),
-                    np.std(samples, axis=0),
+                    np.mean(samples, axis=0).reshape(-1, 1),
+                    np.std(samples, axis=0).reshape(-1, 1),
                     samples.numpy(),
                 )
             else:
-                return np.mean(samples, axis=0), samples.numpy()
+                return np.mean(samples, axis=0).reshape(-1, 1), samples.numpy()
         if return_std:
-            return np.mean(samples, axis=0), np.std(samples, axis=0)
+            return np.mean(samples, axis=0).reshape(-1, 1), np.std(
+                samples, axis=0
+            ).reshape(-1, 1)
         else:
-            return np.mean(samples, axis=0)
+            return np.mean(samples, axis=0).reshape(-1, 1)
 
     def _update(self, new_X, new_y, **kwargs):
         self.observation_index_points = np.concatenate(
@@ -433,7 +440,7 @@ class GaussianProcessTFP(Surrogate):
 
 class GaussianProcessRegression(Surrogate):
     """
-    !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
+    DEPRECATED
 
     Simple Gaussian process regression model using GPyTorch
 
@@ -475,6 +482,12 @@ class GaussianProcessRegression(Surrogate):
         dev=None,
         **kwargs,
     ):
+
+        raise DeprecationWarning(
+            "This model is deprecated and will be removed as it does not comply to "
+            "the input/output shape convention and is a subset of the "
+            "`BatchIndependentGaussianProcess` and `VanillaGaussianProcess` models."
+        )
 
         super().__init__(
             input_transform=input_transform, output_transform=output_transform
@@ -518,9 +531,9 @@ class GaussianProcessRegression(Surrogate):
             )
 
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
-        self.model = ExactGPModel(self.train_X, self.train_y, self.likelihood).to(
-            self.device
-        )
+        self.model = ExactGPModel(
+            self.train_X, self.train_y.squeeze(-1), self.likelihood
+        ).to(self.device)
 
     def _fit(self, train_X, train_y, **kwargs):
 
@@ -621,7 +634,7 @@ class GaussianProcessRegression(Surrogate):
         new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_X = torch.cat([self.train_X, new_X], dim=0)
         self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
@@ -887,7 +900,7 @@ class ModelListGaussianProcess(Surrogate):
         new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_X = torch.cat([self.train_X, new_X], dim=0)
         self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
@@ -1096,7 +1109,7 @@ class BatchIndependentGaussianProcess(Surrogate):
         new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_X = torch.cat([self.train_X, new_X], dim=0)
         self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
@@ -1312,7 +1325,7 @@ class MultiTaskGaussianProcess(Surrogate):
         new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_X = torch.cat([self.train_X, new_X], dim=0)
         self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
@@ -1531,7 +1544,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        self.train_X = torch.cat([self.train_X, new_X], dim=0)
         self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
@@ -1703,7 +1716,7 @@ class BayesianNeuralNetwork(Surrogate):
             self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
             self.model.fit(X_new, y_new, epochs=self.epochs, batch_size=self.batch_size)
 
-    def _predict(self, X, iterations=50, **kwargs):
+    def _predict(self, X, return_std=False, iterations=50, **kwargs):
         if self.model:
             preds = np.zeros(shape=(X.shape[0], iterations))
 
@@ -1712,12 +1725,14 @@ class BayesianNeuralNetwork(Surrogate):
                 y__ = np.reshape(y_, (X.shape[0]))
                 preds[:, i] = y__
 
-            mean = np.mean(preds, axis=1)
-            stdv = np.std(preds, axis=1)
-
+            mean = np.mean(preds, axis=1).reshape(-1, 1)
             self.predictions = preds
 
-            return mean, stdv
+            if return_std:
+                stdv = np.std(preds, axis=1).reshape(-1, 1)
+                return mean, stdv
+            else:
+                return mean
 
     def get_predictions(self):
         return self.predictions
