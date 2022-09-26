@@ -1719,11 +1719,10 @@ class BayesianNeuralNetwork(Surrogate):
         )
 
     def _update(self, X_new, y_new, **kwargs):
-        if self.model is None:
-            self.create_model()
-        else:
-            self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
-            self.model.fit(X_new, y_new, epochs=self.epochs, batch_size=self.batch_size)
+        self.model.compile(Adam(learning_rate=self.learning_rate_update), loss=NLL)
+        self.X = np.vstack([self.X, X_new])
+        self.y = np.vstack([self.y, y_new])
+        self.model.fit(self.X, self.y, epochs=self.epochs, batch_size=self.batch_size)
 
     def _predict(self, X, return_std=False, iterations=50, **kwargs):
         if self.model:
