@@ -54,7 +54,7 @@ jobs:
         run: |
           # grab the coverage output and also print it to the sreen
           coverage run -m pytest
-          COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
+          COVERAGE_REPORT=$(coverage report -m -i | tee /dev/stderr)
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | \
             grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
