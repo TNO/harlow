@@ -79,6 +79,16 @@ class FuzzyLolaVoronoi(Sampler):
                                  multiresponse surrogate"
                 )
 
+    def initial_n_points(self, n_initial_points=20):
+
+        # latin hypercube sampling to get the initial sample of points
+        points_x = latin_hypercube_sampling(
+            n_sample=n_initial_points,
+            domain_lower_bound=self.domain_lower_bound,
+            domain_upper_bound=self.domain_upper_bound,
+        )
+        return points_x
+
     def sample(
         self,
         n_initial_points: int = 20,

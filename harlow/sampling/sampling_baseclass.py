@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -66,6 +67,21 @@ class Sampler(ABC):
     ):
         pass
 
+    @abstractmethod
+    def initial_n_points(self, n_initial_points):
+        pass
+
     @staticmethod
     def generate_run_name():
         return shortuuid.uuid()
+
+    def surrogate_loop(self):
+        # initialize set
+        gen_start_time = time.time()
+        points_x = self.initial_n_points(20)
+        points_y = self.target_function(points_x)
+        self.fit_points_x = points_x
+        self.fit_points_y = points_y
+        self.dim_out = self.fit_points_x.shape[0]
+        self.step_gen_time.append(time.time() - gen_start_time)
+
