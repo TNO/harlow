@@ -84,7 +84,7 @@ class TensorTransform(Transform):
         return torch.from_numpy(X).type(self.target_type)
 
     def reverse(self, X):
-        return X.detach().cpu().numpy()
+        return X.detach().cpu().numpy().astype(np.float64)
 
 
 class Standardize(Transform):
