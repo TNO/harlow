@@ -122,7 +122,7 @@ def test_peaks_2d():
 
     def target_function(x: np.ndarray):
         x = np.atleast_2d(x)
-        return peaks_2d(x)
+        return peaks_2d(x).reshape(-1, 1)
 
     surrogate_model = VanillaGaussianProcess()
 

@@ -41,7 +41,7 @@ class ProbabilisticSampler(Sampler):
         save_dir: str = "",
     ):
 
-        super(Probabilistic_sampler, self).__init__(
+        super(ProbabilisticSampler, self).__init__(
             target_function,
             surrogate_model,
             domain_lower_bound,

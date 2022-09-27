@@ -6,6 +6,9 @@ name: CI
 
 on:
   push:
+    branches-ignore:
+      - "docs"
+      - "gh-pages"
   schedule:
   - cron: '0 1 * * 6'  # weekly run at 01:00 UTC on Saturday
 
@@ -25,7 +28,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pre-commit
-          pip install flake8
           pre-commit install
       - name: Lint and type check
         run: |
@@ -52,7 +54,7 @@ jobs:
         run: |
           # grab the coverage output and also print it to the sreen
           coverage run -m pytest
-          COVERAGE_REPORT=$(coverage report -m | tee /dev/stderr)
+          COVERAGE_REPORT=$(coverage report -m -i | tee /dev/stderr)
           # extract the percentage of the total coverage, e.g. `75%`
           COVERAGE_PCT=$(echo $COVERAGE_REPORT | \
             grep -oP "TOTAL\s+\d+\s+\d+\s+(\d+%)" | grep -oP "\d+%")
@@ -84,7 +86,7 @@ jobs:
         uses: schneegans/dynamic-badges-action@v1.1.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
-          gistID: 812e7f877bc9e67a4b692669ddc71030
+          gistID: 1e647fdcc1a2fdd6acdaf118be97095f
           filename: harlow_${{ env.BRANCH_NAME }}_coverage.json
           label: coverage
           message: ${{ env.COVERAGE_PCT }}
