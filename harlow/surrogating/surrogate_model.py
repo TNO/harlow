@@ -8,6 +8,7 @@ The main requirements towards each surrogate model are that they:
 
 """
 import re
+from tkinter import X
 import warnings
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Union
@@ -168,8 +169,8 @@ class Surrogate(ABC):
         method and should not be called from within the class.
         """
         self.check_inputs(X)
-        X = self.input_transform().forward(X)
-
+        # X = self.input_transform().forward(X)
+        
         if return_std:
             samples, std = self._predict(X, return_std=return_std, **kwargs)
             return samples, std
@@ -209,8 +210,10 @@ class VanillaGaussianProcess(Surrogate):
         )
 
     def _fit(self, X, y, **kwargs):
-        self.X = X[0]
+        # self.X = X[0]
+        self.X = np.squeeze(X, axis=0)
         self.y = y
+        # print('X, Y shapes', self.X.shape, self.y.shape)
         self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
 
@@ -239,7 +242,8 @@ class VanillaGaussianProcess(Surrogate):
         return getattr(self.model.kernel, white_kernel_attr[0]).noise_level ** 0.5
 
     def _predict(self, X, return_std=False, **kwargs):
-        samples, std = self.model.predict(X[0], return_std=True)
+        # samples, std = self.model.predict(X[0], return_std=True)
+        samples, std = self.model.predict(X, return_std=True)
 
         if return_std:
             return samples, std
@@ -452,7 +456,7 @@ class GaussianProcessRegression(Surrogate):
 
     def __init__(
         self,
-        training_max_iter=100,
+        training_max_iter=10,
         learning_rate=0.1,
         input_transform=TensorTransform,
         output_transform=TensorTransform,
@@ -502,10 +506,10 @@ class GaussianProcessRegression(Surrogate):
         self.optimizer = None
 
         # Check input consistency
-        if self.train_y.shape[0] != self.train_X.shape[1]:
+        if self.train_y.shape[0] != self.train_X.shape[0]:
             raise ValueError(
                 f"Dim 0 of `train_y` must be equal to the number of training"
-                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[1]}."
+                f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
         self.likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
@@ -515,9 +519,9 @@ class GaussianProcessRegression(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
-
+        # self.train_X = self.train_X.unsqueeze(0)
         # Create model
         self.create_model()
 
@@ -579,8 +583,8 @@ class GaussianProcessRegression(Surrogate):
 
     def _predict(self, X_pred, return_std=False, **kwargs):
 
-        X_pred = X_pred[0]
-
+        # X_pred = X_pred[0]
+        # print('_predict shape', X_pred.shape)
         # Switch the model to eval mode
         self.model.eval()
         self.likelihood.eval()
@@ -611,11 +615,11 @@ class GaussianProcessRegression(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
-        self.train_y = torch.cat([self.train_y, new_y], dim=0)
+        # self.train_X = torch.cat([self.train_X, new_X], dim=0)
+        # self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
         self._fit(self.train_X, self.train_y)
@@ -1202,7 +1206,7 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _fit(self, train_X, train_y, **kwargs):
 
-        self.train_X = train_X.to(self.device)[0]
+        self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
 
         # Create model
@@ -1266,7 +1270,8 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _predict(self, X_pred, return_std=False, **kwargs):
 
-        X_pred = X_pred[0]
+        X_pred = torch.FloatTensor(X_pred)
+        print('X_pred shape', X_pred.shape, X_pred[0])
 
         # Switch the model to eval mode
         self.model.eval()
@@ -1274,7 +1279,7 @@ class MultiTaskGaussianProcess(Surrogate):
 
         # Make prediction
         with torch.no_grad(), gpytorch.settings.fast_pred_var(self.fast_pred_var):
-            self.prediction = self.likelihood(self.model(X_pred))
+            self.prediction = self.likelihood(self.model(X_pred.to(self.device)))
 
         # Get mean, variance and std. dev per model
         self.mean = self.prediction.mean
@@ -1298,14 +1303,15 @@ class MultiTaskGaussianProcess(Surrogate):
 
     def _update(self, new_X, new_y, **kwargs):
 
-        new_X = new_X.to(self.device)[0]
+        new_X = new_X.to(self.device)
         new_y = new_y.to(self.device)
 
-        self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
-        self.train_y = torch.cat([self.train_y, new_y], dim=0)
+        # self.train_X = torch.cat([self.train_X, new_X], dim=0).unsqueeze(dim=0)
+        # self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self._fit(self.train_X, self.train_y)
+        # self._fit(self.train_X, self.train_y)
+        self._fit(new_X, new_y)
 
     def get_noise(self):
         return self.model.likelihood.noise.sqrt()

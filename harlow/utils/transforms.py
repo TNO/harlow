@@ -84,7 +84,16 @@ class TensorTransform(Transform):
         return torch.from_numpy(X).type(self.target_type)
 
     def reverse(self, X):
-        return X.detach().cpu().numpy()
+        # Detach the Tensor to CPU 
+        if torch.is_tensor(X):
+            pred = X.detach().cpu().numpy()
+        else:
+            pred = X
+        # Squash the dim0 if exists
+        if pred.ndim == 1:
+            return pred
+        else:
+            return np.squeeze(pred, axis=0)
 
 
 class Standardize(Transform):
