@@ -35,7 +35,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: sphinx-build
         run: |
-          sphinx-build -b html "./docs/source" "./docs"
+          sphinx-build -b html "./docs/source" "./docs/_build"
 
       # NOTE: It should not be possible for a workflow run to trigger
       # another workflow run: https://github.com/marketplace/actions/
