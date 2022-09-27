@@ -3,9 +3,9 @@ name: build-sphinx-docs
 # Only run for master
 on:
   push:
-    branches: [ "master", "docs" ]
+    branches: [ "master", "docs" , "docs-add-autosummary"]
   pull_request:
-    branches: [ "master", "docs" ]
+    branches: [ "master", "docs"]
     types: [ "closed" ]
 
   # Allows you to run this workflow manually from the Actions tab
@@ -35,7 +35,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: sphinx-build
         run: |
-          sphinx-build -b html "./docs/source" "./docs"
+          sphinx-build -b html "./docs/source" "./docs/build"
 
       # NOTE: It should not be possible for a workflow run to trigger
       # another workflow run: https://github.com/marketplace/actions/
