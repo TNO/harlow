@@ -91,3 +91,24 @@ jobs:
           label: coverage
           message: ${{ env.COVERAGE_PCT }}
           color: ${{ env.COVERAGE_COL }}
+
+  # Release to GitHub and PyPi [only for `master`]
+  release:
+    name: Semantic Release - PyPI
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.repository == 'TNO/harlow'
+    concurrency: release
+    needs: [ lint_and_type_check, test ]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Fetch main
+        run: |
+          git fetch --prune origin +refs/heads/master:refs/remotes/origin/master
+      - name: Python semantic release
+        uses: relekang/python-semantic-release@v7
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
