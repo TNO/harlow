@@ -84,7 +84,7 @@ def main():
 
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
-    sampler = FuzzyLolaVoronoi(offloaded_hartman, surrogate, domains_lower_bound, domains_upper_bound)
+    sampler = FuzzyLolaVoronoi(hartmann, surrogate, domains_lower_bound, domains_upper_bound)
 
     hypercube_initialization(sampler, 20)
     hypercube_testset(sampler, 50)

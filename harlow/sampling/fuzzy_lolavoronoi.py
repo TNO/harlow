@@ -89,9 +89,6 @@ class FuzzyLolaVoronoi(Sampler):
             dim_in=self.dim_in,
         )
 
-    def stopping_criterium(self, iteration: int, max_iter: int) -> bool:
-        return iteration < max_iter
-
     def sample(
         self,
         n_initial_points: int = 20,

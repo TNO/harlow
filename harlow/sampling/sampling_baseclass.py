@@ -116,9 +116,9 @@ class Sampler(ABC):
 
         return y
 
-    @abstractmethod
+    # Returns True if the loop should finish
     def stopping_criterium(self, iteration: int, max_iter: int) -> bool:
-        pass
+        return iteration > max_iter
 
     @abstractmethod
     def best_new_points(self, n) -> np.ndarray:
@@ -175,8 +175,8 @@ class Sampler(ABC):
 
         self.steps.append(StepInfo(new_fit_points_x, new_fit_points_y, score, gen_time, target_func_time, fit_time))
 
-        self.fit_points_x = np.vstack(self.fit_points_x, self.fit_points_x)
-        self.fit_points_y = np.vstack(self.fit_points_y, self.fit_points_y)
+        self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
+        self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
 
     def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
         self.loop_initialization()
