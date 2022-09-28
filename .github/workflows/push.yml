@@ -108,7 +108,7 @@ jobs:
         run: |
           git fetch --prune origin +refs/heads/master:refs/remotes/origin/master
       - name: Python semantic release
-        uses: relekang/python-semantic-release@v7
+        uses: relekang/python-semantic-release@master
         with:
           github_token: ${{ secrets.GH_TOKEN }}
           pypi_token: ${{ secrets.PYPI_TOKEN }}
