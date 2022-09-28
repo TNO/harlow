@@ -66,8 +66,7 @@ class FuzzyLolaVoronoi(Sampler):
         )
 
         self.dim_in = len(domain_lower_bound)
-        self.dim_out = None if self.fit_points_x is None else \
-            self.fit_points_y.shape[1]
+        self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
 
         self.surrogate_model = surrogate_model
 
@@ -184,6 +183,11 @@ class FuzzyLolaVoronoi(Sampler):
             
             self.fit_points_x = points_x
             self.fit_points_y = points_y
+
+            # Re-evaluate the surrogate model.
+            predicted_y = self.surrogate_model.predict(
+                self.test_points_x, as_array=True
+            )
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
             self.step_x.append(points_x)
@@ -442,7 +446,7 @@ def adh_high(x, A_max, s_ah=0.3):
     """
     Adhesion High membership function
     """
-    return np.exp(((-(x ** 2)) / 2 * ((A_max * s_ah) ** 2)))
+    return np.exp(((-(x**2)) / 2 * ((A_max * s_ah) ** 2)))
 
 
 def adh_low(x, A_max, s_al=0.27):

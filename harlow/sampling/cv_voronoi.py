@@ -242,7 +242,8 @@ class CVVoronoi(Sampler):
             write_scores(self.writer, score, ii + 1)
             write_timer(self.writer, timing_dict, ii + 1)
 
-            self.score = score['rmse'][0]
+            self.score = score[self.evaluation_metric.__name__][0]
+
             self.iterations = ii
             # Save model every 200 iterations
             if self.iterations % 200 == 0:

@@ -1,3 +1,5 @@
+import os
+import pickle
 import time
 from typing import Callable
 
@@ -50,13 +52,35 @@ class LatinHypercube(Sampler):
         n_new_points_per_iteration: int = 1,
         stopping_criterium: float = None,
     ):
-        start_time = time.time()
+
         points_x = self.fit_points_x
         points_y = self.fit_points_y
-
         surrogate_model = self.surrogate_model
-        surrogate_model.fit(points_x, points_y)
-        logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
+        start_time = time.time()
+        if self.fit_points_x:
+            surrogate_model.fit(points_x, points_y)
+            logger.info(
+                f"Fitted a new surrogate model in {time.time() - start_time} sec."
+            )
+
+        # Initial sampling
+        if n_initial_points:
+            X_new = latin_hypercube_sampling(
+                n_sample=n_initial_points,
+                domain_lower_bound=self.domain_lower_bound,
+                domain_upper_bound=self.domain_upper_bound,
+            )
+            self.step_gen_time.append(time.time() - start_time)
+            y_new = self.target_function(X_new)
+
+            if points_x:
+                points_x = np.concatenate((points_x, X_new))
+                points_y = np.concatenate((points_y, y_new))
+            else:
+                points_x = X_new
+                points_y = y_new
+
+            surrogate_model.fit(points_x, points_y)
 
         score = evaluate(
             self.logging_metrics,
@@ -71,15 +95,15 @@ class LatinHypercube(Sampler):
         self.step_fit_time.append(time.time() - start_time)
 
         iteration = 0
-        while self.score > stopping_criterium:
+        while (self.score > stopping_criterium) and (iteration < max_n_iterations):
             start_time = time.time()
             X_new = latin_hypercube_sampling(
-                n_sample=1,
+                n_sample=n_new_points_per_iteration,
                 domain_lower_bound=self.domain_lower_bound,
                 domain_upper_bound=self.domain_upper_bound,
             )
             self.step_gen_time.append(time.time() - start_time)
-            y_new = self.target_function(X_new).reshape((-1, 1))
+            y_new = self.target_function(X_new)
             points_x = np.concatenate((points_x, X_new))
             points_y = np.concatenate((points_y, y_new))
 
@@ -90,11 +114,13 @@ class LatinHypercube(Sampler):
 
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = evaluate(
-                self.logging_metrics,
-                self.test_points_x,
-                self.test_points_y,
+
+            # Re-evaluate the surrogate model.
+            predicted_y = self.surrogate_model.predict(
+                self.test_points_x, as_array=True
             )
+            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
+
             self.score = score[self.evaluation_metric.__name__]
             logger.info(f"Score {score}")
             self.step_x.append(points_x)
@@ -113,7 +139,14 @@ class LatinHypercube(Sampler):
             if iteration >= max_n_iterations:
                 break
 
+        save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
+        save_path = os.path.join(self.save_dir, save_name)
+        # Save model if converged
+        with open(save_path, "wb") as file:
+            pickle.dump(self.surrogate_model, file)
+
         logger.info(f"Algorithm converged in {iteration} iterations")
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
+
         return self.fit_points_x, self.fit_points_y

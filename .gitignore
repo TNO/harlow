@@ -1,6 +1,9 @@
 ### Log files ###
 *.log
 
+### Pickle ###
+*.pkl
+
 ### Virtual environments ###
 
 ### VirtualEnv ###
@@ -55,6 +58,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+# Allow docs/build
+!docs/build
 develop-eggs/
 dist/
 downloads/
@@ -102,10 +107,6 @@ coverage.xml
 
 # Scrapy stuff:
 .scrapy
-
-# Sphinx documentation
-docs/_build/
-docs/build/
 
 # PyBuilder
 target/

@@ -16,7 +16,7 @@ def lldeh_1d(x: np.ndarray, a: float) -> np.ndarray:
 
     """
     g = np.tan(0.5 * a)
-    return 2 * x ** 2 / (x ** 2 + g * x + 1)
+    return 2 * x**2 / (x**2 + g * x + 1)
 
 
 def peaks_2d(x: np.ndarray) -> np.ndarray:
@@ -26,9 +26,9 @@ def peaks_2d(x: np.ndarray) -> np.ndarray:
     x2 = x[:, 1]
 
     return (
-        3 * (1 - x1) ** 2 * np.exp(-(x1 ** 2) - (x2 + 1) ** 2)
-        - 10 * (x1 / 5 - x1 ** 3 - x2 ** 5) * np.exp(-(x1 ** 2) - x2 ** 2)
-        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2 ** 2)
+        3 * (1 - x1) ** 2 * np.exp(-(x1**2) - (x2 + 1) ** 2)
+        - 10 * (x1 / 5 - x1**3 - x2**5) * np.exp(-(x1**2) - x2**2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2**2)
     )
 
 
@@ -39,11 +39,11 @@ def peaks_2d_multivariate(x: np.ndarray) -> np.ndarray:
     x2 = x[:, 1]
 
     result = (
-        3 * (1 - x1) ** 2 * np.exp(-(x1 ** 2) - (x2 + 1) ** 2)
-        - 10 * (x1 / 5 - x1 ** 3 - x2 ** 5) * np.exp(-(x1 ** 2) - x2 ** 2)
-        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2 ** 2)
+        3 * (1 - x1) ** 2 * np.exp(-(x1**2) - (x2 + 1) ** 2)
+        - 10 * (x1 / 5 - x1**3 - x2**5) * np.exp(-(x1**2) - x2**2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2**2)
     )
-    return np.stack((result, result ** 2), -1)
+    return np.stack((result, result**2), -1)
 
 
 def ackley_nd(
@@ -67,7 +67,7 @@ def ackley_nd(
         Dependent variable values.
     """
     x_mx = np.atleast_2d(x_mx)
-    t1 = -a * np.exp(-b * np.sqrt(np.mean(x_mx ** 2, axis=1)))
+    t1 = -a * np.exp(-b * np.sqrt(np.mean(x_mx**2, axis=1)))
     t2 = -np.exp(np.mean(np.cos(c * x_mx), axis=1))
 
     return t1 + t2 + a + np.exp(1)

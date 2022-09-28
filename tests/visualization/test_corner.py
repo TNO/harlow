@@ -9,7 +9,7 @@ from harlow.visualization.corner import corner
 
 def func_nd(x: np.ndarray):
     x = np.atleast_2d(x)
-    return np.sum(x ** 2, axis=1)
+    return np.sum(x**2, axis=1)
 
 
 def test_1d():
@@ -31,7 +31,7 @@ def test_3d():
         x1 = x[:, 0]
         x2 = x[:, 1]
         x3 = x[:, 2]
-        return x1 + x2 ** 2 + np.sin(x3)
+        return x1 + x2**2 + np.sin(x3)
 
     corner(func=func, support_range=support_range)
     corner(func=func, support_range=support_range, dim_labels=dim_labels, iso_value=0)
