@@ -20,8 +20,7 @@ def test_sine_1d():
     def target_function(x: np.ndarray):
         return np.sin(x)
 
-    test_X = latin_hypercube_sampling(domain_lower_bound,
-                                      domain_upper_bound, 100)
+    test_X = latin_hypercube_sampling(domain_lower_bound, domain_upper_bound, 100)
     test_y = target_function(test_X)
 
     for n_new_point_per_iteration in n_new_points_per_iteration:
@@ -39,7 +38,7 @@ def test_sine_1d():
             domain_lower_bound=domain_lower_bound,
             domain_upper_bound=domain_upper_bound,
             test_points_x=test_X,
-            test_points_y=test_y
+            test_points_y=test_y,
         )
         lv.sample(
             max_n_iterations=n_iter,
@@ -79,8 +78,7 @@ def test_forrester_1d():
     def target_function(x: np.ndarray):
         return forrester_1d(x)
 
-    test_X = latin_hypercube_sampling(domain_lower_bound,
-                                      domain_upper_bound, 100)
+    test_X = latin_hypercube_sampling(domain_lower_bound, domain_upper_bound, 100)
     test_y = target_function(test_X)
 
     surrogate_model = VanillaGaussianProcess()
@@ -94,7 +92,7 @@ def test_forrester_1d():
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
         test_points_x=test_X,
-        test_points_y=test_y
+        test_points_y=test_y,
     )
     lv.sample(
         max_n_iterations=n_iter,
@@ -137,8 +135,7 @@ def test_peaks_2d():
         x = np.atleast_2d(x)
         return peaks_2d(x).reshape(-1, 1)
 
-    test_X = latin_hypercube_sampling(domain_lower_bound,
-                                      domain_upper_bound, 100)
+    test_X = latin_hypercube_sampling(domain_lower_bound, domain_upper_bound, 100)
     test_y = target_function(test_X)
 
     surrogate_model = VanillaGaussianProcess()
@@ -152,7 +149,7 @@ def test_peaks_2d():
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
         test_points_x=test_X,
-        test_points_y=test_y
+        test_points_y=test_y,
     )
     lv.sample(
         max_n_iterations=n_iter,
