@@ -70,23 +70,27 @@ class FuzzyLolaVoronoi(Sampler):
 
         self.surrogate_model = surrogate_model()
 
-        if self.dim_out > 1:
-            self.multiresponse_sampling = True
-            if not self.surrogate_model.is_multioutput:
-                raise ValueError(
-                    "Multiresponse target requires \
-                                 multiresponse surrogate"
-                )
+        # TODO add this below again
+        # if self.dim_out > 1:
+        #     self.multiresponse_sampling = True
+        #     if not self.surrogate_model.is_multioutput:
+        #         raise ValueError(
+        #             "Multiresponse target requires \
+        #                          multiresponse surrogate"
+        #         )
 
-    def initial_n_points(self, n_initial_points=20):
-
-        # latin hypercube sampling to get the initial sample of points
-        points_x = latin_hypercube_sampling(
-            n_sample=n_initial_points,
+    def best_new_points(self, n):
+        return _best_new_points(
+            points_x=self.fit_points_x,
+            points_y=self.fit_points_y,
             domain_lower_bound=self.domain_lower_bound,
             domain_upper_bound=self.domain_upper_bound,
+            n_new_point=n,
+            dim_in=self.dim_in,
         )
-        return points_x
+
+    def stopping_criterium(self, iteration: int, max_iter: int) -> bool:
+        return iteration < max_iter
 
     def sample(
         self,
@@ -157,7 +161,7 @@ class FuzzyLolaVoronoi(Sampler):
             )
 
             start_time = time.time()
-            new_points_x = best_new_points(
+            new_points_x = _best_new_points(
                 points_x=points_x,
                 points_y=points_y,
                 domain_lower_bound=domain_lower_bound,
@@ -225,7 +229,7 @@ class FuzzyLolaVoronoi(Sampler):
 # -----------------------------------------------------
 # SUPPORTING FUNCTIONS
 # -----------------------------------------------------
-def best_new_points(
+def _best_new_points(
     points_x: np.ndarray,
     points_y: np.ndarray,
     domain_lower_bound: np.ndarray,
