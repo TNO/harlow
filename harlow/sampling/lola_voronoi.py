@@ -126,11 +126,9 @@ class LolaVoronoi(Sampler):
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
 
-        score = evaluate(
-            self.logging_metrics,
-            self.test_points_x,
-            self.test_points_y,
-        )
+        predicted_y = self.surrogate_model.predict(self.test_points_x)
+        score = evaluate(self.logging_metrics, self.test_points_y,
+                         predicted_y)
 
         self.step_score.append(score)
         self.step_x.append(points_x)
@@ -186,8 +184,7 @@ class LolaVoronoi(Sampler):
             self.fit_points_y = points_y
 
             # Re-evaluate the surrogate model.
-            predicted_y = self.surrogate_model.predict(self.test_points_x,
-                                                       as_array=True)
+            predicted_y = self.surrogate_model.predict(self.test_points_x)
             score = evaluate(self.logging_metrics, self.test_points_y,
                              predicted_y)
 
@@ -210,11 +207,12 @@ class LolaVoronoi(Sampler):
                 self.save_model()
 
             if len(self.score) > 0:
-                if self.score <= stopping_criterium:
-                    logger.info(f"Sampler ended in {ii} iterations")
-                    # Save model if converged
-                    self.save_model()
-                    break
+                if stopping_criterium:
+                    if self.score <= stopping_criterium:
+                        logger.info(f"Sampler ended in {ii} iterations")
+                        # Save model if converged
+                        self.save_model()
+                        break
 
         self.writer.close()
         return self.fit_points_x, self.fit_points_y
