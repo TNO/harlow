@@ -127,8 +127,7 @@ class LolaVoronoi(Sampler):
         )
 
         predicted_y = self.surrogate_model.predict(self.test_points_x)
-        score = evaluate(self.logging_metrics, self.test_points_y,
-                         predicted_y)
+        score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
         self.step_score.append(score)
         self.step_x.append(points_x)
@@ -185,8 +184,7 @@ class LolaVoronoi(Sampler):
 
             # Re-evaluate the surrogate model.
             predicted_y = self.surrogate_model.predict(self.test_points_x)
-            score = evaluate(self.logging_metrics, self.test_points_y,
-                             predicted_y)
+            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
             self.step_score.append(score)
             self.step_x.append(points_x)

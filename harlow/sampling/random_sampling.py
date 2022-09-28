@@ -116,10 +116,10 @@ class LatinHypercube(Sampler):
             self.fit_points_y = points_y
 
             # Re-evaluate the surrogate model.
-            predicted_y = self.surrogate_model.predict(self.test_points_x,
-                                                       as_array=True)
-            score = evaluate(self.logging_metrics, self.test_points_y,
-                             predicted_y)
+            predicted_y = self.surrogate_model.predict(
+                self.test_points_x, as_array=True
+            )
+            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
             self.score = score[self.evaluation_metric.__name__]
             logger.info(f"Score {score}")
