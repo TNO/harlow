@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.semantic_release]
 version_variable = ["harlow/__init__.py:__version__"]
 branch = "master"
-major_on_zero = True
+major_on_zero = true
 upload_to_PyPI = true
 upload_to_release = true
 
