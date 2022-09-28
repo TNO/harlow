@@ -35,11 +35,12 @@ class Sampler(ABC):
         self.test_points_x = test_points_x
         self.test_points_y = test_points_y
         self.evaluation_metric = evaluation_metric
-        self.logging_metrics = (
-            [self.evaluation_metric]
-            if not logging_metrics
-            else list(set(logging_metrics.append(self.evaluation_metric)))
-        )
+        # self.logging_metrics = (
+        #     [self.evaluation_metric]
+        #     if not logging_metrics
+        #     else list(set(logging_metrics.append(self.evaluation_metric)))
+        # )
+        self.logging_metrics = logging_metrics
         self.verbose = verbose
         self.run_name = run_name
         self.save_dir = save_dir

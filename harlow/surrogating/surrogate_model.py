@@ -8,6 +8,7 @@ The main requirements towards each surrogate model are that they:
 
 """
 import re
+from tkinter import X
 import warnings
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Union
@@ -173,8 +174,8 @@ class Surrogate(ABC):
         method and should not be called from within the class.
         """
         self.check_inputs(X)
-        X = self.input_transform().forward(X)
-
+        # X = self.input_transform().forward(X)
+        
         if return_std:
             samples, std = self._predict(X, return_std=return_std, **kwargs)
             return self.output_transform().reverse(samples), std
@@ -217,6 +218,7 @@ class VanillaGaussianProcess(Surrogate):
     def _fit(self, X, y, **kwargs):
         self.X = X
         self.y = y
+        # print('X, Y shapes', self.X.shape, self.y.shape)
         self.model.fit(self.X, self.y)
         self.noise_std = self.get_noise()
 
@@ -468,7 +470,7 @@ class GaussianProcessRegression(Surrogate):
 
     def __init__(
         self,
-        training_max_iter=100,
+        training_max_iter=10,
         learning_rate=0.1,
         input_transform=TensorTransform,
         output_transform=TensorTransform,
@@ -539,7 +541,7 @@ class GaussianProcessRegression(Surrogate):
 
         self.train_X = train_X.to(self.device)
         self.train_y = train_y.to(self.device)
-
+        # self.train_X = self.train_X.unsqueeze(0)
         # Create model
         self.create_model()
 
@@ -1327,7 +1329,8 @@ class MultiTaskGaussianProcess(Surrogate):
         self.train_y = torch.cat([self.train_y, new_y], dim=0)
 
         self.optimizer = None
-        self._fit(self.train_X, self.train_y)
+        # self._fit(self.train_X, self.train_y)
+        self._fit(new_X, new_y)
 
     def get_noise(self):
         return self.model.likelihood.noise.sqrt()

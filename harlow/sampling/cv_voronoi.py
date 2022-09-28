@@ -124,13 +124,13 @@ class CVVoronoi(Sampler):
 
         # fit the surrogate model
         start_time = time.time()
-
+        print('Initial points X, Y shapes', points_x.shape, points_y.shape)
         for i in range(0, dim_out):
-            s_i = self.surrogate_model()
+            s_i = self.surrogate_model
             s_i.fit(points_x, points_y[:, i])
             self.surrogates.append(s_i)
             logger.info(
-                f"Fitted the first surrogate model {i} in"
+                f"Fitted the first surrogate model {i+1} in"
                 f" {time.time() - start_time} sec."
             )
 
@@ -201,11 +201,14 @@ class CVVoronoi(Sampler):
 
             # evaluate the target function
             new_points_y = target_function(new_points_x)
-
-            # add the new points to the old ones
+            # print('New points y shape', new_points_y.shape)
+            # add the new points to the old ones 
+            # We need to do that inside HERE NOT in the Surrogates because the 
+            # Sampler ALSO needs the new points to measure the Voronoi cells
             points_x = np.vstack((points_x, new_points_x))
-            points_y = np.vstack((points_y, new_points_y.ravel()))
-
+            print('Y and new Y shapes', points_y.shape, new_points_y.shape)
+            points_y = np.vstack((points_y, np.swapaxes(new_points_y,0,1)))
+            print('Points X, Y stacked shapes', points_x.shape, points_y.shape)
             # refit the surrogate
             start_time = time.time()
             for i, surrogate in enumerate(self.surrogates):
@@ -239,7 +242,8 @@ class CVVoronoi(Sampler):
             write_scores(self.writer, score, ii + 1)
             write_timer(self.writer, timing_dict, ii + 1)
 
-            self.score = score[self.evaluation_metric.__name__]
+            self.score = score[self.evaluation_metric.__name__][0]
+
             self.iterations = ii
             # Save model every 200 iterations
             if self.iterations % 200 == 0:
@@ -312,14 +316,16 @@ def identify_sensitive_voronoi_cell(
     i = 0
     # CV approach from [3] to avoid costly surrogate building for higher
     # number of points
+    # print('Sensitive Voronoi cell Points X', points_X, points_X.shape)
     for train_index, test_index in kfold.split(points_X):
         split_indices.append(train_index)
         for s in range(0, n_dim_out):
             X_train, X_test = points_X[train_index], points_X[test_index]
             y_train, y_test = points_y[train_index], points_y[test_index]
 
-            s_i = surrogate_model()
+            s_i = surrogate_model
             s_i.fit(X_train, y_train[:, s])
+            # y_pred = s_i.predict(X_test).cpu().numpy()
             y_pred = s_i.predict(X_test)
             kfold_results[i, s] = np.linalg.norm(y_test[:, s] - y_pred)
         kfold_results_multiout = np.sum(kfold_results, axis=1)
@@ -342,7 +348,7 @@ def identify_sensitive_voronoi_cell(
 
         # implements #13 #14 from [2]
         for j in range(0, n_dim_out):
-            s_i = surrogate_model()
+            s_i = surrogate_model
             s_i.fit(points_X_exc_i, points_y_exc_i[:, j])
             # predict X[i] with surrogate
             y_pred = s_i.predict(X_i.reshape((1, -1)))
