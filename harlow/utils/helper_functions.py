@@ -7,10 +7,9 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 from skopt.sampler import Lhs
 from skopt.space import Space
-from harlow.utils.transforms import TensorTransform
 
 tfd = tfp.distributions
-output_transform = TensorTransform()
+
 
 def evaluate_modellist(metric, model, test_points_X, test_points_y):
     """
@@ -18,26 +17,21 @@ def evaluate_modellist(metric, model, test_points_X, test_points_y):
 
     Returns:
     """
-    print('Eval modelist TestX shapes', test_points_X.shape)
+    count_model = 0
     metric_dict = {}
     if not isinstance(metric, list):
         metric = [metric]
     if metric is None or test_points_X is None:
         raise ValueError
     else:
-        # print('Eval shapes X, Y', test_points_X.shape, test_points_y.shape)
         for metric_fun in metric:
-            count_model = 0
             scores = []
             for m in model:
-                pred = output_transform.reverse(m.predict(test_points_X))
-                # print('Eval prediction shaes', pred.shape)
                 scores.append(
-                    metric_fun(pred, test_points_y[:, count_model])
+                    metric_fun(m.predict(test_points_X), test_points_y[:, count_model])
                 )
-                count_model +=1
             metric_dict[metric_fun.__name__] = scores
-    print(metric_dict)
+
     return metric_dict
 
 
@@ -59,13 +53,13 @@ def evaluate(metric, true_y, predicted_y):
             for m in range(predicted_y.shape[1]):
                 scores.append(metric_fun(true_y[:, m], predicted_y[:, m]))
             metric_dict[metric_fun.__name__] = scores
-            print(metric_dict)
+
     return metric_dict
 
 
 def normalized_response(model: object, X: np.ndarray):
-    preds = output_transform.reverse(model.predict(X))
-    return (preds - np.min(preds)) / (np.max(preds) - np.min(preds))
+    preds = model.predict(X)
+    return (model.predict(X) - np.min(preds)) / (np.max(preds) - np.min(preds))
 
 
 def NLL(y, distr):

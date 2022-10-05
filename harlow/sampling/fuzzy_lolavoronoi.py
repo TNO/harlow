@@ -68,7 +68,7 @@ class FuzzyLolaVoronoi(Sampler):
         self.dim_in = len(domain_lower_bound)
         self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
 
-        self.surrogate_model = surrogate_model
+        self.surrogate_model = surrogate_model()
 
         if self.dim_out > 1:
             self.multiresponse_sampling = True
@@ -127,9 +127,7 @@ class FuzzyLolaVoronoi(Sampler):
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
 
-        # predicted_y = self.surrogate_model.predict(self.test_points_x, as_array=True)
-        
-        predicted_y = self.surrogate_model.predict(self.test_points_x).cpu().numpy()
+        predicted_y = self.surrogate_model.predict(self.test_points_x, as_array=True)
 
         score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
         self.step_x.append(points_x)
@@ -164,23 +162,20 @@ class FuzzyLolaVoronoi(Sampler):
             )
 
             # evaluate the target function
-            new_points_y = np.swapaxes(target_function(new_points_x), 0, 1)
-            # print('Y, new_y shapes:', points_y.shape, new_points_y.shape)
+            new_points_y = target_function(new_points_x)
+
             # add the new points to the old ones
             points_x = np.vstack((points_x, new_points_x))
             points_y = np.vstack((points_y, new_points_y))
 
             # refit the surrogate
             start_time = time.time()
-            self.surrogate_model.update(new_points_x, new_points_y)
+            self.surrogate_model.update(new_points_x, new_points_y.ravel())
             self.step_fit_time.append(time.time() - start_time)
             logger.info(
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
             )
             #
-
-            predicted_y = self.surrogate_model.predict(self.test_points_x).cpu().numpy()
-            
             self.fit_points_x = points_x
             self.fit_points_y = points_y
 
@@ -202,7 +197,7 @@ class FuzzyLolaVoronoi(Sampler):
             write_timer(self.writer, timing_dict, ii + 1)
 
             # Currently use RMSE for convergence
-            self.score = score['rmse'][0]
+            self.score = score[self.evaluation_metric.__name__]
             self.iterations = ii
             # Save model every 200 iterations
             if self.iterations % 200 == 0:
