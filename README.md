@@ -3,6 +3,8 @@
 [![Docs](https://github.com/TNO/harlow/actions/workflows/build-docs.yml/badge.svg?branch=master)](https://tno.github.io/harlow/)
 [![CI](https://github.com/TNO/harlow/actions/workflows/push.yml/badge.svg)](https://github.com/TNO/harlow/actions)
 [![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/JanKoune/812e7f877bc9e67a4b692669ddc71030/raw/harlow_master_coverage.json)](https://en.wikipedia.org/wiki/Code_coverage)
+[![PyPI version](https://img.shields.io/pypi/v/harlow)](https://pypi.org/project/harlow/)
+![python versions](https://img.shields.io/pypi/pyversions/harlow)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 Adaptive surrogate modelling.
@@ -16,7 +18,13 @@ The package offers a wide range of GPU-trainable Surrogate Models for single inp
 
 ## On using the repository
 
-* Install dependencies and the code from this repo:
+* Install the latest stable version using pip:
+
+```commandline
+pip install harlow
+```
+
+* Or clone and install dependencies and the code from this repo:
 
 ```commandline
 pip install -e .
