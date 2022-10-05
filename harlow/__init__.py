@@ -4,7 +4,7 @@ import numpy as np
 
 # TODO
 # Version number changed automatically using python-semantic-release
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 # ---------------------------------
 # Types
