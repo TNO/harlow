@@ -2,9 +2,7 @@ import math
 
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from harlow.utils.transforms import TensorTransform
 
-output_transform = TensorTransform()
 
 # TODO RRSE code should be checked for correctness
 def _rrse(x, y):
@@ -18,7 +16,7 @@ def _rrse(x, y):
 
 def nrmse(model: object, test_points_X: np.ndarray, test_points_y: np.ndarray):
     """normalized root mean square error"""
-    preds = output_transform.reverse(model.predict(test_points_X))
+    preds = model.predict(test_points_X)
 
     return np.sqrt(
         1
