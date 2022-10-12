@@ -1,3 +1,5 @@
+import os
+import pickle
 import time
 from typing import Callable
 
@@ -112,11 +114,13 @@ class LatinHypercube(Sampler):
 
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = evaluate(
-                self.logging_metrics,
-                self.test_points_x,
-                self.test_points_y,
+
+            # Re-evaluate the surrogate model.
+            predicted_y = self.surrogate_model.predict(
+                self.test_points_x, as_array=True
             )
+            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
+
             self.score = score[self.evaluation_metric.__name__]
             logger.info(f"Score {score}")
             self.step_x.append(points_x)
@@ -135,7 +139,14 @@ class LatinHypercube(Sampler):
             if iteration >= max_n_iterations:
                 break
 
+        save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
+        save_path = os.path.join(self.save_dir, save_name)
+        # Save model if converged
+        with open(save_path, "wb") as file:
+            pickle.dump(self.surrogate_model, file)
+
         logger.info(f"Algorithm converged in {iteration} iterations")
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
+
         return self.fit_points_x, self.fit_points_y

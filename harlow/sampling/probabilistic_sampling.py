@@ -149,11 +149,10 @@ class ProbabilisticSampler(Sampler):
                 logger.info("std_max <= epsilon or max iterations reached")
                 convergence = True
             elif stopping_criterium:
-                score = evaluate(
-                    self.logging_metrics,
-                    self.test_points_x,
-                    self.test_points_y,
+                predicted_y = self.surrogate_model.predict(
+                    self.test_points_x, as_array=True
                 )
+                score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
                 self.score = score[self.evaluation_metric.__name__]
                 logger.info(f"Evaluation metric score on provided testset: {score}")
                 if self.score <= stopping_criterium:

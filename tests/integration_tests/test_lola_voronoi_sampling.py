@@ -4,6 +4,7 @@ To reduce runtime a dummy surrogate model class is used: `EmptySurrogate`."""
 import numpy as np
 
 from harlow.sampling import LolaVoronoi
+from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.test_functions import forrester_1d, lldeh_1d
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
@@ -20,7 +21,7 @@ class EmptySurrogate:
 
     @staticmethod
     def predict(x):
-        return np.zeros(x.shape[0])
+        return np.zeros(x.shape[0]).reshape((-1, 1))
 
 
 def test_forrester_1d_against_sumo():
@@ -35,6 +36,9 @@ def test_forrester_1d_against_sumo():
     def target_function(x: np.ndarray):
         return forrester_1d(x).ravel()
 
+    test_X = latin_hypercube_sampling(domain_lower_bound, domain_upper_bound, 100)
+    test_y = target_function(test_X).reshape((-1, 1))
+
     start_points_y = target_function(start_points_x).reshape((-1, 1))
     surrogate_model = EmptySurrogate()
 
@@ -48,6 +52,8 @@ def test_forrester_1d_against_sumo():
         fit_points_y=start_points_y,
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
+        test_points_x=test_X,
+        test_points_y=test_y,
     )
     lv.sample(
         max_n_iterations=n_iter,
@@ -84,6 +90,11 @@ def test_lldeh_1d_against_sumo():
     def target_function(x: np.ndarray):
         return lldeh_1d(x, a=2.1)
 
+    test_X = latin_hypercube_sampling(
+        domain_lower_bound, domain_upper_bound, 100
+    ).reshape((-1, 1))
+    test_y = target_function(test_X).reshape((-1, 1))
+
     start_points_y = target_function(start_points_x)
     surrogate_model = EmptySurrogate()
 
@@ -97,6 +108,8 @@ def test_lldeh_1d_against_sumo():
         fit_points_y=start_points_y,
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
+        test_points_x=test_X,
+        test_points_y=test_y,
     )
     lv.sample(
         max_n_iterations=n_iter,
@@ -124,4 +137,5 @@ def test_lldeh_1d_against_sumo():
 
 
 if __name__ == "__main__":
+    test_lldeh_1d_against_sumo()
     test_forrester_1d_against_sumo()
