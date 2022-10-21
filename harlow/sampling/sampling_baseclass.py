@@ -38,7 +38,7 @@ class Sampler(ABC):
         self.logging_metrics = (
             [self.evaluation_metric]
             if not logging_metrics
-            else list(set(logging_metrics.append(self.evaluation_metric)))
+            else logging_metrics
         )
         self.verbose = verbose
         self.run_name = run_name
