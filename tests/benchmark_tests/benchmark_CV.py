@@ -9,6 +9,10 @@ from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import mae, rmse, rrse
 from harlow.utils.examples.model_twin_girder_betti import IJssel_bridge_model
 from harlow.utils.transforms import ExpandDims, TensorTransform
+from harlow.utils.test_functions import (
+    hartmann,
+    peaks_2d
+)
 np.random.seed(0)
 stop_thresh = 0.01  # For RMSE or 0.005 - 0.0025
 
@@ -25,6 +29,18 @@ def create_test_set(min_domain, max_domain, n):
     return test_X, test_y
 
 
+def create_test_set_2D(min_domain, max_domain, n):
+    test_X = latin_hypercube_sampling(min_domain, max_domain, n)
+    test_y = peaks_2d(test_X).reshape((-1, 1))
+
+    return test_X, test_y
+
+def create_test_set_6D(min_domain, max_domain, n):
+    test_X = latin_hypercube_sampling(min_domain, max_domain, n)
+    test_y = hartmann(test_X).reshape((-1, 1))
+
+    return test_X, test_y
+  
 def get_param_idx(params_dict):
     return {key: idx_key for idx_key, key in enumerate(params_dict)}
 
@@ -185,18 +201,6 @@ def func_model(X):
     return response(X, sensor_positions)
 
 
-# # ====================================================================
-# # GENERATE TEST AND TRAIN DATA
-# # ====================================================================
-
-# # Each column of train_Y corresponds to one GP
-print(f"Create training set N = {N_train}:")
-train_X, train_y = create_test_set(domain_lower_bound, domain_upper_bound, N_train)
-
-# To check surrogate updating
-print(f"Create update set N = {N_update}:")
-update_X, update_y = create_test_set(domain_lower_bound, domain_upper_bound, N_update)
-
 # Check if machine is GPU compatible and assign the device to use
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 print("Training on Device: {}".format(device))
@@ -227,18 +231,67 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-f", "--folds", default=5, type=int, help="Number of Folds in K-Fold Cross Validation"
+        "-f", 
+        "--folds", 
+        default=5, 
+        type=int, 
+        help="Number of Folds in K-Fold Cross Validation"
+    )
+    parser.add_argument(
+        "-p",
+        "--problem",
+        default=None,
+        type=int,
+        help="Dimensionality of the problem to solve",
     )
     args = parser.parse_args()
 
     evaluation_metric = rmse
     logging_metrics = [rrse, mae, rmse]
 
+    # # ====================================================================
+    # # PROBLEM SETUP & GENERATE TEST AND TRAIN DATA
+    # # ====================================================================
+    if args.problem == 2:
+        domain_lower_bound = np.array([-8.0, -8.0])
+        domain_upper_bound = np.array([8.0, 8.0])
+        print(f"Create training set N = {N_train}:")
+        train_X, train_y = create_test_set_2D(
+            domain_lower_bound, domain_upper_bound, N_train
+        )
+        print(f"Create update set N = {N_update}:")
+        update_X, update_y = create_test_set_2D(
+            domain_lower_bound, domain_upper_bound, N_update
+        )
+        target_func = peaks_2d
+    elif args.problem == 6:
+        domain_lower_bound = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        domain_upper_bound = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])  
+        print(f"Create training set N = {N_train}:")  
+        train_X, train_y = create_test_set_6D(
+            domain_lower_bound, domain_upper_bound, N_train
+        )
+        print(f"Create update set N = {N_update}:")
+        update_X, update_y = create_test_set_6D(
+            domain_lower_bound, domain_upper_bound, N_update
+        )
+        target_func = hartmann
+    else:
+        # # Each column of train_Y corresponds to one GP
+        print(f"Create training set N = {N_train}:")
+        train_X, train_y = create_test_set(
+            domain_lower_bound, domain_upper_bound, N_train
+        )
+        # To check surrogate updating
+        print(f"Create update set N = {N_update}:")
+        update_X, update_y = create_test_set(
+            domain_lower_bound, domain_upper_bound, N_update
+        )
+        target_func = func_model
 
     run_name = "Bench_{}_with_{}_init_pts_on_{}X{}_dim_problem_w_train_size_{}_K_fold={}".format(
         'CVVoronoi', 15, train_y.shape[1], train_X.shape[1], N_train, args.folds
     )
-
     print(run_name)
     
     save_path = os.path.join("saves", run_name)
@@ -249,7 +302,7 @@ if __name__ == "__main__":
     # # ====================================================================
 
     cv = CVVoronoi(
-        target_function=func_model,
+        target_function=target_func,
         surrogate_model=surrogate_VGP,
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
