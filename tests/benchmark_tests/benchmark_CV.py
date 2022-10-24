@@ -230,15 +230,17 @@ if __name__ == "__main__":
         "-f", "--folds", default=5, type=int, help="Number of Folds in K-Fold Cross Validation"
     )
     args = parser.parse_args()
-    
+
     evaluation_metric = rmse
     logging_metrics = [rrse, mae, rmse]
 
 
     run_name = "Bench_{}_with_{}_init_pts_on_{}X{}_dim_problem_w_train_size_{}_K_fold={}".format(
-        'CVVoronoi', 15, train_y.shape[1], train_X.shape[1], N_train, K
+        'CVVoronoi', 15, train_y.shape[1], train_X.shape[1], N_train, args.folds
     )
 
+    print(run_name)
+    
     save_path = os.path.join("saves", run_name)
     os.makedirs(save_path, exist_ok=True)
 
