@@ -58,6 +58,7 @@ class CVVoronoi(Sampler):
         verbose: bool = False,
         run_name: str = None,
         save_dir: str = "",
+        n_fold: int = 5,
     ):
 
         super(CVVoronoi, self).__init__(
@@ -77,6 +78,7 @@ class CVVoronoi(Sampler):
         )
 
         self.surrogates = []
+        self.n_fold = n_fold
 
     def sample(
         self,
@@ -180,7 +182,7 @@ class CVVoronoi(Sampler):
                 dim_out,
                 self.test_points_x,
                 self.test_points_y,
-                5,
+                self.n_fold,
             )
 
             # Step 3. Pick the point within the most sensitive cell, furthest
@@ -287,7 +289,7 @@ def identify_sensitive_voronoi_cell(
     n_dim_out: int,
     test_points_X: np.ndarray,
     test_points_y: np.ndarray,
-    k=5,
+    k: int,
 ):
     normalized_responses = []
     surrogates_nrmse = []

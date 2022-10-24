@@ -1,8 +1,9 @@
 import os
 import numpy as np
 import torch
-from harlow.sampling import CVVoronoi
+import argparse
 
+from harlow.sampling import CVVoronoi
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess, BatchIndependentGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import mae, rmse, rrse
@@ -223,11 +224,19 @@ surrogate_GPR = BatchIndependentGaussianProcess(
 surrogate_VGP = VanillaGaussianProcess
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-f", "--folds", default=5, type=int, help="Number of Folds in K-Fold Cross Validation"
+    )
+    args = parser.parse_args()
+    
     evaluation_metric = rmse
     logging_metrics = [rrse, mae, rmse]
 
-    run_name = "Bench_{}_with_{}_init_pts_on_{}X{}_dim_problem_w_train_size_{}".format(
-        'CVVoronoi', 15, train_y.shape[1], train_X.shape[1], N_train,
+
+    run_name = "Bench_{}_with_{}_init_pts_on_{}X{}_dim_problem_w_train_size_{}_K_fold={}".format(
+        'CVVoronoi', 15, train_y.shape[1], train_X.shape[1], N_train, K
     )
 
     save_path = os.path.join("saves", run_name)
@@ -250,6 +259,7 @@ if __name__ == "__main__":
         logging_metrics=logging_metrics,
         run_name=run_name,
         save_dir=save_path,
+        n_fold=args.folds,
     )
 
     cv.sample(
