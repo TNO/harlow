@@ -400,8 +400,6 @@ def calculate_voronoi_cells(
         random_points = domain_lower_bound + np.random.rand(n_simulation, n_dim) * (
             domain_upper_bound - domain_lower_bound
         )
-    #TODO CHECK THE RANDOM POINTS INCREASES A LOT ! 
-    print('Random and points shapes', random_points.shape, points.shape)
     # all relevant distances, n_simulation x n_point
     distance_mx = cdist(random_points, points, metric="euclidean")
 
