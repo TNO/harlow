@@ -119,7 +119,7 @@ def test_2D_cvVoronoi_sampling(
     lv.sample(
         n_initial_points=n_initial_point,
         n_new_points_per_iteration=n_new_points_per_iteration,
-        max_n_iterations=200,
+        max_n_iterations=300,
     )
 
     return {

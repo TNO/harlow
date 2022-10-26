@@ -323,9 +323,9 @@ def identify_sensitive_voronoi_cell(
             y_train, y_test = points_y[train_index], points_y[test_index]
 
             s_i = surrogate_model()
-            s_i.fit(X_train, y_train[:, s].reshape(-1, 1))
+            s_i.fit(X_train, y_train.reshape(-1, 1))
             y_pred = s_i.predict(X_test)
-            kfold_results[s] = np.linalg.norm(y_test[:, s] - y_pred, ord=1)
+            kfold_results[s] = np.linalg.norm(y_test - y_pred, ord=1)
 
         kfold_results_multiout[i] = np.sum(kfold_results)  # eq. 10 from [3]
         i += 1
