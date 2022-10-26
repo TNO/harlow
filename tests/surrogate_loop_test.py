@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from harlow.sampling import FuzzyLolaVoronoi, Sampler
-from harlow.surrogating.surrogate_model import GaussianProcessRegression, VanillaGaussianProcess
+from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.offload_hartmann import hartmann
 
