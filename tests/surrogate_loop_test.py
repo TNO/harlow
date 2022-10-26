@@ -14,7 +14,7 @@ from tests.offload_hartmann import hartmann
 #         for dim in point:
 
 
-def hypercube_initialization(sampler: Sampler, n_initial_points: int):
+def hypercube_initialization(sampler: Sampler, n_initial_points: int) -> (np.ndarray, np.ndarray):
     # latin hypercube sampling to get the initial sample of points
     points_x = latin_hypercube_sampling(
         n_sample=n_initial_points,
@@ -23,23 +23,7 @@ def hypercube_initialization(sampler: Sampler, n_initial_points: int):
     )
     # evaluate the target function
     points_y = sampler.observer(points_x)
-
-    sampler.fit_points_x = points_x
-    sampler.fit_points_y = points_y
-    sampler.dim_out = points_y.shape[0]
-
-def hypercube_testset(sampler: Sampler, n_initial_points: int):
-    # latin hypercube sampling to get the initial sample of points
-    points_x = latin_hypercube_sampling(
-        n_sample=n_initial_points,
-        domain_lower_bound=sampler.domain_lower_bound,
-        domain_upper_bound=sampler.domain_upper_bound,
-    )
-    # evaluate the target function
-    points_y = sampler.observer(points_x)
-
-    sampler.test_points_x = points_x
-    sampler.test_points_y = points_y
+    return points_x, points_y
 
 # To install the offloader: pip install offloader --extra-index-url https://ci.tno.nl/gitlab/api/v4/projects/8033/packages/pypi/simple
 def offloaded_hartman(x: np.ndarray) -> np.ndarray:
@@ -86,13 +70,22 @@ def main():
     surrogate = VanillaGaussianProcess
     sampler = FuzzyLolaVoronoi(hartmann, surrogate, domains_lower_bound, domains_upper_bound)
 
-    hypercube_initialization(sampler, 20)
-    hypercube_testset(sampler, 50)
+    # Create initial set
+    points_x, points_y = hypercube_initialization(sampler, 20)
+    sampler.fit_points_x = points_x
+    sampler.fit_points_y = points_y
+    sampler.dim_out = points_y.shape[0]
+
+    # Create test set
+    test_points_x, test_points_y = hypercube_initialization(sampler, 50)
+    sampler.test_points_x = test_points_x
+    sampler.test_points_y = test_points_y
 
     sampler.surrogate_loop(10, 500)
 
     print("doneeee")
     print(sampler.surrogate_model.predict(sampler.test_points_x))
+
 
 if __name__ == '__main__':
     main()
