@@ -320,7 +320,7 @@ def identify_sensitive_voronoi_cell(
         split_indices.append(train_index)
         for s in range(0, n_dim_out):
             X_train, X_test = points_X[train_index], points_X[test_index]
-            y_train, y_test = points_y[train_index], points_y[test_index]
+            y_train, y_test = points_y[train_index], points_y[test_index, s]
 
             s_i = surrogate_model()
             s_i.fit(X_train, y_train.reshape(-1, 1))
