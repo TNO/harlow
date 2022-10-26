@@ -297,8 +297,9 @@ def identify_sensitive_voronoi_cell(
     for idx, m in enumerate(surrogates):
         normalized_responses.append(normalized_response(m, points_X))
         # equation 4 from [2]
+        pred = m.predict(test_points_X)
         surrogates_nrmse.append(
-            nrmse(m, test_points_X, test_points_y[:, idx])
+            nrmse(pred, test_points_y[:, idx])
         )  # equation 5
         # from [2]
 
@@ -319,10 +320,10 @@ def identify_sensitive_voronoi_cell(
         split_indices.append(train_index)
         for s in range(0, n_dim_out):
             X_train, X_test = points_X[train_index], points_X[test_index]
-            y_train, y_test = points_y[train_index, s], points_y[test_index, s]
+            y_train, y_test = points_y[train_index], points_y[test_index]
 
             s_i = surrogate_model()
-            s_i.fit(X_train, y_train)
+            s_i.fit(X_train, y_train[:, s].reshape(-1, 1))
             y_pred = s_i.predict(X_test)
             kfold_results[s] = np.linalg.norm(y_test[:, s] - y_pred, ord=1)
 
@@ -393,13 +394,15 @@ def calculate_voronoi_cells(
     """
     # dimensions are not checked
     if n_simulation is None:
-        n_simulation = 100 * points.shape[0]
+        n_simulation = 100 * points.shape[0] * points.shape[1]
 
     if random_points is None:
         n_dim = len(domain_lower_bound)
         random_points = domain_lower_bound + np.random.rand(n_simulation, n_dim) * (
             domain_upper_bound - domain_lower_bound
         )
+    #TODO CHECK THE RANDOM POINTS INCREASES A LOT ! 
+    print('Random and points shapes', random_points.shape, points.shape)
     # all relevant distances, n_simulation x n_point
     distance_mx = cdist(random_points, points, metric="euclidean")
 
