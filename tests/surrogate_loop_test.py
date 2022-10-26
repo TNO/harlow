@@ -8,14 +8,14 @@ from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.offload_hartmann import hartmann
 
-
 # def target_func_jo(X) -> ndarray:
 #     for point in X:
 #         for dim in point:
 
 
-def hypercube_initialization(sampler: Sampler, n_initial_points: int) -> (
-np.ndarray, np.ndarray):
+def hypercube_initialization(
+    sampler: Sampler, n_initial_points: int
+) -> (np.ndarray, np.ndarray):
     # latin hypercube sampling to get the initial sample of points
     points_x = latin_hypercube_sampling(
         n_sample=n_initial_points,
@@ -33,31 +33,34 @@ def offloaded_hartman(x: np.ndarray) -> np.ndarray:
     from offloader import Offloader, OffloadVector
 
     def pre(task_folder: Path, x: np.ndarray):
-        with open(task_folder / 'x.npy', 'wb') as f:
+        with open(task_folder / "x.npy", "wb") as f:
             np.save(f, x)
 
     def post(task_folder: Path, x: np.ndarray):
-        with open(task_folder / 'y.npy', "rb") as f:
+        with open(task_folder / "y.npy", "rb") as f:
             y = np.load(f)
         return y
 
     url = "offload.dt4si.nl"
 
     offloader = Offloader(url, "api/v1", offload_folder="tmp")
-    task_resources = {
-        "requests": {
-            "memory": "100Mi",
-            "cpu": "3500m"
-        }
-    }
+    task_resources = {"requests": {"memory": "100Mi", "cpu": "3500m"}}
     # vector = []
     # for x_single in x:
     #     vector.append({'x': x_single})
     # print(vector)
-    vector = [{'x': x}]
+    vector = [{"x": x}]
     command = "ls && pip install numpy && python3 offload_hartmann.py"
-    off = OffloadVector(offloader, pre, post, command, "python:3", vector,
-                        task_resources=task_resources, local=False)
+    off = OffloadVector(
+        offloader,
+        pre,
+        post,
+        command,
+        "python:3",
+        vector,
+        task_resources=task_resources,
+        local=False,
+    )
     off.add_file("offload_hartmann.py", des_path="")
     off.get_file("y.npy")
     result = off.run()
@@ -70,8 +73,9 @@ def main():
 
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
-    sampler = FuzzyLolaVoronoi(hartmann, surrogate, domains_lower_bound,
-                               domains_upper_bound)
+    sampler = FuzzyLolaVoronoi(
+        hartmann, surrogate, domains_lower_bound, domains_upper_bound
+    )
 
     # Create initial set
     points_x, points_y = hypercube_initialization(sampler, 20)
@@ -90,5 +94,5 @@ def main():
     print(sampler.surrogate_model.predict(sampler.test_points_x))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

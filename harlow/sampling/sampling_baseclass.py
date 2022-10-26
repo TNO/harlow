@@ -15,20 +15,20 @@ from harlow.utils.metrics import rmse
 
 class Sampler(ABC):
     def __init__(
-            self,
-            target_function: Callable[[np.ndarray], np.ndarray],
-            surrogate_model: Surrogate,
-            domain_lower_bound: np.ndarray,
-            domain_upper_bound: np.ndarray,
-            fit_points_x: np.ndarray = None,
-            fit_points_y: np.ndarray = None,
-            test_points_x: np.ndarray = None,
-            test_points_y: np.ndarray = None,
-            evaluation_metric: Callable = rmse,
-            logging_metrics: list = None,
-            verbose: bool = False,
-            run_name: str = None,
-            save_dir: str = "",
+        self,
+        target_function: Callable[[np.ndarray], np.ndarray],
+        surrogate_model: Surrogate,
+        domain_lower_bound: np.ndarray,
+        domain_upper_bound: np.ndarray,
+        fit_points_x: np.ndarray = None,
+        fit_points_y: np.ndarray = None,
+        test_points_x: np.ndarray = None,
+        test_points_y: np.ndarray = None,
+        evaluation_metric: Callable = rmse,
+        logging_metrics: list = None,
+        verbose: bool = False,
+        run_name: str = None,
+        save_dir: str = "",
     ):
         self.domain_lower_bound = domain_lower_bound
         self.domain_upper_bound = domain_upper_bound
@@ -63,11 +63,11 @@ class Sampler(ABC):
 
     @abstractmethod
     def sample(
-            self,
-            n_initial_points: int = 20,
-            n_new_points_per_iteration: int = 1,
-            stopping_criterium: float = 0.05,
-            max_n_iterations: int = 5000,
+        self,
+        n_initial_points: int = 20,
+        n_new_points_per_iteration: int = 1,
+        stopping_criterium: float = 0.05,
+        max_n_iterations: int = 5000,
     ):
         pass
 
@@ -139,13 +139,13 @@ class Sampler(ABC):
         score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
         self.step_score.append(score)
 
-        #TODO: might break because passing a
-        self.steps.append(StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0, fit_time))
+        # TODO: might break because passing a
+        self.steps.append(
+            StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0, fit_time)
+        )
 
     def loop_iteration(self, iteration: int, n_new_points_per_interation: int):
-        logger.info(
-            f"Started adaptive iteration step: {iteration}"
-        )
+        logger.info(f"Started adaptive iteration step: {iteration}")
         gen_start_time = time.time()
         new_fit_points_x = self.best_new_points(n_new_points_per_interation)
         gen_time = time.time() - gen_start_time
@@ -165,15 +165,22 @@ class Sampler(ABC):
         fit_start_time = time.time()
         self.surrogate_model.update(new_fit_points_x, new_fit_points_y)
         fit_time = time.time() - fit_start_time
-        logger.info(
-            f"Fitted a new surrogate model in {fit_time} sec."
-        )
+        logger.info(f"Fitted a new surrogate model in {fit_time} sec.")
 
         # Evaluate
         predicted_points_y = self.surrogate_model.predict(self.test_points_x)
         score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
 
-        self.steps.append(StepInfo(new_fit_points_x, new_fit_points_y, score, gen_time, target_func_time, fit_time))
+        self.steps.append(
+            StepInfo(
+                new_fit_points_x,
+                new_fit_points_y,
+                score,
+                gen_time,
+                target_func_time,
+                fit_time,
+            )
+        )
 
         self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
         self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
@@ -185,4 +192,3 @@ class Sampler(ABC):
         while not self.stopping_criterium(iteration, max_iter):
             self.loop_iteration(iteration, n_new_points_per_interation)
             iteration += 1
-

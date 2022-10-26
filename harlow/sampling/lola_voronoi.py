@@ -60,7 +60,7 @@ class LolaVoronoi(Sampler):
         run_name: str = None,
         save_dir: str = "",
         ignore_far_neighborhoods: bool = True,
-        ignore_old_neighborhoods: bool = True
+        ignore_old_neighborhoods: bool = True,
     ):
 
         super(LolaVoronoi, self).__init__(

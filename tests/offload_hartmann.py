@@ -37,15 +37,15 @@ def hartmann(X: np.ndarray) -> np.ndarray:
             outer = outer + new
         results.append(-(2.58 + outer) / 1.94)
 
-    return np.asarray(results).reshape(-1,1)
+    return np.asarray(results).reshape(-1, 1)
 
 
 def main():
-    x = np.load('x.npy')
+    x = np.load("x.npy")
     print(x)
     y = hartmann(x)
-    np.save('y.npy', y)
+    np.save("y.npy", y)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

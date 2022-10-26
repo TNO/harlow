@@ -2,7 +2,9 @@ import numpy as np
 
 
 class StepInfo:
-    def __init__(self, x: np.ndarray, y: np.ndarray, score, target_func_time, gen_time, fit_time):
+    def __init__(
+        self, x: np.ndarray, y: np.ndarray, score, target_func_time, gen_time, fit_time
+    ):
         # TODO check if deepcopy is needed.
         self.x = x
         self.y = y
