@@ -317,10 +317,10 @@ def identify_sensitive_voronoi_cell(
         split_indices.append(train_index)
         for s in range(0, n_dim_out):
             X_train, X_test = points_X[train_index], points_X[test_index]
-            y_train, y_test = points_y[train_index], points_y[test_index]
+            y_train, y_test = points_y[train_index, s], points_y[test_index, s]
 
             s_i = surrogate_model()
-            s_i.fit(X_train, y_train[:, s].reshape(-1, 1))
+            s_i.fit(X_train, y_train)
             y_pred = s_i.predict(X_test)
             kfold_results[s] = np.linalg.norm(y_test[:, s] - y_pred, ord=1)
 
@@ -391,7 +391,7 @@ def calculate_voronoi_cells(
     """
     # dimensions are not checked
     if n_simulation is None:
-        n_simulation = 100 * points.shape[0] * points.shape[1]
+        n_simulation = 100 * points.shape[0]
 
     if random_points is None:
         n_dim = len(domain_lower_bound)

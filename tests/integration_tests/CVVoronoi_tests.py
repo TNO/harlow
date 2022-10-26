@@ -26,7 +26,7 @@ from harlow.utils.test_functions import peaks_2d_multivariate
 
 domain_lower_bound = np.array([-8, -8])
 domain_upper_bound = np.array([8, 8])
-n_initial_point = 15
+n_initial_point = 25
 n_new_points_per_iteration = 1
 rmse_criterium = 0.05
 np.random.seed(123)
