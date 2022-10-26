@@ -59,6 +59,8 @@ class LolaVoronoi(Sampler):
         verbose: bool = False,
         run_name: str = None,
         save_dir: str = "",
+        ignore_far_neighborhoods: bool = True,
+        ignore_old_neighborhoods: bool = True
     ):
 
         super(LolaVoronoi, self).__init__(
@@ -76,6 +78,23 @@ class LolaVoronoi(Sampler):
             run_name,
             save_dir,
         )
+        self.ignore_far_neighborhoods = ignore_far_neighborhoods
+        self.ignore_old_neighborhoods = ignore_old_neighborhoods
+        self.n_point_last_iter = 0
+
+    def best_new_points(self, n) -> np.ndarray:
+        result = best_new_points(
+            points_x=self.fit_points_x,
+            points_y=self.fit_points_y,
+            domain_lower_bound=self.domain_lower_bound,
+            domain_upper_bound=self.domain_upper_bound,
+            n_point_last_iter=self.n_point_last_iter,
+            n_new_point=self.n_point_last_iter,
+            ignore_far_neighborhoods=self.ignore_far_neighborhoods,
+            ignore_old_neighborhoods=self.ignore_old_neighborhoods,
+        )
+        self.n_point_last_iter = n
+        return result
 
     def sample(
         self,
