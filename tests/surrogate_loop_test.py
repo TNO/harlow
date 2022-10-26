@@ -14,7 +14,8 @@ from tests.offload_hartmann import hartmann
 #         for dim in point:
 
 
-def hypercube_initialization(sampler: Sampler, n_initial_points: int) -> (np.ndarray, np.ndarray):
+def hypercube_initialization(sampler: Sampler, n_initial_points: int) -> (
+np.ndarray, np.ndarray):
     # latin hypercube sampling to get the initial sample of points
     points_x = latin_hypercube_sampling(
         n_sample=n_initial_points,
@@ -25,17 +26,18 @@ def hypercube_initialization(sampler: Sampler, n_initial_points: int) -> (np.nda
     points_y = sampler.observer(points_x)
     return points_x, points_y
 
-# To install the offloader: pip install offloader --extra-index-url https://ci.tno.nl/gitlab/api/v4/projects/8033/packages/pypi/simple
+
+# To install the offloader: pip install offloader --extra-index-url
+# https://ci.tno.nl/gitlab/api/v4/projects/8033/packages/pypi/simple
 def offloaded_hartman(x: np.ndarray) -> np.ndarray:
     from offloader import Offloader, OffloadVector
 
     def pre(task_folder: Path, x: np.ndarray):
-
-        with open(task_folder/'x.npy', 'wb') as f:
+        with open(task_folder / 'x.npy', 'wb') as f:
             np.save(f, x)
 
     def post(task_folder: Path, x: np.ndarray):
-        with open(task_folder/'y.npy', "rb") as f:
+        with open(task_folder / 'y.npy', "rb") as f:
             y = np.load(f)
         return y
 
@@ -54,12 +56,12 @@ def offloaded_hartman(x: np.ndarray) -> np.ndarray:
     # print(vector)
     vector = [{'x': x}]
     command = "ls && pip install numpy && python3 offload_hartmann.py"
-    off = OffloadVector(offloader, pre, post, command, "python:3", vector, task_resources=task_resources, local=False)
+    off = OffloadVector(offloader, pre, post, command, "python:3", vector,
+                        task_resources=task_resources, local=False)
     off.add_file("offload_hartmann.py", des_path="")
     off.get_file("y.npy")
     result = off.run()
     return result[0]
-
 
 
 def main():
@@ -68,7 +70,8 @@ def main():
 
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
-    sampler = FuzzyLolaVoronoi(hartmann, surrogate, domains_lower_bound, domains_upper_bound)
+    sampler = FuzzyLolaVoronoi(hartmann, surrogate, domains_lower_bound,
+                               domains_upper_bound)
 
     # Create initial set
     points_x, points_y = hypercube_initialization(sampler, 20)
