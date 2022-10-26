@@ -298,9 +298,7 @@ def identify_sensitive_voronoi_cell(
         normalized_responses.append(normalized_response(m, points_X))
         # equation 4 from [2]
         pred = m.predict(test_points_X)
-        surrogates_nrmse.append(
-            nrmse(pred, test_points_y[:, idx])
-        )  # equation 5
+        surrogates_nrmse.append(nrmse(pred, test_points_y[:, idx]))  # equation 5
         # from [2]
 
     total_error = sum(surrogates_nrmse)
@@ -320,7 +318,7 @@ def identify_sensitive_voronoi_cell(
         split_indices.append(train_index)
         for s in range(0, n_dim_out):
             X_train, X_test = points_X[train_index], points_X[test_index]
-            y_train, y_test = points_y[train_index], points_y[test_index, s]
+            y_train, y_test = points_y[train_index, s], points_y[test_index, s]
 
             s_i = surrogate_model()
             s_i.fit(X_train, y_train.reshape(-1, 1))
@@ -401,8 +399,8 @@ def calculate_voronoi_cells(
         random_points = domain_lower_bound + np.random.rand(n_simulation, n_dim) * (
             domain_upper_bound - domain_lower_bound
         )
-    #TODO CHECK THE RANDOM POINTS INCREASES A LOT ! 
-    print('Random and points shapes', random_points.shape, points.shape)
+    # TODO CHECK THE RANDOM POINTS INCREASES A LOT !
+    print("Random and points shapes", random_points.shape, points.shape)
     # all relevant distances, n_simulation x n_point
     distance_mx = cdist(random_points, points, metric="euclidean")
 
