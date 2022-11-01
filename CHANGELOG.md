@@ -1,0 +1,60 @@
+# Changelog
+
+<!--next-version-placeholder-->
+
+## v0.1.0 (2022-10-05)
+### Feature
+* Semantic versioning ([#26](https://github.com/TNO/harlow/issues/26)) ([`c66446b`](https://github.com/TNO/harlow/commit/c66446ba49cdb0102b671f831ab61aca346f7bfb))
+* Added latest changes to tests from internal git ([`03864aa`](https://github.com/TNO/harlow/commit/03864aa8567214ff98f5d3e2b95ab202e6a8adad))
+* Added latest changes from internal git ([`ca171d4`](https://github.com/TNO/harlow/commit/ca171d4fa6cef2646c7839ce081ec3acd3d698fb))
+* Add heuristic to decrease number of considered neighborhoods. Now the median Euclidean distance is calculated as a threshold. To be discussed whether this is the best heuristic. ([`ca628b5`](https://github.com/TNO/harlow/commit/ca628b5b67299b6438b9cac2c67b32e08aca13a6))
+* Sampler baseclass ([`270bfb1`](https://github.com/TNO/harlow/commit/270bfb1ce8b9d1d4359ae060a250d236c1bf3f24))
+* Added benchmark test to repo ([`79d777a`](https://github.com/TNO/harlow/commit/79d777aa155e736ef4ce5a68558a27393de0d0b4))
+* Added peaks benchmark random ([`078f259`](https://github.com/TNO/harlow/commit/078f259452bcbc5aaa7d6f54368b902974c584b5))
+* Added peaks benchmark probabilistic_sampling ([`4aacdcf`](https://github.com/TNO/harlow/commit/4aacdcf906079d161c0d56d5dab4b39a9b8b30c5))
+* Added peaks benchmark LV ([`be83cbf`](https://github.com/TNO/harlow/commit/be83cbfd80eeafe305db7912c8ce090c71682b04))
+* **wip:** Add numba to speed up the code ([`36d2b95`](https://github.com/TNO/harlow/commit/36d2b9547ae58ee33711c79ab56c7188a2bcb709))
+* Add forrester_1d to lola-voronoi tests ([`129ab54`](https://github.com/TNO/harlow/commit/129ab5406c3c3812f44977377c9c684723fc73f9))
+* **in-progress:** Basic logging and timing ([`d9dd766`](https://github.com/TNO/harlow/commit/d9dd76653d978cab39ada1f0e49cd71c26dd756b))
+* Add forrester_1d to lola-voronoi tests ([`92b018e`](https://github.com/TNO/harlow/commit/92b018e3dd6d7b9919ef4185bbacdddadd6c1fae))
+* **in-progress:** Basic logging and timing ([`4187fa8`](https://github.com/TNO/harlow/commit/4187fa8fcfe87f0f7046b3cbd1445754a5193c86))
+* Add a plotting function to show 1D and 2D sections ([`5ce6b2c`](https://github.com/TNO/harlow/commit/5ce6b2c860cfc8788ebb52eaf4c1b72dbb250481))
+* Upgrade the repo to a standard python package ([`8a19c4f`](https://github.com/TNO/harlow/commit/8a19c4fa28b6299b7be356981d9289d531dcb81f))
+
+### Fix
+* Auto-push rejected ([`a92794b`](https://github.com/TNO/harlow/commit/a92794bac813a08921abc23446a56b2f12fca0cc))
+* Added docs branch to workflow ([`e88758e`](https://github.com/TNO/harlow/commit/e88758ec6a6ee355c4ba7ab5a93f010f25c50d7d))
+* Fixed imports in tests and benchmarks ([`54f55e6`](https://github.com/TNO/harlow/commit/54f55e6a6aa2c92438b49ee7a7ffd1e2cf26bcf2))
+* Changes from harlow internal that were not correctly applied ([`1a51245`](https://github.com/TNO/harlow/commit/1a5124557da27b8f9bfd4f196da6a85b13ae82fe))
+* Fixed extra requirements ([`a5c9b45`](https://github.com/TNO/harlow/commit/a5c9b45b6481017fc04fd03df853b215086b2715))
+* Wrong type hint in  best_neighborhoods ([`9cda81f`](https://github.com/TNO/harlow/commit/9cda81f0541fcc9825836d563db8a41cbbbefd07))
+* Rolling back numba for now ([`38ba046`](https://github.com/TNO/harlow/commit/38ba0463eff2c9ca0d828420d27b30e5c18e1cdc))
+* Json writing ([`882239f`](https://github.com/TNO/harlow/commit/882239f36a61932b4cfbfccc7ffad3993e31c3fa))
+* **ci:** Increase the number of added points to pass test ([`526fc90`](https://github.com/TNO/harlow/commit/526fc9074e7840746bc73cc1719c6bbd43d1d640))
+* Resolve conflicts ([`459556a`](https://github.com/TNO/harlow/commit/459556acf1891a0090584149a5064b10b3435263))
+* LHS with float domain (integer domains lead to strange results) ([`2f21cfb`](https://github.com/TNO/harlow/commit/2f21cfbb97d98d7dbf43ba4fd3144224438773aa))
+* Resolve rebase conflicts with master ([`a537622`](https://github.com/TNO/harlow/commit/a53762211061b5c2f9fc37757f02bd0ccd5f8458))
+* **in-progress:** Improve lola_voronoi ([`ef0f1b3`](https://github.com/TNO/harlow/commit/ef0f1b3f1b8408cabf896c44fa879299228d82aa))
+* LHS with float domain (integer domains lead to strange results) ([`6b90ea2`](https://github.com/TNO/harlow/commit/6b90ea27d5b3458b99eb9ce27adcadbd61d7bdaf))
+* **in-progress:** Works but slow and lacks features ([`6eaa1e9`](https://github.com/TNO/harlow/commit/6eaa1e9f091ac2d767bd624c82ed231f4d952b7d))
+* **in-progress:** Improve lola_voronoi ([`b7e8c0f`](https://github.com/TNO/harlow/commit/b7e8c0f4b5d8e4b7dee09b5a1ef2e0647c33bc9f))
+* Use the correct if branch with 1D plots ([`e18c4d2`](https://github.com/TNO/harlow/commit/e18c4d2baa8790e9621b91c9f0c487a7d7622cc4))
+* Correct an if branch statement ([`ab55484`](https://github.com/TNO/harlow/commit/ab55484757f66ff1d36c1d97244b247eab7cb9fb))
+
+### Documentation
+* Fix docs worfklow running twice when commiting while PR is open ([`f83e9e2`](https://github.com/TNO/harlow/commit/f83e9e2e71442d4fb19dae11d4ab4f8108b5b16c))
+* Fix workflow ([`0ca1465`](https://github.com/TNO/harlow/commit/0ca1465dcc0e3ae4e2d83fa222741913ea2b4436))
+* Docs badge in README ([`a8c9002`](https://github.com/TNO/harlow/commit/a8c900294193b08b6522617c60fba89783933ecc))
+* Fix CI workflow trigger ([`e23a1cb`](https://github.com/TNO/harlow/commit/e23a1cb1ae6207bedb5b737ddf770e11370f1d07))
+* Fix build-docs.yml ([`996f120`](https://github.com/TNO/harlow/commit/996f12092a3d5a5792f3c66d4679b2fb9b8e017b))
+* Fix build-docs.yml ([`5a0915f`](https://github.com/TNO/harlow/commit/5a0915f31b241c69c1a26309d38d767a552ff2c7))
+* Push built docs to gh-pages ([`6fda768`](https://github.com/TNO/harlow/commit/6fda7689bf2ddba0435782aebd8fd48833e06b9f))
+* Add build-docs workflow for github pages docs ([`323e04f`](https://github.com/TNO/harlow/commit/323e04ff400e3ad658d17f5f45978ea2d7b83a42))
+* Add .nojekyll for github pages docs ([`511a8d6`](https://github.com/TNO/harlow/commit/511a8d648dba635ad9186abd3682077250e4497b))
+* Modified readme to provide help on documentation ([`58ff28a`](https://github.com/TNO/harlow/commit/58ff28a37c71b177fef8e380ed1ea46d3b90a754))
+* Added first draft of documentation ([`48932a3`](https://github.com/TNO/harlow/commit/48932a3e31bb03d90af212840e0617a0f25d3986))
+
+### Performance
+* **in-progress:** Improve neighbourhood_score ([`7c0aa65`](https://github.com/TNO/harlow/commit/7c0aa6587dc8ea350cdd49e062722e19cad71dd4))
+* **in-progress:** Improve neighbourhood_score ([`27546f7`](https://github.com/TNO/harlow/commit/27546f7930879bdb01d5ff61e4f7942ca480cb5d))
+* Improve the ackley test function implementation ([`f0b52f9`](https://github.com/TNO/harlow/commit/f0b52f95fdf1ad8d29aff6de35465e1aa475c276))

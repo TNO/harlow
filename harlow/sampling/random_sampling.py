@@ -1,3 +1,5 @@
+import os
+import pickle
 import time
 from typing import Callable
 
@@ -56,6 +58,7 @@ class LatinHypercube(Sampler):
         n_new_points_per_iteration: int = 10,
         stopping_criterium: float = None,
     ):
+
         # ..........................................
         # This sampler is non iterative. This means there is not iteration that
         # adds n new samples. Instead, the sampler works with steps, testing
@@ -92,6 +95,7 @@ class LatinHypercube(Sampler):
         self.step_fit_time.append(time.time() - start_time)
 
         iteration = 0
+
         for s in sets:
 
             start_time = time.time()
@@ -101,7 +105,9 @@ class LatinHypercube(Sampler):
                 domain_upper_bound=self.domain_upper_bound,
             )
             self.step_gen_time.append(time.time() - start_time)
+
             points_y = self.target_function(points_x).reshape((-1, 1))
+
 
             start_time = time.time()
             surrogate_model.fit(points_x, points_y)
@@ -110,11 +116,13 @@ class LatinHypercube(Sampler):
 
             self.fit_points_x = points_x
             self.fit_points_y = points_y
-            score = evaluate(
-                self.logging_metrics,
-                self.test_points_x,
-                self.test_points_y,
+
+            # Re-evaluate the surrogate model.
+            predicted_y = self.surrogate_model.predict(
+                self.test_points_x, as_array=True
             )
+            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
+
             self.score = score[self.evaluation_metric.__name__]
             logger.info(f"Score {score[self.evaluation_metric.__name__]}")
             self.step_x = points_x
@@ -133,7 +141,14 @@ class LatinHypercube(Sampler):
             if self.score[0] <= stopping_criterium:
                 break
 
+        save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
+        save_path = os.path.join(self.save_dir, save_name)
+        # Save model if converged
+        with open(save_path, "wb") as file:
+            pickle.dump(self.surrogate_model, file)
+
         logger.info(f"Algorithm converged in {iteration} iterations")
         logger.info(f"Algorithm converged with score {score}")
         self.writer.close()
+
         return self.fit_points_x, self.fit_points_y

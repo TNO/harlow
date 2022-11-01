@@ -1,7 +1,16 @@
 (sec:installation)=
 # Installation
 
-Clone the repository and install using pip:
+## PyPI
+
+TODO
+
+## Anaconda
+
+TODO
+
+## Github
+Clone the [repository](https://github.com/TNO/harlow) and install using pip:
 
 ```bash
 pip install -e .

@@ -66,18 +66,28 @@ class FuzzyLolaVoronoi(Sampler):
         )
 
         self.dim_in = len(domain_lower_bound)
-        self.dim_out = None if self.fit_points_x is None else \
-            self.fit_points_y.shape[1]
+        self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
 
         self.surrogate_model = surrogate_model()
 
-        if self.dim_out > 1:
-            self.multiresponse_sampling = True
-            if not self.surrogate_model.is_multioutput:
-                raise ValueError(
-                    "Multiresponse target requires \
-                                 multiresponse surrogate"
-                )
+        # TODO add this below again
+        # if self.dim_out > 1:
+        #     self.multiresponse_sampling = True
+        #     if not self.surrogate_model.is_multioutput:
+        #         raise ValueError(
+        #             "Multiresponse target requires \
+        #                          multiresponse surrogate"
+        #         )
+
+    def best_new_points(self, n):
+        return _best_new_points(
+            points_x=self.fit_points_x,
+            points_y=self.fit_points_y,
+            domain_lower_bound=self.domain_lower_bound,
+            domain_upper_bound=self.domain_upper_bound,
+            n_new_point=n,
+            dim_in=self.dim_in,
+        )
 
     def sample(
         self,
@@ -148,7 +158,7 @@ class FuzzyLolaVoronoi(Sampler):
             )
 
             start_time = time.time()
-            new_points_x = best_new_points(
+            new_points_x = _best_new_points(
                 points_x=points_x,
                 points_y=points_y,
                 domain_lower_bound=domain_lower_bound,
@@ -179,6 +189,11 @@ class FuzzyLolaVoronoi(Sampler):
             #
             self.fit_points_x = points_x
             self.fit_points_y = points_y
+
+            # Re-evaluate the surrogate model.
+            predicted_y = self.surrogate_model.predict(
+                self.test_points_x, as_array=True
+            )
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
             self.step_x.append(points_x)
@@ -216,7 +231,7 @@ class FuzzyLolaVoronoi(Sampler):
 # -----------------------------------------------------
 # SUPPORTING FUNCTIONS
 # -----------------------------------------------------
-def best_new_points(
+def _best_new_points(
     points_x: np.ndarray,
     points_y: np.ndarray,
     domain_lower_bound: np.ndarray,
@@ -437,7 +452,7 @@ def adh_high(x, A_max, s_ah=0.3):
     """
     Adhesion High membership function
     """
-    return np.exp(((-(x ** 2)) / 2 * ((A_max * s_ah) ** 2)))
+    return np.exp(((-(x**2)) / 2 * ((A_max * s_ah) ** 2)))
 
 
 def adh_low(x, A_max, s_al=0.27):

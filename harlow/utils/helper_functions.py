@@ -41,12 +41,12 @@ def evaluate(metric, true_y, predicted_y):
 
     Returns:
     """
-    count_model = 0
     metric_dict = {}
     if not isinstance(metric, list):
         metric = [metric]
     if metric is None or true_y is None:
-        raise ValueError
+        for metric_fun in metric:
+            metric_dict[metric_fun.__name__] = []
     else:
         for metric_fun in metric:
             scores = []

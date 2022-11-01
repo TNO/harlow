@@ -1,0 +1,54 @@
+name: build-sphinx-docs
+
+# Only run for master
+on:
+  push:
+    branches: [ "master", "docs" , "docs-add-autosummary"]
+  pull_request:
+    branches: [ "master", "docs"]
+    types: [ "closed" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out your repo under $GITHUB_WORKSPACE
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+          # fetch-depth: 0
+
+      # Set up Python
+      - name: Set up Python39
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install package with docs dependencies
+        run: |
+          pip install .[docs]
+
+      # Runs a set of commands using the runners shell
+      - name: sphinx-build
+        run: |
+          sphinx-build -b html "./docs/source" "./docs/build"
+
+      # NOTE: It should not be possible for a workflow run to trigger
+      # another workflow run: https://github.com/marketplace/actions/
+      # git-auto-commit#commits-made-by-this-action-do-not-trigger-new-workflow-runs
+      # Just in case, add `gh-pages` or any other target branch to
+      # the `branches-ignore` rule in `push.yml`, and avoid setting
+      # `branch` to docs or master.
+      - name: Commit to gh-pages branch
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Push docs build to gh-pages branch
+          branch: gh-pages
+          push_options: '--force'
+          skip_fetch: false
+          skip_checkout: false
+          create_branch: true
