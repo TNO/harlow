@@ -13,6 +13,12 @@ from harlow.utils.metrics import rmse
 
 
 class LatinHypercube(Sampler):
+    """ Latin Hypercube Sampler
+
+    Lathin hypercube sampler is a space filling random sampler. This sampler
+    is non-sequenctial.
+
+    """
     def __init__(
         self,
         target_function,
@@ -49,38 +55,32 @@ class LatinHypercube(Sampler):
         self,
         n_initial_points: int = None,
         max_n_iterations: int = 20,
-        n_new_points_per_iteration: int = 1,
+        n_new_points_per_iteration: int = 10,
         stopping_criterium: float = None,
     ):
 
+        # ..........................................
+        # This sampler is non iterative. This means there is not iteration that
+        # adds n new samples. Instead, the sampler works with steps, testing
+        # different dataset sizes, which are newly sampled each time.
+        # max_n_iterations means here the number of steps
+        # n_new_points_per_iterations means here the step size
+        # e.g. 10 X 20, means that sets of 20, 40, 60, ..., 200 are created,
+        # unless the stopping criterium is earlier reached.
+        # ..........................................
+        start_time = time.time()
+        sets = np.linspace(n_new_points_per_iteration,
+                           n_new_points_per_iteration*max_n_iterations,
+                           n_new_points_per_iteration, dtype=int)
+
         points_x = self.fit_points_x
         points_y = self.fit_points_y
-        surrogate_model = self.surrogate_model
-        start_time = time.time()
-        if self.fit_points_x:
-            surrogate_model.fit(points_x, points_y)
-            logger.info(
-                f"Fitted a new surrogate model in {time.time() - start_time} sec."
-            )
 
-        # Initial sampling
-        if n_initial_points:
-            X_new = latin_hypercube_sampling(
-                n_sample=n_initial_points,
-                domain_lower_bound=self.domain_lower_bound,
-                domain_upper_bound=self.domain_upper_bound,
-            )
-            self.step_gen_time.append(time.time() - start_time)
-            y_new = self.target_function(X_new)
+        self.step_gen_time.append(time.time() - start_time)
 
-            if points_x:
-                points_x = np.concatenate((points_x, X_new))
-                points_y = np.concatenate((points_y, y_new))
-            else:
-                points_x = X_new
-                points_y = y_new
-
-            surrogate_model.fit(points_x, points_y)
+        surrogate_model = self.surrogate_model()
+        surrogate_model.fit(points_x, points_y)
+        logger.info(f"Fitted a new surrogate model in {time.time() - start_time} sec.")
 
         score = evaluate(
             self.logging_metrics,
@@ -95,17 +95,19 @@ class LatinHypercube(Sampler):
         self.step_fit_time.append(time.time() - start_time)
 
         iteration = 0
-        while (self.score > stopping_criterium) and (iteration < max_n_iterations):
+
+        for s in sets:
+
             start_time = time.time()
-            X_new = latin_hypercube_sampling(
-                n_sample=n_new_points_per_iteration,
+            points_x = latin_hypercube_sampling(
+                n_sample=s,
                 domain_lower_bound=self.domain_lower_bound,
                 domain_upper_bound=self.domain_upper_bound,
             )
             self.step_gen_time.append(time.time() - start_time)
-            y_new = self.target_function(X_new)
-            points_x = np.concatenate((points_x, X_new))
-            points_y = np.concatenate((points_y, y_new))
+
+            points_y = self.target_function(points_x).reshape((-1, 1))
+
 
             start_time = time.time()
             surrogate_model.fit(points_x, points_y)
@@ -122,10 +124,10 @@ class LatinHypercube(Sampler):
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
             self.score = score[self.evaluation_metric.__name__]
-            logger.info(f"Score {score}")
-            self.step_x.append(points_x)
-            self.step_y.append(points_y)
-            self.step_score.append(score[0])
+            logger.info(f"Score {score[self.evaluation_metric.__name__]}")
+            self.step_x = points_x
+            self.step_y = points_y
+            self.step_score.append(score[self.evaluation_metric.__name__])
             self.step_iter.append(iteration + 1)
             timing_dict = {
                 "Gen time": self.step_gen_time[iteration + 1],
@@ -136,7 +138,7 @@ class LatinHypercube(Sampler):
 
             iteration += 1
 
-            if iteration >= max_n_iterations:
+            if self.score[0] <= stopping_criterium:
                 break
 
         save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
