@@ -188,7 +188,7 @@ class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
     is_multioutput = False
     is_torch = False
-    kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
+    kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(1e-5, 1e5))
 
     def __init__(
         self,
@@ -1694,7 +1694,7 @@ class BayesianNeuralNetwork(Surrogate):
             activation=activation,
         )(inputs)
         hidden = tfp.layers.DenseFlipout(
-            128,
+            64,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
             kernel_divergence_fn=self.kernel_divergence_fn,
@@ -1702,7 +1702,7 @@ class BayesianNeuralNetwork(Surrogate):
             activation=activation,
         )(hidden)
         hidden = tfp.layers.DenseFlipout(
-            64,
+            32,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
             kernel_divergence_fn=self.kernel_divergence_fn,
