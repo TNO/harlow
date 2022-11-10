@@ -67,8 +67,9 @@ def NLL(y, distr):
 
 
 def normal_sp(params):
+    n_out = int(params.shape[1] / 2)
     return tfd.Normal(
-        loc=params[:, 0:1], scale=1e-3 + tf.math.softplus(0.05 * params[:, 1:2])
+        loc=params[:, :n_out], scale=1e-3 + tf.math.softplus(0.05 * params[:, n_out:])
     )  # both parameters are learnable
 
 

@@ -9,7 +9,7 @@ Surrogate model unit tests, to ensure that all surrogates:
 
 import numpy as np
 
-from harlow.surrogating.surrogate_model import (  # noqa F401; DeepKernelMultiTaskGaussianProcess,
+from harlow.surrogating.surrogate_model import (  # noqa F401; DeepKernelMultiTaskGaussianProcess,; DeepKernelMultiTaskGaussianProcess,
     BatchIndependentGaussianProcess,
     BayesianNeuralNetwork,
     GaussianProcessTFP,
@@ -28,13 +28,14 @@ surrogate_list = [
     MultiTaskGaussianProcess(),
     NeuralNetwork(),
     VanillaGaussianProcess(),
+    BayesianNeuralNetwork(),
 ]
 
 N_train = 20
 N_update = 10
 N_pred = 50
 N_features = 10
-N_outputs = 5
+N_outputs = 15
 
 
 train_X = np.random.rand(N_train, N_features)
@@ -84,6 +85,6 @@ def test_surrogate_multi_output():
             assert pred_y.shape[1] == N_outputs
 
 
-#
-# if __name__ == "__main__":
-#     test_surrogate_multi_output()
+if __name__ == "__main__":
+    test_surrogate_multi_output()
+    print("Finished")
