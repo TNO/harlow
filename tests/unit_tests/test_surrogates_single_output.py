@@ -80,5 +80,5 @@ def test_surrogate_single_output():
         assert pred_y.shape[1] == N_outputs
 
 
-# if __name__ == "__main__":
-#     test_surrogate_single_output()
+if __name__ == "__main__":
+    test_surrogate_single_output()
