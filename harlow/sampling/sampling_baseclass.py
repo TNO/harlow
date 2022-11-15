@@ -1,11 +1,15 @@
+import time
 from abc import ABC, abstractmethod
 from typing import Callable
 
 import numpy as np
 import shortuuid
+from loguru import logger
 from tensorboardX import SummaryWriter
 
+from harlow.sampling.step_info import StepInfo
 from harlow.surrogating.surrogate_model import Surrogate
+from harlow.utils.helper_functions import evaluate
 from harlow.utils.metrics import rmse
 
 
@@ -50,6 +54,7 @@ class Sampler(ABC):
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
+        self.steps = []
 
         if not run_name:
             self.run_name = Sampler.generate_run_name()
@@ -111,6 +116,79 @@ class Sampler(ABC):
 
         return y
 
+    # Returns True if the loop should finish
+    def stopping_criterium(self, iteration: int, max_iter: int) -> bool:
+        return iteration > max_iter
+
+    @abstractmethod
+    def best_new_points(self, n) -> np.ndarray:
+        pass
+
     @staticmethod
     def generate_run_name():
         return shortuuid.uuid()
+
+    def loop_initialization(self):
+        # initialize surrogate
+        fit_start_time = time.time()
+        self.surrogate_model.fit(self.fit_points_x, self.fit_points_y)
+        # step_info.py 0 is initialization
+        fit_time = time.time() - fit_start_time
+
+        predicted_points_y = self.surrogate_model.predict(self.test_points_x)
+        score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
+        self.step_score.append(score)
+
+        # TODO: might break because passing a
+        self.steps.append(
+            StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0, fit_time)
+        )
+
+    def loop_iteration(self, iteration: int, n_new_points_per_interation: int):
+        logger.info(f"Started adaptive iteration step: {iteration}")
+        gen_start_time = time.time()
+        new_fit_points_x = self.best_new_points(n_new_points_per_interation)
+        gen_time = time.time() - gen_start_time
+        logger.info(
+            f"Found the next best {n_new_points_per_interation} point(s) in "
+            f"{gen_time} sec."
+        )
+
+        target_func_start_time = time.time()
+        new_fit_points_y = self.observer(new_fit_points_x)
+        target_func_time = time.time() - target_func_start_time
+        logger.info(
+            f"Executed target function on {n_new_points_per_interation} point(s) in "
+            f"{target_func_time} sec."
+        )
+
+        fit_start_time = time.time()
+        self.surrogate_model.update(new_fit_points_x, new_fit_points_y)
+        fit_time = time.time() - fit_start_time
+        logger.info(f"Fitted a new surrogate model in {fit_time} sec.")
+
+        # Evaluate
+        predicted_points_y = self.surrogate_model.predict(self.test_points_x)
+        score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
+
+        self.steps.append(
+            StepInfo(
+                new_fit_points_x,
+                new_fit_points_y,
+                score,
+                gen_time,
+                target_func_time,
+                fit_time,
+            )
+        )
+
+        self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
+        self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
+
+    def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
+        self.loop_initialization()
+
+        iteration = 0
+        while not self.stopping_criterium(iteration, max_iter):
+            self.loop_iteration(iteration, n_new_points_per_interation)
+            iteration += 1
