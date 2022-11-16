@@ -40,9 +40,7 @@ class Sampler(ABC):
         self.test_points_y = test_points_y
         self.evaluation_metric = evaluation_metric
         self.logging_metrics = (
-            [self.evaluation_metric]
-            if not logging_metrics
-            else logging_metrics
+            [self.evaluation_metric] if not logging_metrics else logging_metrics
         )
         self.verbose = verbose
         self.run_name = run_name

@@ -192,33 +192,44 @@ def F_3(x: np.ndarray) -> np.ndarray:
     x = np.atleast_2d(x)
     x1 = x[:, 0]
     x2 = x[:, 1]
-    t1 = (x1 + x2 + 1)**2
-    t2 = (19 - 14 * x1 + 13 * x1**2 - 14 * x2 + 6 * x1 * x2 + 3 * x2**2)
-    t3 = (30 + (2 * x1 - 3 * x2)**2 * (18 - 32 * x1 + 12 * x1**2 - 48 * x2 - 36 * x1 * x2 + 27 * x2**2 ))
+    t1 = (x1 + x2 + 1) ** 2
+    t2 = 19 - 14 * x1 + 13 * x1**2 - 14 * x2 + 6 * x1 * x2 + 3 * x2**2
+    t3 = 30 + (2 * x1 - 3 * x2) ** 2 * (
+        18 - 32 * x1 + 12 * x1**2 - 48 * x2 - 36 * x1 * x2 + 27 * x2**2
+    )
     inn1 = 1 + np.inner(t1, t2)
     return np.inner(inn1, t3)
+
 
 def F_4(x: np.ndarray) -> np.ndarray:
     x = np.atleast_2d(x)
     x1 = x[:, 0]
     x2 = x[:, 1]
 
-    return (- np.cos(x1) * np.cos(x2) * np.exp(-(x1 - np.pi)**2 - (x2 - np.pi)**2))   
+    return -np.cos(x1) * np.cos(x2) * np.exp(-((x1 - np.pi) ** 2) - (x2 - np.pi) ** 2)
+
 
 def F_5(x: np.ndarray) -> np.ndarray:
     x = np.atleast_2d(x)
     x1 = x[:, 0]
     x2 = x[:, 1]
-    return (1/36 * ((x1 + 3)**2 + (x2 + 3)**2) - (np.cos(3 * (x1 + 3)) + np.cos(3 * (x2 + 3))))   
+    return 1 / 36 * ((x1 + 3) ** 2 + (x2 + 3) ** 2) - (
+        np.cos(3 * (x1 + 3)) + np.cos(3 * (x2 + 3))
+    )
+
 
 def F_6(x: np.ndarray) -> np.ndarray:
     x = np.atleast_2d(x)
     x1 = x[:, 0]
     x2 = x[:, 1]
 
-    return (- 20 * np.exp(- (x1**2 + x2**2) / 90) \
-            - np.exp(0.5 * (np.cos((2 * np.pi) / 3 * x1)) + np.cos((2 * np.pi) / 3 * x2)) \
-                + 20 + np.exp(1))
+    return (
+        -20 * np.exp(-(x1**2 + x2**2) / 90)
+        - np.exp(0.5 * (np.cos((2 * np.pi) / 3 * x1)) + np.cos((2 * np.pi) / 3 * x2))
+        + 20
+        + np.exp(1)
+    )
+
 
 def F_3_6(x: np.ndarray) -> np.ndarray:
     f1 = F_3(x)
@@ -226,12 +237,14 @@ def F_3_6(x: np.ndarray) -> np.ndarray:
     res = np.asarray((f1, f2))
     return np.swapaxes(res, 0, 1)
 
+
 def F_3_4_6(x: np.ndarray) -> np.ndarray:
     f1 = F_3(x)
     f2 = F_4(x)
     f3 = F_6(x)
     res = np.asarray((f1, f2, f3))
     return np.swapaxes(res, 0, 1)
+
 
 def F_4_5_6(x: np.ndarray) -> np.ndarray:
     f1 = F_4(x)

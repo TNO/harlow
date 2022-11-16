@@ -40,8 +40,10 @@ def rrse(actual: np.ndarray, predicted: np.ndarray):
 def rmse(x, y):
     return math.sqrt(mean_squared_error(x, y))
 
+
 def logrmse(x, y):
     return math.log10(math.sqrt(mean_squared_error(x, y)))
+
 
 def mae(x, y):
     return mean_absolute_error(x, y)

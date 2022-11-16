@@ -13,12 +13,13 @@ from harlow.utils.metrics import rmse
 
 
 class LatinHypercube(Sampler):
-    """ Latin Hypercube Sampler
+    """Latin Hypercube Sampler
 
     Lathin hypercube sampler is a space filling random sampler. This sampler
     is non-sequenctial.
 
     """
+
     def __init__(
         self,
         target_function,
@@ -69,9 +70,12 @@ class LatinHypercube(Sampler):
         # unless the stopping criterium is earlier reached.
         # ..........................................
         start_time = time.time()
-        sets = np.linspace(n_new_points_per_iteration,
-                           n_new_points_per_iteration*max_n_iterations,
-                           n_new_points_per_iteration, dtype=int)
+        sets = np.linspace(
+            n_new_points_per_iteration,
+            n_new_points_per_iteration * max_n_iterations,
+            n_new_points_per_iteration,
+            dtype=int,
+        )
 
         points_x = self.fit_points_x
         points_y = self.fit_points_y
@@ -107,7 +111,6 @@ class LatinHypercube(Sampler):
             self.step_gen_time.append(time.time() - start_time)
 
             points_y = self.target_function(points_x).reshape((-1, 1))
-
 
             start_time = time.time()
             surrogate_model.fit(points_x, points_y)

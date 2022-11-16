@@ -1,21 +1,20 @@
+import argparse
 import os
+
 import numpy as np
 import torch
-import argparse
 
 from harlow.sampling import CVVoronoi
-from harlow.surrogating.surrogate_model import VanillaGaussianProcess, BatchIndependentGaussianProcess
-from harlow.utils.helper_functions import latin_hypercube_sampling
-from harlow.utils.metrics import mae, rmse, rrse, nrmse, logrmse
-from harlow.utils.examples.model_twin_girder_betti import IJssel_bridge_model
-from harlow.utils.transforms import ExpandDims, TensorTransform
-from harlow.utils.test_functions import (
-    hartmann,
-    peaks_2d,
-    F_3_6,
-    F_3_4_6,
-    F_4_5_6
+from harlow.surrogating.surrogate_model import (
+    BatchIndependentGaussianProcess,
+    VanillaGaussianProcess,
 )
+from harlow.utils.examples.model_twin_girder_betti import IJssel_bridge_model
+from harlow.utils.helper_functions import latin_hypercube_sampling
+from harlow.utils.metrics import logrmse, mae, nrmse, rmse, rrse
+from harlow.utils.test_functions import F_3_4_6, F_3_6, F_4_5_6, hartmann, peaks_2d
+from harlow.utils.transforms import ExpandDims, TensorTransform
+
 np.random.seed(0)
 
 # # ====================================================================
@@ -29,30 +28,36 @@ def create_test_set(min_domain, max_domain, n):
     test_y = response(test_X, sensor_positions)
     return test_X, test_y
 
+
 def create_test_set_2D(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = peaks_2d(test_X).reshape((-1, 1))
     return test_X, test_y
+
 
 def create_test_set_6D(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = hartmann(test_X).reshape((-1, 1))
     return test_X, test_y
 
+
 def create_test_set_F_3_6(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = F_3_6(test_X)
     return test_X, test_y
+
 
 def create_test_set_F_3_4_6(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = F_3_4_6(test_X)
     return test_X, test_y
 
+
 def create_test_set_F_4_5_6(min_domain, max_domain, n):
     test_X = latin_hypercube_sampling(min_domain, max_domain, n)
     test_y = F_4_5_6(test_X)
     return test_X, test_y
+
 
 def get_param_idx(params_dict):
     return {key: idx_key for idx_key, key in enumerate(params_dict)}
@@ -201,7 +206,7 @@ def response(X, pts):
             res[idx_x, idx_t] = np.interp(
                 t,
                 model.node_xs,
-                model.il_stress_truckload(c, lane="left", Kr=10 ** arr_Kr, Kv=10 ** Kv),
+                model.il_stress_truckload(c, lane="left", Kr=10**arr_Kr, Kv=10**Kv),
             )
     return res
 
@@ -241,11 +246,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-f", 
-        "--folds", 
-        default=5, 
-        type=int, 
-        help="Number of Folds in K-Fold Cross Validation"
+        "-f",
+        "--folds",
+        default=5,
+        type=int,
+        help="Number of Folds in K-Fold Cross Validation",
     )
     parser.add_argument(
         "-p",
@@ -276,8 +281,8 @@ if __name__ == "__main__":
         target_func = peaks_2d
     elif args.problem == 6:
         domain_lower_bound = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        domain_upper_bound = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])  
-        print(f"Create training set N = {N_train}:")  
+        domain_upper_bound = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        print(f"Create training set N = {N_train}:")
         train_X, train_y = create_test_set_6D(
             domain_lower_bound, domain_upper_bound, N_train
         )
@@ -335,11 +340,20 @@ if __name__ == "__main__":
         )
         target_func = func_model
 
-    run_name = "Bench_{}_with_{}_init_pts_on_{}X{}_dim_problem_{}_w_train_size_{}_K_fold={}".format(
-        'CVVoronoi', 15, train_y.shape[1], train_X.shape[1], args.problem, N_train, args.folds
+    run_name = (
+        "Bench_{}_with_{}_init_pts_on_{}X{}_dim_problem_{}_w_"
+        "train_size_{}_K_fold={}".format(
+            "CVVoronoi",
+            15,
+            train_y.shape[1],
+            train_X.shape[1],
+            args.problem,
+            N_train,
+            args.folds,
+        )
     )
     print(run_name)
-    
+
     save_path = os.path.join("saves", run_name)
     os.makedirs(save_path, exist_ok=True)
 
