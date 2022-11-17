@@ -57,6 +57,7 @@ class CVVoronoi(Sampler):
         verbose: bool = False,
         run_name: str = None,
         save_dir: str = "",
+        n_fold: int = 5,
     ):
 
         super(CVVoronoi, self).__init__(
@@ -76,6 +77,7 @@ class CVVoronoi(Sampler):
         )
 
         self.surrogates = []
+        self.n_fold = n_fold
 
     def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
         super().set_initial_set(points_x, points_y)
@@ -136,7 +138,7 @@ class CVVoronoi(Sampler):
 
         for i in range(0, dim_out):
             s_i = self.surrogate_model()
-            s_i.fit(points_x, points_y[:, i])
+            s_i.fit(points_x, points_y[:, i].reshape((-1, 1)))
             self.surrogates.append(s_i)
             logger.info(
                 f"Fitted the first surrogate model {i} in"
@@ -189,7 +191,7 @@ class CVVoronoi(Sampler):
                 dim_out,
                 self.test_points_x,
                 self.test_points_y,
-                5,
+                self.n_fold,
             )
 
             # Step 3. Pick the point within the most sensitive cell, furthest
@@ -219,7 +221,7 @@ class CVVoronoi(Sampler):
             start_time = time.time()
             for i, surrogate in enumerate(self.surrogates):
                 # surrogate.update(new_points_x, new_points_y[i])
-                surrogate.fit(points_x, points_y[:, i])
+                surrogate.fit(points_x, points_y[:, i].reshape(-1, 1))
                 self.step_fit_time.append(time.time() - start_time)
                 logger.info(
                     f"Fitted a new surrogate model in {time.time() - start_time} sec."
@@ -260,7 +262,7 @@ class CVVoronoi(Sampler):
                     with open(save_path, "wb") as file:
                         pickle.dump(s, file)
 
-            if self.score <= stopping_criterium:
+            if any(i <= stopping_criterium for i in self.score):
                 logger.info(f"Algorithm converged in {ii} iterations")
                 # Save model if converged
                 for s_i, s in enumerate(self.surrogates):
@@ -296,7 +298,7 @@ def identify_sensitive_voronoi_cell(
     n_dim_out: int,
     test_points_X: np.ndarray,
     test_points_y: np.ndarray,
-    k=5,
+    k: int,
 ):
     normalized_responses = []
     surrogates_nrmse = []
@@ -304,9 +306,8 @@ def identify_sensitive_voronoi_cell(
     for idx, m in enumerate(surrogates):
         normalized_responses.append(normalized_response(m, points_X))
         # equation 4 from [2]
-        surrogates_nrmse.append(
-            nrmse(m, test_points_X, test_points_y[:, idx])
-        )  # equation 5
+        pred = m.predict(test_points_X)
+        surrogates_nrmse.append(nrmse(pred, test_points_y[:, idx]))  # equation 5
         # from [2]
 
     total_error = sum(surrogates_nrmse)
@@ -316,7 +317,8 @@ def identify_sensitive_voronoi_cell(
 
     # nrmse_sys = max(surrogates_nrmse)  # equation 8 from [2]. not used.
     kfold = KFold(n_splits=k, random_state=None, shuffle=False)
-    kfold_results = np.zeros((k, len(surrogates)))
+    kfold_results = np.zeros((len(surrogates)))
+    kfold_results_multiout = np.zeros((k))
     split_indices = []
     i = 0
     # CV approach from [3] to avoid costly surrogate building for higher
@@ -325,14 +327,14 @@ def identify_sensitive_voronoi_cell(
         split_indices.append(train_index)
         for s in range(0, n_dim_out):
             X_train, X_test = points_X[train_index], points_X[test_index]
-            y_train, y_test = points_y[train_index], points_y[test_index]
+            y_train, y_test = points_y[train_index, s], points_y[test_index, s]
 
             s_i = surrogate_model()
-            s_i.fit(X_train, y_train[:, s])
-            y_pred = s_i._predict(X_test)
-            kfold_results[i, s] = np.linalg.norm(y_test[:, s] - y_pred)
-        kfold_results_multiout = np.sum(kfold_results, axis=1)
+            s_i.fit(X_train, y_train.reshape(-1, 1))
+            y_pred = s_i.predict(X_test)
+            kfold_results[s] = np.linalg.norm(y_test - y_pred, ord=1)
 
+        kfold_results_multiout[i] = np.sum(kfold_results)  # eq. 10 from [3]
         i += 1
 
     worst_fold = np.argmax(kfold_results_multiout)  # identify the worst fold
@@ -352,17 +354,18 @@ def identify_sensitive_voronoi_cell(
         # implements #13 #14 from [2]
         for j in range(0, n_dim_out):
             s_i = surrogate_model()
-            s_i.fit(points_X_exc_i, points_y_exc_i[:, j])
+            s_i.fit(points_X_exc_i, points_y_exc_i[:, j].reshape(-1, 1))
             # predict X[i] with surrogate
             y_pred = s_i._predict(X_i.reshape((1, -1)))
 
             cv_error_per_point[i, j] = np.linalg.norm(
-                y_i[j] - y_pred
+                y_i[j] - y_pred, ord=1
             )  # eq. 14 from [2]
 
     max_eij = np.max(cv_error_per_point)
 
-    LOOCV_scores = np.sum(cv_error_per_point * weights + max_eij, axis=1)  #
+    # TODO check axis
+    LOOCV_scores = np.sum(cv_error_per_point * weights, axis=1) + max_eij  #
     # eq. 16 from [2]
 
     return np.argmax(LOOCV_scores)
@@ -405,7 +408,8 @@ def calculate_voronoi_cells(
         random_points = domain_lower_bound + np.random.rand(n_simulation, n_dim) * (
             domain_upper_bound - domain_lower_bound
         )
-
+    # TODO CHECK THE RANDOM POINTS INCREASES A LOT !
+    print("Random and points shapes", random_points.shape, points.shape)
     # all relevant distances, n_simulation x n_point
     distance_mx = cdist(random_points, points, metric="euclidean")
 

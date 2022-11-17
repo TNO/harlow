@@ -14,16 +14,15 @@ def _rrse(x, y):
     return math.sqrt(mean_squared_error(x, y) / mean_squared_error(x, x_bar_arr))
 
 
-def nrmse(model: object, test_points_X: np.ndarray, test_points_y: np.ndarray):
+def nrmse(predictions: np.ndarray, test_points_y: np.ndarray):
     """normalized root mean square error"""
-    preds = model.predict(test_points_X)
 
     return np.sqrt(
         1
         / len(test_points_y)
         * np.sum(
             np.square(
-                (test_points_y - preds)
+                (test_points_y - predictions)
                 / (np.max(test_points_y) - np.min(test_points_y))
             )
         )
@@ -40,6 +39,10 @@ def rrse(actual: np.ndarray, predicted: np.ndarray):
 
 def rmse(x, y):
     return math.sqrt(mean_squared_error(x, y))
+
+
+def logrmse(x, y):
+    return math.log10(math.sqrt(mean_squared_error(x, y)))
 
 
 def mae(x, y):

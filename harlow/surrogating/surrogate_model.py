@@ -18,6 +18,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import torch
 from botorch.models.gpytorch import GPyTorchModel
+from gpytorch import constraints
 from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel
@@ -188,7 +189,7 @@ class VanillaGaussianProcess(Surrogate):
     is_probabilistic = True
     is_multioutput = False
     is_torch = False
-    kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(5e-5, 5e-2))
+    kernel = 1.0 * RBF(1.0) + WhiteKernel(1.0, noise_level_bounds=(1e-5, 1e5))
 
     def __init__(
         self,
@@ -531,7 +532,9 @@ class GaussianProcessRegression(Surrogate):
                 f"samples but is {self.train_y.shape[0]} != {self.train_X.shape[0]}."
             )
 
-        self.likelihood = gpytorch.likelihoods.GaussianLikelihood().to(self.device)
+        self.likelihood = gpytorch.likelihoods.GaussianLikelihood(
+            noise_constraint=constraints.Positive()
+        ).to(self.device)
         self.model = ExactGPModel(
             self.train_X, self.train_y.squeeze(-1), self.likelihood
         ).to(self.device)
@@ -761,7 +764,11 @@ class ModelListGaussianProcess(Surrogate):
         list_surrogates = []
         for i, _name in enumerate(self.model_names):
             # Initialize list of GP surrogates
-            list_likelihoods.append(gpytorch.likelihoods.GaussianLikelihood())
+            list_likelihoods.append(
+                gpytorch.likelihoods.GaussianLikelihood(
+                    noise_constraint=constraints.Positive()
+                )
+            )
             list_surrogates.append(
                 ExactGPModel(
                     self.train_X[:, self.list_params[i]],
@@ -880,11 +887,14 @@ class ModelListGaussianProcess(Surrogate):
 
         if return_std:
             return (
-                sample.numpy() if as_array else sample,
+                # sample.numpy() if as_array else sample,
+                # self.std.numpy() if as_array else self.std,
+                self.mean.numpy() if as_array else sample,
                 self.std.numpy() if as_array else self.std,
             )
         else:
-            return sample.numpy() if as_array else sample
+            # return sample.numpy() if as_array else sample
+            return self.mean.numpy() if as_array else self.mean
 
     def sample_posterior(self, n_samples=1):
 
@@ -998,7 +1008,8 @@ class BatchIndependentGaussianProcess(Surrogate):
             )
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-            num_tasks=self.num_tasks
+            num_tasks=self.num_tasks,
+            noise_constraint=constraints.Positive(),
         ).to(self.device)
 
         self.model = BatchIndependentMultitaskGPModel(
@@ -1215,7 +1226,7 @@ class MultiTaskGaussianProcess(Surrogate):
             )
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-            num_tasks=self.num_tasks
+            num_tasks=self.num_tasks, noise_constraint=constraints.Positive()
         ).to(self.device)
         self.model = MultitaskGPModel(
             self.train_X, self.train_y, self.likelihood, self.num_tasks
@@ -1306,9 +1317,9 @@ class MultiTaskGaussianProcess(Surrogate):
         self.cr_l, self.cr_u = self.prediction.confidence_region()
 
         if return_std:
-            return self.prediction.sample(), self.std
+            return self.prediction.mean, self.std
         else:
-            return self.prediction.sample()
+            return self.prediction.mean
 
     def sample_posterior(self, n_samples=1):
         # Switch the model to eval mode
@@ -1377,6 +1388,8 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         silence_warnings=False,
         fast_pred_var=False,
         dev=None,
+        layers=None,
+        num_mixtures=4,
     ):
 
         super().__init__(
@@ -1397,8 +1410,10 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         self.predictions = None
         self.fast_pred_var = fast_pred_var
         self.device = dev
+        self.layers = layers
         self.num_tasks = None
         self.num_features = None
+        self.num_mixtures = num_mixtures
 
         if self.optimizer is None:
             warnings.warn("No optimizer specified, using default.", UserWarning)
@@ -1432,7 +1447,7 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
             )
 
         self.likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(
-            num_tasks=self.num_tasks
+            num_tasks=self.num_tasks, noise_constraint=constraints.Positive()
         ).to(self.device)
         self.model = DeepKernelLearningGPModel(
             self.train_X,
@@ -1440,6 +1455,8 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
             self.likelihood,
             self.num_tasks,
             self.num_features,
+            self.num_mixtures,
+            self.layers,
         ).to(self.device)
 
     def _fit(self, train_X, train_y, **kwargs):
@@ -1525,9 +1542,9 @@ class DeepKernelMultiTaskGaussianProcess(Surrogate):
         self.cr_l, self.cr_u = self.prediction.confidence_region()
 
         if return_std:
-            return self.prediction.sample(), self.std
+            return self.mean, self.std
         else:
-            return self.prediction.sample()
+            return self.mean
 
     def sample_posterior(self, n_samples=1):
         # Switch the model to eval mode
@@ -1635,7 +1652,7 @@ class BayesianNeuralNetwork(Surrogate):
     learning_rate_initial = 0.01
     learning_rate_update = 0.001
     is_probabilistic = True
-    is_multioutput = False
+    is_multioutput = True
     is_torch = False
 
     def __init__(
@@ -1653,6 +1670,8 @@ class BayesianNeuralNetwork(Surrogate):
         self.model = None
         self.epochs = epochs
         self.batch_size = batch_size
+        self.n_output_dim = None
+        self.n_features = None
 
     def kernel_divergence_fn(self, q, p, _):
         return tfp.distributions.kl_divergence(q, p) / (self.X.shape[0] * 1.0)
@@ -1660,7 +1679,9 @@ class BayesianNeuralNetwork(Surrogate):
     def bias_divergence_fn(self, q, p, _):
         return tfp.distributions.kl_divergence(q, p) / (self.X.shape[0] * 1.0)
 
-    def create_model(self, input_dim=(2,), activation="relu", learning_rate=0.01):
+    def create_model(
+        self, input_dim=(2,), output_dim=1, activation="relu", learning_rate=0.01
+    ):
         inputs = Input(shape=input_dim)
 
         hidden = tfp.layers.DenseFlipout(
@@ -1696,7 +1717,7 @@ class BayesianNeuralNetwork(Surrogate):
             activation=activation,
         )(hidden)
         params = tfp.layers.DenseFlipout(
-            2,
+            2 * output_dim,
             bias_posterior_fn=tfp.layers.util.default_mean_field_normal_fn(),
             bias_prior_fn=tfp.layers.default_multivariate_normal_fn,
             kernel_divergence_fn=self.kernel_divergence_fn,
@@ -1710,9 +1731,10 @@ class BayesianNeuralNetwork(Surrogate):
     def _fit(self, X, y, **kwargs):
         self.X = X
         self.y = y
-        n_features = self.X.shape[1]
+        self.n_features = self.X.shape[1]
+        self.n_output_dim = self.y.shape[1]
+        self.create_model(input_dim=(self.n_features,), output_dim=self.n_output_dim)
 
-        self.create_model(input_dim=(n_features,))
         self.model.fit(
             X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=True
         )
@@ -1723,20 +1745,19 @@ class BayesianNeuralNetwork(Surrogate):
         self.y = np.vstack([self.y, y_new])
         self.model.fit(self.X, self.y, epochs=self.epochs, batch_size=self.batch_size)
 
-    def _predict(self, X, return_std=False, iterations=50, **kwargs):
+    def _predict(self, X, return_std=False, iterations=100, **kwargs):
         if self.model:
-            preds = np.zeros(shape=(X.shape[0], iterations))
+            preds = np.zeros(shape=(X.shape[0], self.n_output_dim, iterations))
 
             for i in range(iterations):
-                y_ = self.model._predict(X)
-                y__ = np.reshape(y_, (X.shape[0]))
-                preds[:, i] = y__
+                y_ = self.model.predict(X)
+                preds[:, :, i] = y_
 
-            mean = np.mean(preds, axis=1).reshape(-1, 1)
+            mean = np.mean(preds, axis=2)
             self.predictions = preds
 
             if return_std:
-                stdv = np.std(preds, axis=1).reshape(-1, 1)
+                stdv = np.std(preds, axis=2)
                 return mean, stdv
             else:
                 return mean
@@ -1812,19 +1833,35 @@ class LargeFeatureExtractor(torch.nn.Sequential):
     Simple_GP_Regression_With_LOVE_Fast_Variances_and_Sampling.html
     """
 
-    def __init__(self, input_dim, n_features):
+    def __init__(self, input_dim, n_features, layers=Optional[list]):
         super(LargeFeatureExtractor, self).__init__()
-        self.add_module("linear1", torch.nn.Linear(input_dim, 100))
-        self.add_module("relu1", torch.nn.ReLU())
-        self.add_module("linear2", torch.nn.Linear(100, 50))
-        self.add_module("relu2", torch.nn.ReLU())
-        self.add_module("linear3", torch.nn.Linear(50, 5))
-        self.add_module("relu3", torch.nn.ReLU())
-        self.add_module("linear4", torch.nn.Linear(5, n_features))
+
+        if layers is None:
+            self.add_module("linear1", torch.nn.Linear(input_dim, 100))
+            self.add_module("relu1", torch.nn.ReLU())
+            self.add_module("linear2", torch.nn.Linear(100, 50))
+            self.add_module("relu2", torch.nn.ReLU())
+            self.add_module("linear3", torch.nn.Linear(50, 5))
+            self.add_module("relu3", torch.nn.ReLU())
+            self.add_module("linear4", torch.nn.Linear(5, n_features))
+        else:
+            idx_layer = 0
+            self.add_module(f"linear{idx_layer}", torch.nn.Linear(input_dim, layers[0]))
+            for n in layers[:-1]:
+                self.add_module(
+                    f"linear{idx_layer+1}", torch.nn.Linear(n, layers[idx_layer + 1])
+                )
+                self.add_module(f"relu{idx_layer+1}", torch.nn.ReLU())
+                idx_layer += 1
+            self.add_module(
+                f"linear{idx_layer+2}", torch.nn.Linear(layers[-1], n_features)
+            )
 
 
 class DeepKernelLearningGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, N_tasks, n_features):
+    def __init__(
+        self, train_x, train_y, likelihood, N_tasks, n_features, n_mixtures, layers
+    ):
         super(DeepKernelLearningGPModel, self).__init__(train_x, train_y, likelihood)
 
         self.mean_module = gpytorch.means.MultitaskMean(
@@ -1832,7 +1869,7 @@ class DeepKernelLearningGPModel(gpytorch.models.ExactGP):
         )
         self.covar_module = gpytorch.kernels.MultitaskKernel(
             gpytorch.kernels.SpectralMixtureKernel(
-                num_mixtures=4, ard_num_dims=n_features
+                num_mixtures=n_mixtures, ard_num_dims=n_features
             ),
             num_tasks=N_tasks,
             rank=1,
@@ -1840,7 +1877,7 @@ class DeepKernelLearningGPModel(gpytorch.models.ExactGP):
 
         # Also add the deep net
         self.feature_extractor = LargeFeatureExtractor(
-            input_dim=train_x.size(-1), n_features=n_features
+            input_dim=train_x.size(-1), n_features=n_features, layers=layers
         )
 
     def forward(self, x):
