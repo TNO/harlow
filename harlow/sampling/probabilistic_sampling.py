@@ -86,12 +86,14 @@ class ProbabilisticSampler(Sampler):
         logger.info(
             f"Finished differential evolution in {time.time() - start_time} sec."
         )
-        print(diff_evolution_result)
-        # std_max = -diff_evolution_result.fun
+
+        std_max = -diff_evolution_result.fun
+        print(std_max)
         self.step_gen_time.append(time.time() - start_time)
 
         # TODO: how to select n points?
-        # x_new = np.expand_dims(diff_evolution_result.x, axis=0)
+        x_new = np.expand_dims(diff_evolution_result.x, axis=0)
+        print(x_new)
 
     def sample(
         self,

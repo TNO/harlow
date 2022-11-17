@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from harlow.sampling import FuzzyLolaVoronoi, Sampler
+from harlow.sampling import LatinHypercube, Sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.offload_hartmann import succeeding_hartman
@@ -74,15 +74,19 @@ def main():
 
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
-    sampler = FuzzyLolaVoronoi(
+    # sampler = FuzzyLolaVoronoi(
+    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    # )
+    # sampler = LolaVoronoi(
+    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    # )
+    sampler = LatinHypercube(
         succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     )
-    # sampler = LolaVoronoi(
-    #     failing_hartman, surrogate, domains_lower_bound, domains_upper_bound
-    # )
+    # TODO: Does not work yet, _best_new_points has to be properly implemented
     # rmse_criterium = 0.05
     # sampler = ProbabilisticSampler(
-    #     hartmann,
+    #     succeeding_hartman,
     #     surrogate,
     #     domains_lower_bound,
     #     domains_upper_bound,
