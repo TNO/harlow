@@ -29,7 +29,6 @@ from scipy.spatial.distance import cdist
 from sklearn.model_selection import KFold
 
 from harlow.sampling.sampling_baseclass import Sampler
-from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import (
     evaluate_modellist,
     latin_hypercube_sampling,
@@ -46,7 +45,7 @@ class CVVoronoi(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model: Surrogate,
+        surrogate_model_constructor,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -62,7 +61,7 @@ class CVVoronoi(Sampler):
 
         super(CVVoronoi, self).__init__(
             target_function,
-            surrogate_model,
+            surrogate_model_constructor,
             domain_lower_bound,
             domain_upper_bound,
             fit_points_x,
@@ -77,6 +76,16 @@ class CVVoronoi(Sampler):
         )
 
         self.surrogates = []
+
+    def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
+        super().set_initial_set(points_x, points_y)
+        # Also create the output surrogates
+        for _i in range(self.dim_out):
+            self.surrogate_models.append(self.surrogate_model_constructor())
+
+    def _best_new_points(self, n) -> np.ndarray:
+        # TODO: still needs to be implemented
+        raise NotImplementedError
 
     def sample(
         self,
@@ -320,7 +329,7 @@ def identify_sensitive_voronoi_cell(
 
             s_i = surrogate_model()
             s_i.fit(X_train, y_train[:, s])
-            y_pred = s_i.predict(X_test)
+            y_pred = s_i._predict(X_test)
             kfold_results[i, s] = np.linalg.norm(y_test[:, s] - y_pred)
         kfold_results_multiout = np.sum(kfold_results, axis=1)
 
@@ -345,7 +354,7 @@ def identify_sensitive_voronoi_cell(
             s_i = surrogate_model()
             s_i.fit(points_X_exc_i, points_y_exc_i[:, j])
             # predict X[i] with surrogate
-            y_pred = s_i.predict(X_i.reshape((1, -1)))
+            y_pred = s_i._predict(X_i.reshape((1, -1)))
 
             cv_error_per_point[i, j] = np.linalg.norm(
                 y_i[j] - y_pred

@@ -22,7 +22,6 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from skfuzzy import control as ctrl
 
 from harlow.sampling.sampling_baseclass import Sampler
-from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
@@ -35,7 +34,7 @@ class FuzzyLolaVoronoi(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model: Surrogate,
+        surrogate_model_constructor,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -51,7 +50,7 @@ class FuzzyLolaVoronoi(Sampler):
 
         super(FuzzyLolaVoronoi, self).__init__(
             target_function,
-            surrogate_model,
+            surrogate_model_constructor,
             domain_lower_bound,
             domain_upper_bound,
             fit_points_x,
@@ -68,7 +67,7 @@ class FuzzyLolaVoronoi(Sampler):
         self.dim_in = len(domain_lower_bound)
         self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
 
-        self.surrogate_model = surrogate_model()
+        self.surrogate_models.append(self.surrogate_model_constructor())
 
         # TODO add this below again
         # if self.dim_out > 1:
@@ -79,7 +78,7 @@ class FuzzyLolaVoronoi(Sampler):
         #                          multiresponse surrogate"
         #         )
 
-    def best_new_points(self, n):
+    def _best_new_points(self, n):
         return _best_new_points(
             points_x=self.fit_points_x,
             points_y=self.fit_points_y,
@@ -133,12 +132,14 @@ class FuzzyLolaVoronoi(Sampler):
         # fit the surrogate model
         start_time = time.time()
 
-        self.surrogate_model.fit(points_x, points_y)
+        self.surrogate_models[0].fit(points_x, points_y)
         logger.info(
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
 
-        predicted_y = self.surrogate_model.predict(self.test_points_x, as_array=True)
+        predicted_y = self.surrogate_models[0].predict(
+            self.test_points_x, as_array=True
+        )
 
         score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
         self.step_x.append(points_x)
@@ -181,7 +182,7 @@ class FuzzyLolaVoronoi(Sampler):
 
             # refit the surrogate
             start_time = time.time()
-            self.surrogate_model.update(new_points_x, new_points_y.ravel())
+            self.surrogate_models[0].update(new_points_x, new_points_y.ravel())
             self.step_fit_time.append(time.time() - start_time)
             logger.info(
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
@@ -191,7 +192,7 @@ class FuzzyLolaVoronoi(Sampler):
             self.fit_points_y = points_y
 
             # Re-evaluate the surrogate model.
-            predicted_y = self.surrogate_model.predict(
+            predicted_y = self.surrogate_models[0].predict(
                 self.test_points_x, as_array=True
             )
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
@@ -215,13 +216,15 @@ class FuzzyLolaVoronoi(Sampler):
                 save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
                 save_path = os.path.join(self.save_dir, save_name)
                 with open(save_path, "wb") as file:
-                    pickle.dump(self.surrogate_model, file)
+                    pickle.dump(self.surrogate_models[0], file)
 
             if self.score <= stopping_criterium or ii >= max_n_iterations:
                 logger.info(f"Algorithm converged in {ii} iterations")
                 # Save model if converged
+                save_name = self.run_name + "_{}_iters.pkl".format(self.iterations)
+                save_path = os.path.join(self.save_dir, save_name)
                 with open(save_path, "wb") as file:
-                    pickle.dump(self.surrogate_model, file)
+                    pickle.dump(self.surrogate_models[0], file)
                 break
 
         self.writer.close()

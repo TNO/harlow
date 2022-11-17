@@ -32,6 +32,7 @@ tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
 
+
 # TODO add retraining strategies
 
 
@@ -759,7 +760,6 @@ class ModelListGaussianProcess(Surrogate):
         list_likelihoods = []
         list_surrogates = []
         for i, _name in enumerate(self.model_names):
-
             # Initialize list of GP surrogates
             list_likelihoods.append(gpytorch.likelihoods.GaussianLikelihood())
             list_surrogates.append(
@@ -868,7 +868,6 @@ class ModelListGaussianProcess(Surrogate):
         for j, (_submodel, _prediction) in enumerate(
             zip(self.model.models, self.prediction)
         ):
-
             # Get mean, variance and std. dev per model
             self.mean[:, j] = _prediction.mean
             self.var[:, j] = _prediction.variance
@@ -1627,7 +1626,7 @@ class NeuralNetwork(Surrogate):
         if self.model:
             if len(X.shape) == 1:
                 X = np.expand_dims(X, axis=0)
-            self.preds = self.model.predict(X)
+            self.preds = self.model._predict(X)
 
             return self.preds
 
@@ -1729,7 +1728,7 @@ class BayesianNeuralNetwork(Surrogate):
             preds = np.zeros(shape=(X.shape[0], iterations))
 
             for i in range(iterations):
-                y_ = self.model.predict(X)
+                y_ = self.model._predict(X)
                 y__ = np.reshape(y_, (X.shape[0]))
                 preds[:, i] = y__
 

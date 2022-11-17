@@ -75,7 +75,7 @@ def test_2D():
     plot_function_custom(
         bohachevsky_2D,
         lv.train_X,
-        lv.surrogate_model.predict(lv.train_X),
+        lv.surrogate_model._predict(lv.train_X),
         plot_sample_locations=True,
         show=show_plot,
     )

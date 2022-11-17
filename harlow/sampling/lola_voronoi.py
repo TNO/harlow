@@ -9,7 +9,6 @@ from loguru import logger
 from scipy.spatial.distance import cdist
 
 from harlow.sampling.sampling_baseclass import Sampler
-from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
@@ -47,7 +46,7 @@ class LolaVoronoi(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model: Surrogate,
+        surrogate_model_constructor,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -65,7 +64,7 @@ class LolaVoronoi(Sampler):
 
         super(LolaVoronoi, self).__init__(
             target_function,
-            surrogate_model,
+            surrogate_model_constructor,
             domain_lower_bound,
             domain_upper_bound,
             fit_points_x,
@@ -78,11 +77,12 @@ class LolaVoronoi(Sampler):
             run_name,
             save_dir,
         )
+        self.surrogate_models.append(self.surrogate_model_constructor())
         self.ignore_far_neighborhoods = ignore_far_neighborhoods
         self.ignore_old_neighborhoods = ignore_old_neighborhoods
         self.n_point_last_iter = 0
 
-    def best_new_points(self, n) -> np.ndarray:
+    def _best_new_points(self, n) -> np.ndarray:
         result = best_new_points(
             points_x=self.fit_points_x,
             points_y=self.fit_points_y,
@@ -140,12 +140,12 @@ class LolaVoronoi(Sampler):
 
         # fit the surrogate model
         start_time = time.time()
-        self.surrogate_model.fit(points_x, points_y)
+        self.surrogate_models[0].fit(points_x, points_y)
         logger.info(
             f"Fitted the first surrogate model in {time.time() - start_time} sec."
         )
 
-        predicted_y = self.surrogate_model.predict(self.test_points_x)
+        predicted_y = self.surrogate_models[0].predict(self.test_points_x)
         score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
         self.step_score.append(score)
@@ -191,7 +191,7 @@ class LolaVoronoi(Sampler):
 
             # refit the surrogate
             start_time = time.time()
-            self.surrogate_model.update(new_points_x, new_points_y)
+            self.surrogate_models[0].update(new_points_x, new_points_y)
             self.step_fit_time.append(time.time() - start_time)
             logger.info(
                 f"Fitted a new surrogate model in {time.time() - start_time} sec."
@@ -202,7 +202,7 @@ class LolaVoronoi(Sampler):
             self.fit_points_y = points_y
 
             # Re-evaluate the surrogate model.
-            predicted_y = self.surrogate_model.predict(self.test_points_x)
+            predicted_y = self.surrogate_models[0].predict(self.test_points_x)
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
 
             self.step_score.append(score)
@@ -239,7 +239,7 @@ class LolaVoronoi(Sampler):
         save_path = os.path.join(self.save_dir, save_name)
 
         with open(save_path, "wb") as file:
-            pickle.dump(self.surrogate_model, file)
+            pickle.dump(self.surrogate_models[0], file)
 
 
 # -----------------------------------------------------

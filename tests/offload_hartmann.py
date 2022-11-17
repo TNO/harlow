@@ -1,4 +1,24 @@
+import random
+
 import numpy as np
+
+
+def failing_hartman(X: np.ndarray) -> (np.ndarray, np.array):
+    y = hartmann(X)
+    s = np.array([random.random() >= 0.2 for x in range(y.shape[0])])
+    # if random.random() < 0.8:
+    #     print('Deliberetly failing')
+    #     raise TargetFunctionEvaluationFailedException('I am going down!')
+    return y, s
+
+
+def succeeding_hartman(X: np.ndarray) -> (np.ndarray, np.array):
+    y = hartmann(X)
+    s = np.array([True for x in range(y.shape[0])])
+    # if random.random() < 0.8:
+    #     print('Deliberetly failing')
+    #     raise TargetFunctionEvaluationFailedException('I am going down!')
+    return y, s
 
 
 # Maybe just upload the original hartman

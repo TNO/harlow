@@ -2,11 +2,12 @@
 from pathlib import Path
 
 import numpy as np
+from loguru import logger
 
 from harlow.sampling import FuzzyLolaVoronoi, Sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
-from tests.offload_hartmann import hartmann
+from tests.offload_hartmann import succeeding_hartman
 
 # def target_func_jo(X) -> ndarray:
 #     for point in X:
@@ -23,8 +24,8 @@ def hypercube_initialization(
         domain_upper_bound=sampler.domain_upper_bound,
     )
     # evaluate the target function
-    points_y = sampler.observer(points_x)
-    return points_x, points_y
+    new_points_x, points_y = sampler.exec_target_function(points_x)
+    return new_points_x, points_y
 
 
 # To install the offloader: pip install offloader --extra-index-url
@@ -74,24 +75,34 @@ def main():
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
     sampler = FuzzyLolaVoronoi(
-        hartmann, surrogate, domains_lower_bound, domains_upper_bound
+        succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     )
+    # sampler = LolaVoronoi(
+    #     failing_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    # )
+    # rmse_criterium = 0.05
+    # sampler = ProbabilisticSampler(
+    #     hartmann,
+    #     surrogate,
+    #     domains_lower_bound,
+    #     domains_upper_bound,
+    #     stopping_score=rmse_criterium,
+    # )
 
     # Create initial set
     points_x, points_y = hypercube_initialization(sampler, 20)
-    sampler.fit_points_x = points_x
-    sampler.fit_points_y = points_y
-    sampler.dim_out = points_y.shape[0]
+    sampler.set_initial_set(points_x, points_y)
+    logger.info("initial set created")
 
     # Create test set
     test_points_x, test_points_y = hypercube_initialization(sampler, 50)
-    sampler.test_points_x = test_points_x
-    sampler.test_points_y = test_points_y
+    sampler.set_test_set(test_points_x, test_points_y)
+    logger.info("test set created")
 
     sampler.surrogate_loop(10, 500)
 
+    # TODO: how/when to save/store results.
     print("doneeee")
-    print(sampler.surrogate_model.predict(sampler.test_points_x))
 
 
 if __name__ == "__main__":
