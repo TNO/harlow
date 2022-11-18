@@ -6,6 +6,7 @@ from harlow.sampling import LolaVoronoi
 from harlow.surrogating import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.test_functions import forrester_1d, peaks_2d
+from harlow.visualization.corner import add_samples_to_cornerplot, corner
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
 
@@ -192,9 +193,22 @@ def test_peaks_2d():
         ax2.set_ylabel("$x_2$")
         ax2.set_title("Surrogate function")
         # TODO: apply the same color range to both contourf plots
+        axs[0].set_aspect("equal", "box")
+        axs[1].set_aspect("equal", "box")
         plt.colorbar(cs, ax=axs)
 
+        # create a cornerplot on the target function
+        fig, axes = corner(
+            func=target_function,
+            support_range=np.array([[-5, 5], [-5, 5]]).T,
+            n_discr=50,
+        )
+        fig, _ = add_samples_to_cornerplot(fig, axes, lv.fit_points_x)
 
-test_sine_1d()
-test_forrester_1d()
-test_peaks_2d()
+        # create a cornerplot on the prediction function
+        fig, axes = corner(
+            func=lv.surrogate_model.predict,
+            support_range=np.array([[-5, 5], [-5, 5]]).T,
+            n_discr=50,
+        )
+        fig, _ = add_samples_to_cornerplot(fig, axes, lv.fit_points_x)

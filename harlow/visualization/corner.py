@@ -280,6 +280,31 @@ def corner(
     return fig, axes
 
 
+def add_samples_to_cornerplot(fig, axes, x: np.ndarray):
+    """Add samples to the corner plot
+    Args:
+        x: coordinates (samples x features)
+    """
+    n_dim = x.shape[1]
+
+    for row in range(n_dim):
+        for col in range(n_dim):
+            if row < col:
+                pass
+            # diagonal
+            elif row == col:
+                pass
+            else:
+                ax = axes[row, col]
+
+                x1 = x[:, col]
+                x2 = x[:, row]
+
+                ax.scatter(x1, x2, color="red", alpha=0.5, marker=".")
+
+    return fig, axes
+
+
 def iso_line_2d(x_mx, y_mx, z_mx, iso_level):
     """Get coordinates for a 2d contour plot.
     Args:
