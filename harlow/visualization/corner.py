@@ -21,6 +21,7 @@ def corner(
     dim_labels: List[str] = None,
     iso_value: REAL_TYPE = None,
     rectangular_range: REAL_VECT_TYPE = None,
+    sample_points: np.ndarray = None,
 ):
     """Corner plot of a function (`func`): interesting 1D and 2D sections.
     For each subplot, each not plotted independent variable (`x_i`) is fixed to a
@@ -276,6 +277,9 @@ def corner(
         plt.tight_layout()
 
     plt.suptitle(title)
+
+    if sample_points is not None:
+        add_samples_to_cornerplot(fig, axes, sample_points)
 
     return fig, axes
 

@@ -6,7 +6,7 @@ from harlow.sampling import LolaVoronoi
 from harlow.surrogating import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.test_functions import forrester_1d, peaks_2d
-from harlow.visualization.corner import add_samples_to_cornerplot, corner
+from harlow.visualization.corner import corner
 from tests.integration_tests.utils import plot_1d_lola_voronoi
 
 
@@ -202,13 +202,15 @@ def test_peaks_2d():
             func=target_function,
             support_range=np.array([[-5, 5], [-5, 5]]).T,
             n_discr=50,
+            sample_points=lv.fit_points_x,
         )
-        fig, _ = add_samples_to_cornerplot(fig, axes, lv.fit_points_x)
 
         # create a cornerplot on the prediction function
         fig, axes = corner(
             func=lv.surrogate_model.predict,
             support_range=np.array([[-5, 5], [-5, 5]]).T,
             n_discr=50,
+            sample_points=lv.fit_points_x,
         )
-        fig, _ = add_samples_to_cornerplot(fig, axes, lv.fit_points_x)
+
+        plt.show()
