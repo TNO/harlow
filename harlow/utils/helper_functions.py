@@ -28,7 +28,7 @@ def evaluate_modellist(metric, model, test_points_X, test_points_y):
             scores = []
             for m in model:
                 scores.append(
-                    metric_fun(m.predict(test_points_X), test_points_y[:, count_model])
+                    metric_fun(m._predict(test_points_X), test_points_y[:, count_model])
                 )
             metric_dict[metric_fun.__name__] = scores
 

@@ -23,7 +23,7 @@ class LatinHypercube(Sampler):
     def __init__(
         self,
         target_function,
-        surrogate_model,
+        surrogate_model_constructor,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -38,7 +38,7 @@ class LatinHypercube(Sampler):
     ):
         super(LatinHypercube, self).__init__(
             target_function,
-            surrogate_model,
+            surrogate_model_constructor,
             domain_lower_bound,
             domain_upper_bound,
             fit_points_x,
@@ -50,6 +50,17 @@ class LatinHypercube(Sampler):
             verbose,
             run_name,
             save_dir,
+        )
+        surrogate_model = self.surrogate_model_constructor()
+        self.surrogate_models = [surrogate_model]
+        # TODO remove when sample() is removed
+        self.surrogate_model = surrogate_model
+
+    def _best_new_points(self, n) -> np.ndarray:
+        return latin_hypercube_sampling(
+            n_sample=n,
+            domain_lower_bound=self.domain_lower_bound,
+            domain_upper_bound=self.domain_upper_bound,
         )
 
     def sample(
@@ -121,7 +132,7 @@ class LatinHypercube(Sampler):
             self.fit_points_y = points_y
 
             # Re-evaluate the surrogate model.
-            predicted_y = self.surrogate_model.predict(
+            predicted_y = self.surrogate_model._predict(
                 self.test_points_x, as_array=True
             )
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)

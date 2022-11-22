@@ -153,3 +153,4 @@ dmypy.json
 
 #tmp folder for offloading
 tests/tmp
+tests/runs

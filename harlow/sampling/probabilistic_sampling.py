@@ -17,7 +17,6 @@ from loguru import logger
 from scipy.optimize import differential_evolution
 
 from harlow.sampling.sampling_baseclass import Sampler
-from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
@@ -27,7 +26,7 @@ class ProbabilisticSampler(Sampler):
     def __init__(
         self,
         target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model: Surrogate,
+        surrogate_model_constructor,
         domain_lower_bound: np.ndarray,
         domain_upper_bound: np.ndarray,
         fit_points_x: np.ndarray = None,
@@ -39,11 +38,12 @@ class ProbabilisticSampler(Sampler):
         verbose: bool = False,
         run_name: str = None,
         save_dir: str = "",
+        stopping_score: float = None,
     ):
 
         super(ProbabilisticSampler, self).__init__(
             target_function,
-            surrogate_model,
+            surrogate_model_constructor,
             domain_lower_bound,
             domain_upper_bound,
             fit_points_x,
@@ -56,8 +56,44 @@ class ProbabilisticSampler(Sampler):
             run_name,
             save_dir,
         )
+        surrogate = surrogate_model_constructor()
+        self.surrogate_models.append(surrogate)
+        # TODO: remove when sample is not being used anymore
+        self.surrogate_model = surrogate
 
         self.iterations = 0
+
+    def _best_new_points(self, n) -> np.ndarray:
+        n_dim = len(self.domain_lower_bound)
+        bounds = [
+            (self.domain_lower_bound[i], self.domain_upper_bound[i])
+            for i in range(n_dim)
+        ]
+
+        def prediction_std(x):
+            if x.ndim == 1:
+                x = np.expand_dims(x, axis=0)
+
+            std = -(
+                self.surrogate_model._predict(x, return_std=True)[1]
+                # - self.surrogate_model.noise_std
+            )
+
+            return std
+
+        start_time = time.time()
+        diff_evolution_result = differential_evolution(prediction_std, bounds=bounds)
+        logger.info(
+            f"Finished differential evolution in {time.time() - start_time} sec."
+        )
+
+        std_max = -diff_evolution_result.fun
+        print(std_max)
+        self.step_gen_time.append(time.time() - start_time)
+
+        # TODO: how to select n points?
+        x_new = np.expand_dims(diff_evolution_result.x, axis=0)
+        print(x_new)
 
     def sample(
         self,
@@ -115,7 +151,7 @@ class ProbabilisticSampler(Sampler):
                     x = np.expand_dims(x, axis=0)
 
                 std = -(
-                    self.surrogate_model.predict(x, return_std=True)[1]
+                    self.surrogate_model._predict(x, return_std=True)[1]
                     # - self.surrogate_model.noise_std
                 )
 
@@ -149,7 +185,7 @@ class ProbabilisticSampler(Sampler):
                 logger.info("std_max <= epsilon or max iterations reached")
                 convergence = True
             elif stopping_criterium:
-                predicted_y = self.surrogate_model.predict(
+                predicted_y = self.surrogate_model._predict(
                     self.test_points_x, as_array=True
                 )
                 score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)

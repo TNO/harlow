@@ -52,7 +52,7 @@ def test_sine_1d():
         # ............................
         xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
         yy_tf = target_function(xx).ravel()
-        yy_sm = lv.surrogate_model.predict(xx).ravel()
+        yy_sm = lv.surrogate_model._predict(xx).ravel()
 
         np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
 
@@ -106,7 +106,7 @@ def test_forrester_1d():
     # ............................
     xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
     yy_tf = target_function(xx).ravel()
-    yy_sm = lv.surrogate_model.predict(xx).ravel()
+    yy_sm = lv.surrogate_model._predict(xx).ravel()
 
     np.testing.assert_allclose(yy_tf, yy_sm, atol=1)
 
@@ -168,7 +168,7 @@ def test_peaks_2d():
     x12_vec = np.vstack((x1_mx.ravel(), x2_mx.ravel())).T
 
     yy_tf = target_function(x12_vec).reshape((n_grid, n_grid))
-    yy_sm = lv.surrogate_model.predict(x12_vec).reshape((n_grid, n_grid))
+    yy_sm = lv.surrogate_model._predict(x12_vec).reshape((n_grid, n_grid))
 
     # np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
 
