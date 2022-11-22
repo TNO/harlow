@@ -4,7 +4,7 @@ a human."""
 import numpy as np
 
 from harlow.utils.test_functions import ackley_nd
-from harlow.visualization.corner import corner
+from harlow.visualization.corner import add_samples_to_cornerplot, corner
 
 
 def func_nd(x: np.ndarray):
@@ -19,7 +19,7 @@ def test_1d():
 
 def test_2d():
     support_range = np.array([[0, 2], [-1, 1]]).T
-    return corner(func=func_nd, support_range=support_range)
+    corner(func=func_nd, support_range=support_range)
 
 
 def test_3d():
@@ -34,7 +34,9 @@ def test_3d():
         return x1 + x2**2 + np.sin(x3)
 
     corner(func=func, support_range=support_range)
-    corner(func=func, support_range=support_range, dim_labels=dim_labels, iso_value=0)
+    return corner(
+        func=func, support_range=support_range, dim_labels=dim_labels, iso_value=0
+    )
 
 
 def test_3d_rp33():
@@ -57,3 +59,11 @@ def test_ackley_nd():
     n_dim = 3
     support_range = np.tile(np.array([[-4], [4]]), reps=(1, n_dim))
     corner(func=ackley_nd, support_range=support_range, n_discr=100)
+
+
+def test_add_samples():
+    p, axes = test_3d()
+    p, _ = add_samples_to_cornerplot(
+        p, axes, np.array([[0, 0, 0], [-1.5, 0.5, 2.5], [1.5, 0.5, -2.5]])
+    )
+    p.savefig("test.png")
