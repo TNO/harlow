@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 from loguru import logger
+from sampling import FuzzyLolaVoronoi
 
 from harlow.sampling import LolaVoronoi, Sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
@@ -74,12 +75,12 @@ def main():
 
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
-    # sampler = FuzzyLolaVoronoi(
-    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
-    # )
-    sampler = LolaVoronoi(
+    sampler = FuzzyLolaVoronoi(
         succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     )
+    # sampler = LolaVoronoi(
+    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    # )
     # sampler = LatinHypercube(
     #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     # )
