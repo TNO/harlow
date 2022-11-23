@@ -3,9 +3,8 @@ from pathlib import Path
 
 import numpy as np
 from loguru import logger
-from sampling import FuzzyLolaVoronoi
 
-from harlow.sampling import LolaVoronoi, Sampler
+from harlow.sampling import LolaVoronoi, Sampler, FuzzyLolaVoronoi
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.offload_hartmann import succeeding_hartman

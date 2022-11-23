@@ -264,7 +264,7 @@ class Sampler(ABC):
     def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
         self.fit_points_x = points_x
         self.fit_points_y = points_y
-        self.dim_out = points_y.shape[0]
+        self.dim_out = points_y.shape[1]
 
     def set_test_set(self, points_x: np.ndarray, points_y: np.ndarray):
         self.test_points_x = points_x
