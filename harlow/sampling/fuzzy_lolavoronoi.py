@@ -65,9 +65,9 @@ class FuzzyLolaVoronoi(Sampler):
         )
 
         self.dim_in = len(domain_lower_bound)
-        self.dim_out = None if self.fit_points_x is None else self.fit_points_y.shape[1]
+        self.dim_out = None if self.fit_points_y is None else self.fit_points_y.shape[1]
 
-        self.surrogate_models.append(self.surrogate_model_constructor())
+        # self.surrogate_models.append(self.surrogate_model_constructor())
 
         # TODO add this below again
         # if self.dim_out > 1:
@@ -77,6 +77,33 @@ class FuzzyLolaVoronoi(Sampler):
         #             "Multiresponse target requires \
         #                          multiresponse surrogate"
         #         )
+
+    def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
+        super().set_initial_set(points_x, points_y)
+        # Also create the output surrogates
+        for _i in range(self.dim_out):
+            self.surrogate_models.append(self.surrogate_model_constructor())
+
+    def _fit_models(self):
+        # Standard case assumes single model
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            dim_surrogate_model.fit(self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1))
+
+    def _update_models(
+        self, new_fit_points_x: np.ndarray, new_fit_points_y: np.ndarray
+    ):
+        # Standard case assumes single model
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            dim_surrogate_model.update(new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1))
+
+    def _predict(self):
+        # Standard case assumes single model
+        y = np.zeros((self.test_points_x.shape[0], self.dim_out))
+
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            a = dim_surrogate_model.predict(self.test_points_x)
+            y[:, i] = a[0]
+        return y
 
     def _best_new_points(self, n):
         return _best_new_points(

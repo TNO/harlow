@@ -66,4 +66,3 @@ def test_add_samples():
     p, _ = add_samples_to_cornerplot(
         p, axes, np.array([[0, 0, 0], [-1.5, 0.5, 2.5], [1.5, 0.5, -2.5]])
     )
-    p.savefig("test.png")

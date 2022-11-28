@@ -52,7 +52,7 @@ def test_sine_1d():
         # ............................
         xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
         yy_tf = target_function(xx).ravel()
-        yy_sm = lv.surrogate_model._predict(xx).ravel()
+        yy_sm = lv.surrogate_models[0]._predict(xx).ravel()
 
         np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
 
@@ -106,7 +106,7 @@ def test_forrester_1d():
     # ............................
     xx = np.linspace(domain_lower_bound, domain_upper_bound, 100)
     yy_tf = target_function(xx).ravel()
-    yy_sm = lv.surrogate_model._predict(xx).ravel()
+    yy_sm = lv.surrogate_models[0]._predict(xx).ravel()
 
     np.testing.assert_allclose(yy_tf, yy_sm, atol=1)
 
@@ -139,14 +139,14 @@ def test_peaks_2d():
     test_X = latin_hypercube_sampling(domain_lower_bound, domain_upper_bound, 100)
     test_y = target_function(test_X)
 
-    surrogate_model = VanillaGaussianProcess()
+    surrogate_model = VanillaGaussianProcess
 
     # ............................
     # Surrogating
     # ............................
     lv = LolaVoronoi(
         target_function=target_function,
-        surrogate_model=surrogate_model,
+        surrogate_model_constructor=surrogate_model,
         domain_lower_bound=domain_lower_bound,
         domain_upper_bound=domain_upper_bound,
         test_points_x=test_X,
@@ -168,7 +168,7 @@ def test_peaks_2d():
     x12_vec = np.vstack((x1_mx.ravel(), x2_mx.ravel())).T
 
     yy_tf = target_function(x12_vec).reshape((n_grid, n_grid))
-    yy_sm = lv.surrogate_model._predict(x12_vec).reshape((n_grid, n_grid))
+    yy_sm = lv.surrogate_models[0]._predict(x12_vec).reshape((n_grid, n_grid))
 
     # np.testing.assert_allclose(yy_tf, yy_sm, atol=1e-1)
 
@@ -207,7 +207,7 @@ def test_peaks_2d():
 
         # create a cornerplot on the prediction function
         fig, axes = corner(
-            func=lv.surrogate_model.predict,
+            func=lv.surrogate_models[0].predict,
             support_range=np.array([[-5, 5], [-5, 5]]).T,
             n_discr=50,
             sample_points=lv.fit_points_x,
