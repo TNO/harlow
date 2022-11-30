@@ -106,7 +106,7 @@ class ProbabilisticSampler(Sampler):
                 x = np.expand_dims(x, axis=0)
 
             std = -(
-                self.surrogate_model._predict(x, return_std=True)[1]
+                self.surrogate_models[0]._predict(x, return_std=True)[1]
                 # - self.surrogate_model.noise_std
             )
 

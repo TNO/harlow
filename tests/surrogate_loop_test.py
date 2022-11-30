@@ -4,7 +4,13 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from harlow.sampling import CVVoronoi, FuzzyLolaVoronoi, LolaVoronoi, Sampler
+from harlow.sampling import (
+    CVVoronoi,
+    FuzzyLolaVoronoi,
+    LolaVoronoi,
+    ProbabilisticSampler,
+    Sampler,
+)
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from tests.offload_hartmann import peaks_2d_multivariate, succeeding_hartman
@@ -69,15 +75,18 @@ def offloaded_hartman(x: np.ndarray) -> np.ndarray:
 
 
 def main():
-    # domains_lower_bound = np.array([0, 0, 0, 0, 0, 0])
-    # domains_upper_bound = np.array([1, 1, 1, 1, 1, 1])
-    domains_lower_bound = np.array([-8, -8])
-    domains_upper_bound = np.array([8, 8])
+    domains_lower_bound = np.array([0, 0, 0, 0, 0, 0])
+    domains_upper_bound = np.array([1, 1, 1, 1, 1, 1])
+    # domains_lower_bound = np.array([-8, -8])
+    # domains_upper_bound = np.array([8, 8])
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
-    sampler = CVVoronoi(
-        peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
+    sampler = ProbabilisticSampler(
+        succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     )
+    # sampler = CVVoronoi(
+    #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
+    # )
     # sampler = LolaVoronoi(
     #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     # )
