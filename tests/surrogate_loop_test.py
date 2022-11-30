@@ -4,10 +4,10 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from harlow.sampling import LolaVoronoi, Sampler, FuzzyLolaVoronoi
+from harlow.sampling import FuzzyLolaVoronoi, Sampler
 from harlow.surrogating.surrogate_model import VanillaGaussianProcess
 from harlow.utils.helper_functions import latin_hypercube_sampling
-from tests.offload_hartmann import succeeding_hartman
+from harlow.utils.test_functions import peaks_2d_multivariate
 
 # def target_func_jo(X) -> ndarray:
 #     for point in X:
@@ -75,7 +75,7 @@ def main():
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
     sampler = FuzzyLolaVoronoi(
-        succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+        peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
     )
     # sampler = LolaVoronoi(
     #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound

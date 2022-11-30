@@ -22,6 +22,7 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from skfuzzy import control as ctrl
 
 from harlow.sampling.sampling_baseclass import Sampler
+from harlow.sampling.SamplingException import SamplingException
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
@@ -87,14 +88,18 @@ class FuzzyLolaVoronoi(Sampler):
     def _fit_models(self):
         # Standard case assumes single model
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            dim_surrogate_model.fit(self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1))
+            dim_surrogate_model.fit(
+                self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1)
+            )
 
     def _update_models(
         self, new_fit_points_x: np.ndarray, new_fit_points_y: np.ndarray
     ):
         # Standard case assumes single model
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            dim_surrogate_model.update(new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1))
+            dim_surrogate_model.update(
+                new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
+            )
 
     def _predict(self):
         # Standard case assumes single model
@@ -106,14 +111,31 @@ class FuzzyLolaVoronoi(Sampler):
         return y
 
     def _best_new_points(self, n):
-        return _best_new_points(
-            points_x=self.fit_points_x,
-            points_y=self.fit_points_y,
-            domain_lower_bound=self.domain_lower_bound,
-            domain_upper_bound=self.domain_upper_bound,
-            n_new_point=n,
-            dim_in=self.dim_in,
-        )
+        if n < len(self.surrogate_models):
+            raise SamplingException(
+                f"To little points new points: {n} to select at least one point for "
+                f"every surrogate {len(self.surrogate_models)}"
+            )
+        best_new_points = None
+
+        def distribute(num: int, div: int) -> list:
+            return [num // div + (1 if x < num % div else 0) for x in range(div)]
+
+        n_per_surrogate = distribute(n, len(self.surrogate_models))
+        for dim, n_p in enumerate(n_per_surrogate):
+            new_points = _best_new_points(
+                points_x=self.fit_points_x,
+                points_y=self.fit_points_y[:, dim],
+                domain_lower_bound=self.domain_lower_bound,
+                domain_upper_bound=self.domain_upper_bound,
+                n_new_point=n_p,
+                dim_in=self.dim_in,
+            )
+            if best_new_points is None:
+                best_new_points = new_points
+            else:
+                best_new_points = np.concatenate((best_new_points, new_points))
+        return best_new_points
 
     def sample(
         self,
