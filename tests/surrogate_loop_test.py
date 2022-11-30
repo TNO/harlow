@@ -78,8 +78,8 @@ def offloaded_hartman(x: np.ndarray) -> np.ndarray:
 def main():
     domains_lower_bound = np.array([0, 0, 0, 0, 0, 0])
     domains_upper_bound = np.array([1, 1, 1, 1, 1, 1])
-    #domains_lower_bound = np.array([-8, -8])
-    #domains_upper_bound = np.array([8, 8])
+    # domains_lower_bound = np.array([-8, -8])
+    # domains_upper_bound = np.array([8, 8])
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
     sampler = ProbabilisticSampler(
@@ -114,7 +114,7 @@ def main():
     sampler.set_test_set(test_points_x, test_points_y)
     logger.info("test set created")
 
-    sampler.surrogate_loop(1, 3)
+    sampler.surrogate_loop(10, 500)
 
     # TODO: how/when to save/store results.
     print("doneeee")

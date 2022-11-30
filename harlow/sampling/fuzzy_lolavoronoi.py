@@ -22,6 +22,7 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from skfuzzy import control as ctrl
 
 from harlow.sampling.sampling_baseclass import Sampler
+from harlow.sampling.SamplingException import SamplingException
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
@@ -110,19 +111,30 @@ class FuzzyLolaVoronoi(Sampler):
         return y
 
     def _best_new_points(self, n):
-        best_new_points = np.zeros((n, self.dim_out))
+        if n < len(self.surrogate_models):
+            raise SamplingException(
+                f"To little points new points: {n} to select at least one point for "
+                f"every surrogate {len(self.surrogate_models)}"
+            )
+        best_new_points = None
 
-        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+        def distribute(num: int, div: int) -> list:
+            return [num // div + (1 if x < num % div else 0) for x in range(div)]
+
+        n_per_surrogate = distribute(n, len(self.surrogate_models))
+        for dim, n_p in enumerate(n_per_surrogate):
             new_points = _best_new_points(
                 points_x=self.fit_points_x,
-                points_y=self.fit_points_y,
+                points_y=self.fit_points_y[:, dim],
                 domain_lower_bound=self.domain_lower_bound,
                 domain_upper_bound=self.domain_upper_bound,
-                n_new_point=n,
+                n_new_point=n_p,
                 dim_in=self.dim_in,
             )
-            best_new_points[:, i] = new_points
-
+            if best_new_points is None:
+                best_new_points = new_points
+            else:
+                best_new_points = np.concatenate((best_new_points, new_points))
         return best_new_points
 
     def sample(
