@@ -95,6 +95,8 @@ class ProbabilisticSampler(Sampler):
         return y
 
     def _best_new_points(self, n) -> np.ndarray:
+        # Note that differential evolution is an optimizer yielding a single
+        # results. So n=1 always.
         n_dim = len(self.domain_lower_bound)
         bounds = [
             (self.domain_lower_bound[i], self.domain_upper_bound[i])
