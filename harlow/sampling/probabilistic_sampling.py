@@ -17,6 +17,7 @@ from loguru import logger
 from scipy.optimize import differential_evolution
 
 from harlow.sampling.sampling_baseclass import Sampler
+from harlow.sampling.SamplingException import SamplingException
 from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
@@ -97,6 +98,12 @@ class ProbabilisticSampler(Sampler):
     def _best_new_points(self, n) -> np.ndarray:
         # Note that differential evolution is an optimizer yielding a single
         # results. So n=1 always.
+
+        if n > 1:
+            raise SamplingException(
+                f"Probabilistic sampler accepts only 1 new sample per "
+                f"iteration. {n} was provided."
+            )
         n_dim = len(self.domain_lower_bound)
         bounds = [
             (self.domain_lower_bound[i], self.domain_upper_bound[i])
@@ -124,7 +131,6 @@ class ProbabilisticSampler(Sampler):
         print(std_max)
         self.step_gen_time.append(time.time() - start_time)
 
-        # TODO: how to select n points?
         x_new = np.expand_dims(diff_evolution_result.x, axis=0)
 
         return x_new
