@@ -58,7 +58,7 @@ class ProbabilisticSampler(Sampler):
         )
         # surrogate = surrogate_model_constructor()
         # self.surrogate_models.append(surrogate)
-        # # TODO: remove when sample is not being used anymore
+        # # # TODO: remove when sample is not being used anymore
         # self.surrogate_model = surrogate
 
         self.iterations = 0
