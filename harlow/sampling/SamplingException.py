@@ -1,0 +1,2 @@
+class SamplingException(Exception):
+    pass
