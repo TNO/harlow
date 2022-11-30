@@ -87,14 +87,18 @@ class FuzzyLolaVoronoi(Sampler):
     def _fit_models(self):
         # Standard case assumes single model
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            dim_surrogate_model.fit(self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1))
+            dim_surrogate_model.fit(
+                self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1)
+            )
 
     def _update_models(
         self, new_fit_points_x: np.ndarray, new_fit_points_y: np.ndarray
     ):
         # Standard case assumes single model
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            dim_surrogate_model.update(new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1))
+            dim_surrogate_model.update(
+                new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
+            )
 
     def _predict(self):
         # Standard case assumes single model
@@ -106,14 +110,20 @@ class FuzzyLolaVoronoi(Sampler):
         return y
 
     def _best_new_points(self, n):
-        return _best_new_points(
-            points_x=self.fit_points_x,
-            points_y=self.fit_points_y,
-            domain_lower_bound=self.domain_lower_bound,
-            domain_upper_bound=self.domain_upper_bound,
-            n_new_point=n,
-            dim_in=self.dim_in,
-        )
+        best_new_points = np.zeros((n, self.dim_out))
+
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            new_points = _best_new_points(
+                points_x=self.fit_points_x,
+                points_y=self.fit_points_y,
+                domain_lower_bound=self.domain_lower_bound,
+                domain_upper_bound=self.domain_upper_bound,
+                n_new_point=n,
+                dim_in=self.dim_in,
+            )
+            best_new_points[:, i] = new_points
+
+        return best_new_points
 
     def sample(
         self,
