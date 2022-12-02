@@ -34,6 +34,29 @@ def evaluate_modellist(metric, model, test_points_X, test_points_y):
 
     return metric_dict
 
+def evaluate_modellist_woPrediction(metric, model, test_points_y,
+                              predicted_points_y):
+    """
+    Evaluate user specified metric for the current iteration
+
+    Returns:
+    """
+    count_model = 0
+    metric_dict = {}
+    if not isinstance(metric, list):
+        metric = [metric]
+    if metric is None or test_points_y is None:
+        raise ValueError
+    else:
+        for metric_fun in metric:
+            scores = []
+            for m in model:
+                scores.append(
+                    metric_fun(test_points_y, predicted_points_y)
+                )
+            metric_dict[metric_fun.__name__] = scores
+
+    return metric_dict
 
 def evaluate(metric, true_y, predicted_y):
     """

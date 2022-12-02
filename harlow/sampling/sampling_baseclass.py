@@ -211,12 +211,16 @@ class Sampler(ABC):
         fit_start_time = time.time()
         self._fit_models()
         fit_time = time.time() - fit_start_time
-        predicted_points_y = self._predict()
-        score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
+        self.predicted_points_y = self._predict()
+        score = evaluate(self.logging_metrics, self.test_points_y,
+                         self.predicted_points_y)
         self.step_score.append(score)
         self.steps.append(
             StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0, fit_time)
         )
+    def _evaluate(self):
+        evaluate(self.logging_metrics, self.test_points_y,
+                 self.predicted_points_y)
 
     def _loop_iteration(self, iteration: int, n_new_points_per_interation: int):
         logger.info(f"Started adaptive iteration step: {iteration}")
@@ -244,8 +248,8 @@ class Sampler(ABC):
         logger.info(f"Fitted a new surrogate model in {fit_time} sec.")
 
         # Evaluate
-        predicted_points_y = self._predict()
-        score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
+        self.predicted_points_y = self._predict()
+        score = self._evaluate()
         self.steps.append(
             StepInfo(
                 new_fit_points_x,

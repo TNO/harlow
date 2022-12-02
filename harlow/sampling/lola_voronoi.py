@@ -9,7 +9,9 @@ from loguru import logger
 from scipy.spatial.distance import cdist
 
 from harlow.sampling.sampling_baseclass import Sampler
-from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
+from harlow.sampling.SamplingException import SamplingException
+from harlow.utils.helper_functions import evaluate, evaluate_modellist_woPrediction, \
+    latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
 from harlow.utils.numba_utils import euclidean_distance, np_all, np_any, np_min
@@ -44,22 +46,22 @@ class LolaVoronoi(Sampler):
     """
 
     def __init__(
-        self,
-        target_function: Callable[[np.ndarray], np.ndarray],
-        surrogate_model_constructor,
-        domain_lower_bound: np.ndarray,
-        domain_upper_bound: np.ndarray,
-        fit_points_x: np.ndarray = None,
-        fit_points_y: np.ndarray = None,
-        test_points_x: np.ndarray = None,
-        test_points_y: np.ndarray = None,
-        evaluation_metric: Callable = rmse,
-        logging_metrics: list = None,
-        verbose: bool = False,
-        run_name: str = None,
-        save_dir: str = "",
-        ignore_far_neighborhoods: bool = True,
-        ignore_old_neighborhoods: bool = True,
+            self,
+            target_function: Callable[[np.ndarray], np.ndarray],
+            surrogate_model_constructor,
+            domain_lower_bound: np.ndarray,
+            domain_upper_bound: np.ndarray,
+            fit_points_x: np.ndarray = None,
+            fit_points_y: np.ndarray = None,
+            test_points_x: np.ndarray = None,
+            test_points_y: np.ndarray = None,
+            evaluation_metric: Callable = rmse,
+            logging_metrics: list = None,
+            verbose: bool = False,
+            run_name: str = None,
+            save_dir: str = "",
+            ignore_far_neighborhoods: bool = True,
+            ignore_old_neighborhoods: bool = True,
     ):
 
         super(LolaVoronoi, self).__init__(
@@ -77,33 +79,85 @@ class LolaVoronoi(Sampler):
             run_name,
             save_dir,
         )
-        self.surrogate_models.append(self.surrogate_model_constructor())
+        #self.surrogate_models.append(self.surrogate_model_constructor())
         self.ignore_far_neighborhoods = ignore_far_neighborhoods
         self.ignore_old_neighborhoods = ignore_old_neighborhoods
         self.n_point_last_iter = 0
 
+    def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
+        super().set_initial_set(points_x, points_y)
+        # Also create the output surrogates
+        for _i in range(self.dim_out):
+            self.surrogate_models.append(self.surrogate_model_constructor())
+
+    def _fit_models(self):
+        # Standard case assumes single model
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            dim_surrogate_model.fit(
+                self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1)
+            )
+
+    def _update_models(
+        self, new_fit_points_x: np.ndarray, new_fit_points_y: np.ndarray
+    ):
+        # Standard case assumes single model
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            dim_surrogate_model.update(
+                new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
+            )
+
+    def _predict(self):
+        # Standard case assumes single model
+        y = np.zeros((self.test_points_x.shape[0], self.dim_out))
+
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            a = dim_surrogate_model.predict(self.test_points_x)
+            y[:, i] = a[0]
+        return y
+
+    def _evaluate(self):
+        return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
+                           self.test_points_y, self.predicted_points_y)
+
     def _best_new_points(self, n) -> np.ndarray:
-        result = best_new_points(
-            points_x=self.fit_points_x,
-            points_y=self.fit_points_y,
-            domain_lower_bound=self.domain_lower_bound,
-            domain_upper_bound=self.domain_upper_bound,
-            n_point_last_iter=self.n_point_last_iter,
-            n_new_point=self.n_point_last_iter,
-            ignore_far_neighborhoods=self.ignore_far_neighborhoods,
-            ignore_old_neighborhoods=self.ignore_old_neighborhoods,
-        )
-        self.n_point_last_iter = n
-        return result
+        if n < len(self.surrogate_models):
+            raise SamplingException(
+                f"To little points new points: {n} to select at least one point for "
+                f"every surrogate {len(self.surrogate_models)}"
+            )
+        best_new_points = None
+
+        def distribute(num: int, div: int) -> list:
+            return [num // div + (1 if x < num % div else 0) for x in
+                    range(div)]
+
+        n_per_surrogate = distribute(n, len(self.surrogate_models))
+        for dim, n_p in enumerate(n_per_surrogate):
+            new_points = get_best_new_points(
+                points_x=self.fit_points_x,
+                points_y=self.fit_points_y[:, dim],
+                domain_lower_bound=self.domain_lower_bound,
+                domain_upper_bound=self.domain_upper_bound,
+                n_point_last_iter=self.n_point_last_iter,
+                n_new_point=n_p,
+                ignore_far_neighborhoods=self.ignore_far_neighborhoods,
+                ignore_old_neighborhoods=self.ignore_old_neighborhoods,
+            )
+            self.n_point_last_iter = n
+            if best_new_points is None:
+                best_new_points = new_points
+            else:
+                best_new_points = np.concatenate((best_new_points, new_points))
+        return best_new_points
 
     def sample(
-        self,
-        n_initial_points: int = None,
-        max_n_iterations: int = 20,
-        n_new_points_per_iteration: int = 1,
-        stopping_criterium: float = None,
-        ignore_far_neighborhoods: Optional[bool] = True,
-        ignore_old_neighborhoods: Optional[bool] = True,
+            self,
+            n_initial_points: int = None,
+            max_n_iterations: int = 20,
+            n_new_points_per_iteration: int = 1,
+            stopping_criterium: float = None,
+            ignore_far_neighborhoods: Optional[bool] = True,
+            ignore_old_neighborhoods: Optional[bool] = True,
     ):
         # ..........................................
         # Initialize
@@ -160,12 +214,12 @@ class LolaVoronoi(Sampler):
         n_point_last_iter = 0
         for ii in range(max_n_iterations):
             logger.info(
-                f"Started adaptive iteration step: {ii+1} (max steps:"
+                f"Started adaptive iteration step: {ii + 1} (max steps:"
                 f" {max_n_iterations})."
             )
 
             start_time = time.time()
-            new_points_x = best_new_points(
+            new_points_x = get_best_new_points(
                 points_x=points_x,
                 points_y=points_y,
                 domain_lower_bound=domain_lower_bound,
@@ -203,7 +257,8 @@ class LolaVoronoi(Sampler):
 
             # Re-evaluate the surrogate model.
             predicted_y = self.surrogate_models[0].predict(self.test_points_x)
-            score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
+            score = evaluate(self.logging_metrics, self.test_points_y,
+                             predicted_y)
 
             self.step_score.append(score)
             self.step_x.append(points_x)
@@ -216,7 +271,8 @@ class LolaVoronoi(Sampler):
             write_scores(self.writer, score, ii + 1)
             write_timer(self.writer, timing_dict, ii + 1)
 
-            logger.info(f"Evaluation metric score on provided testset: {score}")
+            logger.info(
+                f"Evaluation metric score on provided testset: {score}")
             self.score = score[self.evaluation_metric.__name__]
             self.iterations = ii
             # Save model every 5 iterations
@@ -245,15 +301,15 @@ class LolaVoronoi(Sampler):
 # -----------------------------------------------------
 # SUPPORTING FUNCTIONS
 # -----------------------------------------------------
-def best_new_points(
-    points_x: np.ndarray,
-    points_y: np.ndarray,
-    domain_lower_bound: np.ndarray,
-    domain_upper_bound: np.ndarray,
-    n_point_last_iter: int,
-    n_new_point: int = 1,
-    ignore_far_neighborhoods: Optional[bool] = True,
-    ignore_old_neighborhoods: Optional[bool] = True,
+def get_best_new_points(
+        points_x: np.ndarray,
+        points_y: np.ndarray,
+        domain_lower_bound: np.ndarray,
+        domain_upper_bound: np.ndarray,
+        n_point_last_iter: int,
+        n_new_point: int = 1,
+        ignore_far_neighborhoods: Optional[bool] = True,
+        ignore_old_neighborhoods: Optional[bool] = True,
 ):
     # shape the input if not in the right shape
     n_dim = len(domain_lower_bound)
@@ -292,13 +348,13 @@ def best_new_points(
 
 
 def best_new_points_with_neighbors(
-    reference_points_x: np.ndarray,
-    reference_points_y: np.ndarray,
-    all_neighbor_points_x: np.ndarray,
-    all_neighbor_points_y: np.ndarray,
-    domain_lower_bound: np.ndarray,
-    domain_upper_bound: np.ndarray,
-    n_next_point: int,
+        reference_points_x: np.ndarray,
+        reference_points_y: np.ndarray,
+        all_neighbor_points_x: np.ndarray,
+        all_neighbor_points_y: np.ndarray,
+        domain_lower_bound: np.ndarray,
+        domain_upper_bound: np.ndarray,
+        n_next_point: int,
 ):
     """Find the new/next reference point(s) where the target function will be evaluated.
 
@@ -350,10 +406,10 @@ def best_new_points_with_neighbors(
 
 
 def best_neighborhoods(
-    points_x: np.ndarray,
-    n_point_last_iter: int,
-    ignore_far_neighborhoods: Optional[bool] = True,
-    ignore_old_neighborhoods: Optional[bool] = True,
+        points_x: np.ndarray,
+        n_point_last_iter: int,
+        ignore_far_neighborhoods: Optional[bool] = True,
+        ignore_old_neighborhoods: Optional[bool] = True,
 ):
     """Find the best neighborhood for each row of `points_x`. This function is expected
     to be used with the initial sample of `points_x`, when no best neighborhoods yet
@@ -388,11 +444,11 @@ def best_neighborhoods(
 
 
 def best_neighborhoods_numba(
-    points_x: np.ndarray,
-    all_neighbor_point_idxs_combinations: np.ndarray,
-    n_point_last_iter: int,
-    ignore_far_neighborhoods: Optional[bool] = True,
-    ignore_old_neighborhoods: Optional[bool] = True,
+        points_x: np.ndarray,
+        all_neighbor_point_idxs_combinations: np.ndarray,
+        n_point_last_iter: int,
+        ignore_far_neighborhoods: Optional[bool] = True,
+        ignore_old_neighborhoods: Optional[bool] = True,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Find the best neighborhood for each row of `points_x`. This function is expected
@@ -463,7 +519,8 @@ def best_neighborhoods_numba(
             arr_valid_neighbourhoods = arr_valid_neighbourhoods[
                 arr_valid_neighbourhoods_mask
             ]
-            idx_valid_neighborhoods = np.where(arr_valid_neighbourhoods_mask)[0]
+            idx_valid_neighborhoods = np.where(arr_valid_neighbourhoods_mask)[
+                0]
 
         # consider only the new neighborhoods that are not too far away.
         # neighborhoods that contain a point farther away the median Euclidean distance
@@ -489,8 +546,9 @@ def best_neighborhoods_numba(
             for jj in range(len(idx_valid_neighborhoods)):
                 idx_valid_neighborhood = idx_valid_neighborhoods[jj]
                 neighbor_points_x = points_x[
-                    all_neighbor_point_idxs_combinations[idx_valid_neighborhood], :
-                ]
+                                    all_neighbor_point_idxs_combinations[
+                                        idx_valid_neighborhood], :
+                                    ]
                 # this is a time consuming function
                 ns = neighborhood_score(
                     neighbor_points_x=neighbor_points_x,
@@ -505,7 +563,8 @@ def best_neighborhoods_numba(
     # best_neighborhood_scores = all_neighborhood_scores.ravel()[
     #     flat_idxs.astype(nb.int_)
     # ]
-    best_neighborhood_scores = all_neighborhood_scores.ravel()[flat_idxs.astype(np.int)]
+    best_neighborhood_scores = all_neighborhood_scores.ravel()[
+        flat_idxs.astype(np.int)]
     return (
         best_neighborhood_scores,
         best_neighborhood_idxs,
@@ -514,14 +573,15 @@ def best_neighborhoods_numba(
 
 
 def lola_voronoi_score(
-    nonlinearity_measures: np.ndarray, relative_volumes: np.ndarray
+        nonlinearity_measures: np.ndarray, relative_volumes: np.ndarray
 ) -> np.ndarray:
     """Eq.(5.1) of [1]."""
-    return relative_volumes + nonlinearity_measures / np.sum(nonlinearity_measures)
+    return relative_volumes + nonlinearity_measures / np.sum(
+        nonlinearity_measures)
 
 
 def neighborhood_score(
-    neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
+        neighbor_points_x: np.ndarray, reference_point_x: np.ndarray
 ) -> Tuple[float, float]:
     """
 
@@ -551,7 +611,7 @@ def neighborhood_score(
         pr2 = neighbor_points_x[1, 0]
         # Eq(4.6) of [1]
         cross_polytope_ratio = 1 - np.abs(pr1 + pr2) / (
-            np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)
+                np.abs(pr1) + np.abs(pr2) + np.abs(pr1 - pr2)
         )
     else:
         # Eq(4.4) of [1]
@@ -582,10 +642,10 @@ def neighborhood_score(
 
 
 def lola_score(
-    all_neighbor_points_x: np.ndarray,
-    all_neighbor_points_y: np.ndarray,
-    reference_points_x: np.ndarray,
-    reference_points_y: np.ndarray,
+        all_neighbor_points_x: np.ndarray,
+        all_neighbor_points_y: np.ndarray,
+        reference_points_x: np.ndarray,
+        reference_points_y: np.ndarray,
 ) -> np.ndarray:
     """Non-linearity measure for each point and its neighbor. Measures how much a
     neighborhood deviates from a hyperplane."""
@@ -593,13 +653,13 @@ def lola_score(
     es = np.empty(n_reference_point)
 
     for (
-        ii,
-        (
-            neighbor_points_x,
-            neighbor_points_y,
-            reference_point_x,
-            reference_point_y,
-        ),
+            ii,
+            (
+                    neighbor_points_x,
+                    neighbor_points_y,
+                    reference_point_x,
+                    reference_point_y,
+            ),
     ) in enumerate(
         zip(
             all_neighbor_points_x,
@@ -608,7 +668,6 @@ def lola_score(
             reference_points_y,
         )
     ):
-
         reference_point_gradient = gradient_estimate(
             reference_point_x=reference_point_x,
             reference_point_y=reference_point_y,
@@ -627,19 +686,20 @@ def lola_score(
 
 
 def nonlinearity_measure(
-    reference_point_x: np.ndarray,
-    reference_point_y: float,
-    reference_point_gradient: np.ndarray,
-    neighbor_points_x: np.ndarray,
-    neighbor_points_y: np.ndarray,
+        reference_point_x: np.ndarray,
+        reference_point_y: float,
+        reference_point_gradient: np.ndarray,
+        neighbor_points_x: np.ndarray,
+        neighbor_points_y: np.ndarray,
 ) -> float:
     # Eq.(4.9) of [1]
     e = np.sum(
         np.abs(
             neighbor_points_y
             - (
-                reference_point_y
-                + reference_point_gradient * (neighbor_points_x - reference_point_x)
+                    reference_point_y
+                    + reference_point_gradient * (
+                                neighbor_points_x - reference_point_x)
             )
         )
     )
@@ -647,11 +707,11 @@ def nonlinearity_measure(
 
 
 def voronoi_volume_estimate(
-    points: np.ndarray,
-    domain_lower_bound: np.ndarray,
-    domain_upper_bound: np.ndarray,
-    n_simulation: int = None,
-    random_points: np.ndarray = None,
+        points: np.ndarray,
+        domain_lower_bound: np.ndarray,
+        domain_upper_bound: np.ndarray,
+        n_simulation: int = None,
+        random_points: np.ndarray = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Estimate the relative volume of the Voronoi tessellation of `points` bounded by
@@ -680,9 +740,10 @@ def voronoi_volume_estimate(
 
     if random_points is None:
         n_dim = len(domain_lower_bound)
-        random_points = domain_lower_bound + np.random.rand(n_simulation, n_dim) * (
-            domain_upper_bound - domain_lower_bound
-        )
+        random_points = domain_lower_bound + np.random.rand(n_simulation,
+                                                            n_dim) * (
+                                domain_upper_bound - domain_lower_bound
+                        )
 
     # all relevant distances, n_simulation x n_point
     distance_mx = cdist(random_points, points, metric="euclidean")
@@ -707,10 +768,10 @@ def voronoi_volume_estimate(
 
 
 def gradient_estimate(
-    reference_point_x: np.ndarray,
-    reference_point_y: float,
-    neighbor_points_x: np.ndarray,
-    neighbor_points_y: np.ndarray,
+        reference_point_x: np.ndarray,
+        reference_point_y: float,
+        neighbor_points_x: np.ndarray,
+        neighbor_points_y: np.ndarray,
 ) -> np.ndarray:
     """
     Estimate the gradient at `reference_point` by fitting a hyperplane to

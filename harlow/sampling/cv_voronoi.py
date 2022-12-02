@@ -30,7 +30,7 @@ from sklearn.model_selection import KFold
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.utils.helper_functions import (
-    evaluate_modellist,
+    evaluate_modellist_woPrediction,
     latin_hypercube_sampling,
     normalized_response,
 )
@@ -109,6 +109,10 @@ class CVVoronoi(Sampler):
             a = dim_surrogate_model.predict(self.test_points_x)
             y[:, i] = a[0]
         return y
+
+    def _evaluate(self):
+        return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
+                           self.test_points_y, self.predicted_points_y)
 
     def _best_new_points(self, n) -> np.ndarray:
         # This sampler picks inherently new samples based on all surrogates.
