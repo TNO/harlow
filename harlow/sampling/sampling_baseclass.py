@@ -4,7 +4,6 @@ import time
 from abc import ABC, abstractmethod
 from typing import Callable, List
 
-import json
 import numpy as np
 import shortuuid
 from loguru import logger
@@ -285,6 +284,3 @@ class Sampler(ABC):
         while not self._stopping_criterium(iteration, max_iter, score):
             score = self._loop_iteration(iteration, n_new_points_per_interation)
             iteration += 1
-
-        with open(f"{self.run_name}_steps.json", 'w') as f_out:
-            json.dump(self.steps, f_out)

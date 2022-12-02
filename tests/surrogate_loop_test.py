@@ -1,6 +1,7 @@
 # TODO: remove/move when finished building surrogating loop
 from pathlib import Path
 
+import json
 import numpy as np
 from loguru import logger
 
@@ -125,6 +126,8 @@ def main():
 
     sampler.surrogate_loop(1, 3)
 
+    with open(f"{sampler.run_name}_steps.json", 'w') as f_out:
+        json.dump(sampler.steps, f_out)
     # TODO: how/when to save/store results.
     print("doneeee")
 
