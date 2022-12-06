@@ -1,9 +1,11 @@
 import enum
 import math
+import os
 import time
 from abc import ABC, abstractmethod
 from typing import Callable, List
 
+import json
 import numpy as np
 import shortuuid
 from loguru import logger
@@ -69,7 +71,7 @@ class Sampler(ABC):
         self.step_iter = []
         self.step_fit_time = []
         self.step_gen_time = []
-        self.steps = []
+        self.steps = {}
         self.stopping_score = stopping_score
         self.failure_handling = failure_handling
         self.max_target_func_retries = 3
@@ -211,12 +213,16 @@ class Sampler(ABC):
         fit_start_time = time.time()
         self._fit_models()
         fit_time = time.time() - fit_start_time
-        predicted_points_y = self._predict()
-        score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
+        self.predicted_points_y = self._predict()
+        score = evaluate(self.logging_metrics, self.test_points_y,
+                         self.predicted_points_y)
         self.step_score.append(score)
-        self.steps.append(
-            StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0, fit_time)
-        )
+        self.steps['initialization'] = StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0,
+                     fit_time).__dict__
+
+    def _evaluate(self):
+        return evaluate(self.logging_metrics, self.test_points_y,
+                 self.predicted_points_y)
 
     def _loop_iteration(self, iteration: int, n_new_points_per_interation: int):
         logger.info(f"Started adaptive iteration step: {iteration}")
@@ -244,18 +250,16 @@ class Sampler(ABC):
         logger.info(f"Fitted a new surrogate model in {fit_time} sec.")
 
         # Evaluate
-        predicted_points_y = self._predict()
-        score = evaluate(self.logging_metrics, self.test_points_y, predicted_points_y)
-        self.steps.append(
-            StepInfo(
+        self.predicted_points_y = self._predict()
+        score = self._evaluate()
+        self.steps[iteration] = StepInfo(
                 new_fit_points_x,
                 new_fit_points_y,
                 score,
                 gen_time,
                 target_func_time,
                 fit_time,
-            )
-        )
+            ).__dict__
 
         self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
         self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
@@ -279,3 +283,8 @@ class Sampler(ABC):
         while not self._stopping_criterium(iteration, max_iter, score):
             score = self._loop_iteration(iteration, n_new_points_per_interation)
             iteration += 1
+
+            #write results to json
+            with open(f"{os.path.join(self.save_dir, self.run_name)}_steps.json",
+                      'w') as f_out:
+                json.dump(self.steps, f_out)

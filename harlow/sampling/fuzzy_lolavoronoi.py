@@ -23,7 +23,8 @@ from skfuzzy import control as ctrl
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.sampling.SamplingException import SamplingException
-from harlow.utils.helper_functions import evaluate, latin_hypercube_sampling
+from harlow.utils.helper_functions import evaluate, evaluate_modellist_woPrediction,\
+    latin_hypercube_sampling
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
 
@@ -109,6 +110,10 @@ class FuzzyLolaVoronoi(Sampler):
             a = dim_surrogate_model.predict(self.test_points_x)
             y[:, i] = a[0]
         return y
+
+    def _evaluate(self):
+        return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
+                           self.test_points_y, self.predicted_points_y)
 
     def _best_new_points(self, n):
         if n < len(self.surrogate_models):

@@ -30,7 +30,7 @@ from sklearn.model_selection import KFold
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.utils.helper_functions import (
-    evaluate_modellist,
+    evaluate_modellist_woPrediction,
     latin_hypercube_sampling,
     normalized_response,
 )
@@ -85,9 +85,50 @@ class CVVoronoi(Sampler):
         for _i in range(self.dim_out):
             self.surrogate_models.append(self.surrogate_model_constructor())
 
+    def _fit_models(self):
+        # Standard case assumes single model
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            dim_surrogate_model.fit(
+                self.fit_points_x, np.expand_dims(self.fit_points_y[:, i], axis=1)
+            )
+
+    def _update_models(
+        self, new_fit_points_x: np.ndarray, new_fit_points_y: np.ndarray
+    ):
+        # Standard case assumes single model
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            dim_surrogate_model.update(
+                new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
+            )
+
+    def _predict(self):
+        # Standard case assumes single model
+        y = np.zeros((self.test_points_x.shape[0], self.dim_out))
+
+        for i, dim_surrogate_model in enumerate(self.surrogate_models):
+            a = dim_surrogate_model.predict(self.test_points_x)
+            y[:, i] = a[0]
+        return y
+
+    def _evaluate(self):
+        return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
+                           self.test_points_y, self.predicted_points_y)
+
     def _best_new_points(self, n) -> np.ndarray:
-        # TODO: still needs to be implemented
-        raise NotImplementedError
+        # This sampler picks inherently new samples based on all surrogates.
+        # Hence there is no looping over the surrogates here.
+        return _best_new_points(
+            points_x=self.fit_points_x,
+            points_y=self.fit_points_y,
+            test_points_x=self.test_points_x,
+            test_points_y=self.test_points_y,
+            domain_lower_bound=self.domain_lower_bound,
+            domain_upper_bound=self.domain_upper_bound,
+            n_new_point=n,
+            surrogate_model_constructor=self.surrogate_model_constructor,
+            surrogates=self.surrogate_models,
+            n_fold=self.n_fold,
+        )
 
     def sample(
         self,
@@ -276,6 +317,54 @@ class CVVoronoi(Sampler):
         self.writer.close()
 
         return self.fit_points_x, self.fit_points_y
+
+
+def _best_new_points(
+    points_x: np.ndarray,
+    points_y: np.ndarray,
+    test_points_x: np.ndarray,
+    test_points_y: np.ndarray,
+    domain_lower_bound: np.ndarray,
+    domain_upper_bound: np.ndarray,
+    n_new_point: int,
+    surrogate_model_constructor,
+    surrogates: list,
+    n_fold: int,
+) -> np.ndarray:
+    """
+    The following implements the algorithm from [1] [2] [3]
+    """
+
+    # Step 1. Calculate the Voronoi cells
+    random_points, distance_mx, closest_indicator_mx = calculate_voronoi_cells(
+        points_x,
+        domain_lower_bound=domain_lower_bound,
+        domain_upper_bound=domain_upper_bound,
+    )
+
+    # Step 2. Determine the Voronoi cell with the highest error
+    most_sensitive_cell = identify_sensitive_voronoi_cell(
+        surrogates,
+        surrogate_model_constructor,
+        points_x,
+        points_y,
+        points_y.shape[1],
+        test_points_x,
+        test_points_y,
+        n_fold,
+    )
+
+    # Step 3. Pick the point within the most sensitive cell, furthest
+    # away from point i.
+    new_points_x = pick_new_samples(
+        most_sensitive_cell,
+        random_points,
+        distance_mx,
+        closest_indicator_mx,
+        n=n_new_point,
+    )
+
+    return new_points_x
 
 
 def pick_new_samples(

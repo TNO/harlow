@@ -53,10 +53,12 @@ class LatinHypercube(Sampler):
         )
         surrogate_model = self.surrogate_model_constructor()
         self.surrogate_models = [surrogate_model]
-        # TODO remove when sample() is removed
+        #TODO remove when sample() is removed
         self.surrogate_model = surrogate_model
 
     def _best_new_points(self, n) -> np.ndarray:
+        #latin hypercube can sample in multiple dimensions, so only one
+        # surrogate is needed.
         return latin_hypercube_sampling(
             n_sample=n,
             domain_lower_bound=self.domain_lower_bound,

@@ -8,6 +8,12 @@ The main requirements towards each surrogate model are that they:
 
 """
 import re
+
+
+def warn(*args, **kwargs):
+    pass
+
+
 import warnings
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Union
@@ -32,6 +38,10 @@ from harlow.utils.transforms import Identity, TensorTransform, Transform
 tfb = tfp.bijectors
 tfd = tfp.distributions
 tfk = tfp.math.psd_kernels
+show_sklearn_warnings = False
+
+if not show_sklearn_warnings:
+    warnings.warn = warn
 
 
 # TODO add retraining strategies
