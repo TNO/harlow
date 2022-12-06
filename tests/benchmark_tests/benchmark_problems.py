@@ -144,7 +144,7 @@ def create_train_test_sets(problem, ijs_low, ijs_up):
 # # ====================================================================
 # # SURROGATING PARAMETERS
 # # ====================================================================
-N_train = 10
+N_train = 20
 N_update = 50
 N_iter = 100
 rmse_criterium = 0.01
@@ -378,7 +378,8 @@ if __name__ == "__main__":
         test_sampler = LatinHypercube
 
     # Problems to solver
-    problems = [2, 6, 'ijssel']
+    # problems = [2, 6, 'ijssel']
+    problems = [6]
     # problems = ['ijssel']
     for p in problems:
         # Create train and test data for the problem at hand

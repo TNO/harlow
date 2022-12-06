@@ -100,9 +100,9 @@ def main():
     # sampler = FuzzyLolaVoronoi(
     #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     # )
-    # sampler = LolaVoronoi(
-    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
-    # )
+    sampler = LolaVoronoi(
+        succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    )
     # sampler = LolaVoronoi(
     #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
     # )

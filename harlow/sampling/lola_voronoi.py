@@ -423,6 +423,11 @@ def best_neighborhoods(
     n_point, n_dim = points_x.shape
     n_neighbor = 2 * n_dim
 
+    if n_point < n_neighbor:
+        raise SamplingException("Number of datapoints should be "
+                                "equal or larger "
+                                "than 2x problem dimensionality.")
+
     all_neighbor_point_idxs_combinations = np.array(
         list(itertools.combinations(np.arange(n_point), n_neighbor))
     )
