@@ -1,5 +1,6 @@
 import enum
 import math
+import os
 import time
 from abc import ABC, abstractmethod
 from typing import Callable, List
@@ -284,5 +285,6 @@ class Sampler(ABC):
             iteration += 1
 
             #write results to json
-            with open(f"{self.run_name}_steps.json", 'w') as f_out:
+            with open(f"{os.path.join(self.save_dir, self.run_name)}_steps.json",
+                      'w') as f_out:
                 json.dump(self.steps, f_out)
