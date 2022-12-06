@@ -25,10 +25,10 @@ def peaks_2d(x: np.ndarray) -> np.ndarray:
     x1 = x[:, 0]
     x2 = x[:, 1]
 
-    return (
+    return np.expand_dims(
         3 * (1 - x1) ** 2 * np.exp(-(x1**2) - (x2 + 1) ** 2)
         - 10 * (x1 / 5 - x1**3 - x2**5) * np.exp(-(x1**2) - x2**2)
-        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2**2)
+        - 1 / 3 * np.exp(-((x1 + 1) ** 2) - x2**2), axis=1
     )
 
 
@@ -171,7 +171,7 @@ def hartmann(X: np.ndarray) -> np.ndarray:
             outer = outer + new
         results.append(-(2.58 + outer) / 1.94)
 
-    return np.asarray(results)
+    return np.expand_dims(np.asarray(results), axis=1)
 
 
 def stybtang(X: np.ndarray) -> np.ndarray:
