@@ -29,6 +29,7 @@ from scipy.spatial.distance import cdist
 from sklearn.model_selection import KFold
 
 from harlow.sampling.sampling_baseclass import Sampler
+from harlow.sampling.SamplingException import SamplingException
 from harlow.utils.helper_functions import (
     evaluate_modellist_woPrediction,
     latin_hypercube_sampling,
@@ -79,12 +80,6 @@ class CVVoronoi(Sampler):
         self.surrogates = []
         self.n_fold = n_fold
 
-    def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
-        super().set_initial_set(points_x, points_y)
-        # Also create the output surrogates
-        for _i in range(self.dim_out):
-            self.surrogate_models.append(self.surrogate_model_constructor())
-
     def _fit_models(self):
         # Standard case assumes single model
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
@@ -113,6 +108,14 @@ class CVVoronoi(Sampler):
     def _evaluate(self):
         return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
                            self.test_points_y, self.predicted_points_y)
+
+    def construct_surrogate(self):
+        if self.dim_out is None:
+            raise SamplingException("Trying to create a surrogate for every "
+                                    "output dimension, but dim_out is not "
+                                    "yet set")
+        for _i in range(self.dim_out):
+            self.surrogate_models.append(self.surrogate_model_constructor())
 
     def _best_new_points(self, n) -> np.ndarray:
         # This sampler picks inherently new samples based on all surrogates.

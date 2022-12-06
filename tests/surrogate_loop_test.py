@@ -85,11 +85,14 @@ def main():
     # sampler = ProbabilisticSampler(
     #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
     # )
-    sampler = ProbabilisticSampler(
-        succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
-    )
+    # sampler = ProbabilisticSampler(
+    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    # )
     # sampler = CVVoronoi(
     #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
+    # )
+    # sampler = CVVoronoi(
+    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     # )
     # sampler = FuzzyLolaVoronoi(
     #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
@@ -125,7 +128,7 @@ def main():
     test_points_x, test_points_y = hypercube_initialization(sampler, 50)
     sampler.set_test_set(test_points_x, test_points_y)
     logger.info("test set created")
-
+    sampler.construct_surrogate()
     sampler.surrogate_loop(1, 3)
 
     print("doneeee")

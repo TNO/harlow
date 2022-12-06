@@ -277,6 +277,8 @@ class Sampler(ABC):
         self.test_points_x = points_x
         self.test_points_y = points_y
 
+    def construct_surrogate(self):
+        self.surrogate_models.append(self.surrogate_model_constructor())
     def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
         self._loop_initialization()
 

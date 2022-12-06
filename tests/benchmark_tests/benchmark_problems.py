@@ -144,8 +144,8 @@ def create_train_test_sets(problem, ijs_low, ijs_up):
 # # ====================================================================
 # # SURROGATING PARAMETERS
 # # ====================================================================
-N_train = 50
-N_update = 500
+N_train = 10
+N_update = 50
 N_iter = 100
 rmse_criterium = 0.01
 silence_warnings = True
@@ -347,7 +347,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-i",
         "--iterations",
-        default=4,
+        default=2,
         type=int,
         help="Number of iterations for adaptive sampling",
     )
@@ -378,8 +378,8 @@ if __name__ == "__main__":
         test_sampler = LatinHypercube
 
     # Problems to solver
-    # problems = [2, 6, 'ijssel']
-    problems = ['ijssel']
+    problems = [2, 6, 'ijssel']
+    # problems = ['ijssel']
     for p in problems:
         # Create train and test data for the problem at hand
         train_X, train_y, update_X, update_y, target_func, domain_lower_bound, domain_upper_bound = \
@@ -417,4 +417,10 @@ if __name__ == "__main__":
             # n_fold=args.folds,
         )
 
-        sampler.surrogate_loop(args.new_points, args.iterations)
+        sampler.set_initial_set(train_X, train_y)
+        sampler.construct_surrogate()
+
+        if args.sampler in ["FLOLA", "LOLA"]:
+            sampler.surrogate_loop(train_y.shape[1], args.iterations)
+        else:
+            sampler.surrogate_loop(args.new_points, args.iterations)
