@@ -222,6 +222,10 @@ class Sampler(ABC):
         self.step_score.append(score)
         self.steps['initialization'] = StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0,
                      fit_time).__dict__
+        self.steps['initialization']['test_points_x'] = \
+            self.test_points_x.tolist()
+        self.steps['initialization']['test_points_y'] = \
+            self.test_points_y.tolist()
         self._write_results(0)
 
     def _evaluate(self):
