@@ -78,7 +78,7 @@ class Sampler(ABC):
         self.max_target_func_retries = 3
 
         if not run_name:
-            self.run_name = Sampler._generate_run_name()
+            self.run_name = self._generate_run_name()
         # Init writer for live web-based logging.
         self.writer = SummaryWriter(comment="-" + self.run_name)
 
@@ -192,9 +192,8 @@ class Sampler(ABC):
     def _best_new_points(self, n) -> np.ndarray:
         pass
 
-    @staticmethod
-    def _generate_run_name():
-        return shortuuid.uuid()
+    def _generate_run_name(self):
+        return shortuuid.uuid()+f'_{type(self).__name__}'
 
     def _fit_models(self):
         # Standard case assumes single model
@@ -206,15 +205,15 @@ class Sampler(ABC):
         # Standard case assumes single model
         self.surrogate_models[0].update(new_fit_points_x, new_fit_points_y)
 
-    def _predict(self):
+    def predict(self, points_x: np.ndarray):
         # Standard case assumes single model
-        return self.surrogate_models[0].predict(self.test_points_x)
+        return self.surrogate_models[0].predict(points_x)
 
     def _loop_initialization(self):
         fit_start_time = time.time()
         self._fit_models()
         fit_time = time.time() - fit_start_time
-        self.predicted_points_y = self._predict()
+        self.predicted_points_y = self.predict(self.test_points_x)
         score = evaluate(self.logging_metrics, self.test_points_y,
                          self.predicted_points_y)
         self.step_score.append(score)
@@ -252,7 +251,7 @@ class Sampler(ABC):
         logger.info(f"Fitted a new surrogate model in {fit_time} sec.")
 
         # Evaluate
-        self.predicted_points_y = self._predict()
+        self.predicted_points_y = self.predict(self.test_points_x)
         score = self._evaluate()
         self.steps[sample_iteration] = StepInfo(
                 new_fit_points_x,
@@ -283,15 +282,27 @@ class Sampler(ABC):
         with open(destination/f"{self.run_name}_steps.json",
                   'w') as f_out:
             json.dump(self.steps, f_out)
-        self.save_surrogate(destination/'surrogates', sample_iteration)
+        self.save_surrogates(destination / 'surrogates', sample_iteration)
 
-    def save_surrogate(self, iterations_folder: Path, sample_iteration: int):
+    def save_surrogates(self, iterations_folder: Path, sample_iteration: int):
         surrogates_folder = iterations_folder / 'surrogates_iter-{:04d}_points-{:06d}'.format(sample_iteration, len(self.fit_points_x))
         print(surrogates_folder)
         surrogates_folder.mkdir(parents=True, exist_ok=True)
         for i, surrogate in enumerate(self.surrogate_models):
             surrogate_name = 'surrogate_{:02d}_iter-{:04d}_points-{:06d}'.format(i, sample_iteration, len(self.fit_points_x))
             surrogate.save(surrogates_folder/surrogate_name)
+
+    def load_surrogates(self, surrogates_folder: Path, dim_out):
+        self.dim_out = dim_out
+        self.surrogate_models = []
+        # creating placeholders
+        for _ in surrogates_folder.iterdir():
+            self.surrogate_models.append(None)
+        # Filling the placeholders with the appropriate models
+        for surrogate_file in surrogates_folder.iterdir():
+            model_index = int(str(surrogate_file.name).split('_')[1])
+            print(model_index)
+            self.surrogate_models[model_index] = (self.surrogate_model_constructor.load(surrogate_file))
 
     def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
         self._loop_initialization()

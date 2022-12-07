@@ -135,7 +135,7 @@ class LatinHypercube(Sampler):
             self.fit_points_y = points_y
 
             # Re-evaluate the surrogate model.
-            predicted_y = self.surrogate_model._predict(
+            predicted_y = self.surrogate_model.predict(
                 self.test_points_x, as_array=True
             )
             score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)

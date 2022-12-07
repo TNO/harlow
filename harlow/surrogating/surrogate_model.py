@@ -116,6 +116,11 @@ class Surrogate(ABC):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
+    def load(source: Path):
+        raise NotImplementedError
+
+    @staticmethod
     def check_inputs(X, y=None):
 
         # Check input points `X`
@@ -234,8 +239,13 @@ class VanillaGaussianProcess(Surrogate):
         )
 
     def save(self, destination: Path):
-        destination_file = destination.with_suffix('.joblib')
+        destination_with_name = Path(str(destination) + f'_{type(self).__name__}')
+        destination_file = destination_with_name.with_suffix('.joblib')
         joblib.dump(self, destination_file)
+
+    @staticmethod
+    def load(source: Path):
+        return joblib.load(source)
 
     def _fit(self, X, y, **kwargs):
         self.X = X
@@ -1664,7 +1674,7 @@ class NeuralNetwork(Surrogate):
         if self.model:
             if len(X.shape) == 1:
                 X = np.expand_dims(X, axis=0)
-            self.preds = self.model._predict(X)
+            self.preds = self.model.predict(X)
 
             return self.preds
 

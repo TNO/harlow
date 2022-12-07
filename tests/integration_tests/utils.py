@@ -15,7 +15,7 @@ def plot_1d_lola_voronoi(
     n_iter = int((len(lv.fit_points_y) - n_initial_point) / n_new_point_per_iteration)
     xx = np.linspace(lv.domain_lower_bound, lv.domain_upper_bound, n_grid_point)
     yy_tf = lv.target_function(xx).ravel()
-    yy_sm = lv.surrogate_model._predict(xx)
+    yy_sm = lv.surrogate_model.predict(xx)
 
     adaptive_points_x = lv.fit_points_x[n_initial_point:]
     adaptive_points_y = lv.fit_points_y[n_initial_point:]

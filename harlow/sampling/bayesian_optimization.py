@@ -223,7 +223,7 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
 
             # Check user-specified stopping criterion
             score = self.metric(
-                self.surrogate_model._predict(self.test_points_x), self.test_points_y
+                self.surrogate_model.predict(self.test_points_x), self.test_points_y
             )
 
             if stopping_criterion:

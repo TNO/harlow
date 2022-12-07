@@ -103,12 +103,12 @@ class FuzzyLolaVoronoi(Sampler):
                 new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
             )
 
-    def _predict(self):
+    def predict(self, points_x: np.ndarray):
         # Standard case assumes single model
-        y = np.zeros((self.test_points_x.shape[0], self.dim_out))
+        y = np.zeros((points_x.shape[0], self.dim_out))
 
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            a = dim_surrogate_model.predict(self.test_points_x)
+            a = dim_surrogate_model.predict(points_x)
             y[:, i] = a[0]
         return y
 

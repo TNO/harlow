@@ -161,7 +161,7 @@ class ProbabilisticSampler(Sampler):
                     x = np.expand_dims(x, axis=0)
 
                 std = -(
-                    self.surrogate_model._predict(x, return_std=True)[1]
+                    self.surrogate_model.predict(x, return_std=True)[1]
                     # - self.surrogate_model.noise_std
                 )
 
@@ -195,7 +195,7 @@ class ProbabilisticSampler(Sampler):
                 logger.info("std_max <= epsilon or max iterations reached")
                 convergence = True
             elif stopping_criterium:
-                predicted_y = self.surrogate_model._predict(
+                predicted_y = self.surrogate_model.predict(
                     self.test_points_x, as_array=True
                 )
                 score = evaluate(self.logging_metrics, self.test_points_y, predicted_y)
