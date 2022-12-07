@@ -24,10 +24,9 @@ def main():
         peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
     )
     # Run using python3 surrogate_load_test.py <path_to_surrogates_folder>
-    # surrogates_folder_path = Path(sys.argv[1])
+    surrogates_folder_path = Path(sys.argv[1])
     test_points_x, test_points_y = hypercube_initialization(sampler, 50)
-    surrogates_folder_path = Path('output/d6gwXfNcxTzFzjLMr8wbNu_FuzzyLolaVoronoi/surrogates/surrogates_iter-0003_points-000032')
-    sampler.load_surrogates(surrogates_folder_path, test_points_y.shape[1])
+    sampler.load_surrogates(surrogates_folder_path)
     print(sampler.predict(test_points_x))
     print(test_points_y)
 

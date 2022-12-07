@@ -29,6 +29,9 @@ class FailureHandling(enum.Enum):
     retry_new = 3
 
 
+SAMPLER_PROPERTIES_FILE = 'sampler_properties.json'
+
+
 class Sampler(ABC):
     def __init__(
         self,
@@ -288,21 +291,28 @@ class Sampler(ABC):
         surrogates_folder = iterations_folder / 'surrogates_iter-{:04d}_points-{:06d}'.format(sample_iteration, len(self.fit_points_x))
         print(surrogates_folder)
         surrogates_folder.mkdir(parents=True, exist_ok=True)
+        sampler_properties = {
+            'dim_out': self.dim_out
+        }
+        with open(surrogates_folder/SAMPLER_PROPERTIES_FILE, 'w') as f:
+            json.dump(sampler_properties, f)
         for i, surrogate in enumerate(self.surrogate_models):
             surrogate_name = 'surrogate_{:02d}_iter-{:04d}_points-{:06d}'.format(i, sample_iteration, len(self.fit_points_x))
             surrogate.save(surrogates_folder/surrogate_name)
 
-    def load_surrogates(self, surrogates_folder: Path, dim_out):
-        self.dim_out = dim_out
+    def load_surrogates(self, surrogates_folder: Path):
+        with open(surrogates_folder/SAMPLER_PROPERTIES_FILE, 'r') as f:
+            sampler_properties = json.load(f)
+        self.dim_out = sampler_properties['dim_out']
         self.surrogate_models = []
         # creating placeholders
-        for _ in surrogates_folder.iterdir():
+        for _ in surrogates_folder.glob('surrogate_*'):
             self.surrogate_models.append(None)
         # Filling the placeholders with the appropriate models
-        for surrogate_file in surrogates_folder.iterdir():
+        for surrogate_file in surrogates_folder.glob('surrogate_*'):
             model_index = int(str(surrogate_file.name).split('_')[1])
-            print(model_index)
-            self.surrogate_models[model_index] = (self.surrogate_model_constructor.load(surrogate_file))
+            surrogate = self.surrogate_model_constructor.load(surrogate_file)
+            self.surrogate_models[model_index] = surrogate
 
     def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
         self._loop_initialization()
