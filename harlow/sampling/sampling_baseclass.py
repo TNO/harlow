@@ -3,7 +3,8 @@ import math
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from pathlib import Path
+from typing import Callable, List, Union
 
 import json
 import numpy as np
@@ -43,7 +44,7 @@ class Sampler(ABC):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = 'output',
         stopping_score: float = None,
         failure_handling: FailureHandling = FailureHandling.fail,
     ):
@@ -63,7 +64,7 @@ class Sampler(ABC):
         )
         self.verbose = verbose
         self.run_name = run_name
-        self.save_dir = save_dir
+        self.save_dir: Path = Path(save_dir)
 
         self.step_x = []
         self.step_y = []
@@ -219,13 +220,14 @@ class Sampler(ABC):
         self.step_score.append(score)
         self.steps['initialization'] = StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0,
                      fit_time).__dict__
+        self._write_results(0)
 
     def _evaluate(self):
         return evaluate(self.logging_metrics, self.test_points_y,
                  self.predicted_points_y)
 
-    def _loop_iteration(self, iteration: int, n_new_points_per_interation: int):
-        logger.info(f"Started adaptive iteration step: {iteration}")
+    def _loop_iteration(self, sample_iteration: int, n_new_points_per_interation: int):
+        logger.info(f"Started adaptive iteration step: {sample_iteration}")
         gen_start_time = time.time()
         new_fit_points_x = self._best_new_points(n_new_points_per_interation)
         gen_time = time.time() - gen_start_time
@@ -252,7 +254,7 @@ class Sampler(ABC):
         # Evaluate
         self.predicted_points_y = self._predict()
         score = self._evaluate()
-        self.steps[iteration] = StepInfo(
+        self.steps[sample_iteration] = StepInfo(
                 new_fit_points_x,
                 new_fit_points_y,
                 score,
@@ -263,6 +265,7 @@ class Sampler(ABC):
 
         self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
         self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
+        self._write_results(sample_iteration)
         return score
 
     def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):
@@ -274,17 +277,28 @@ class Sampler(ABC):
         self.test_points_x = points_x
         self.test_points_y = points_y
 
+    def _write_results(self, sample_iteration: int):
+        destination = self.save_dir/self.run_name
+        destination.mkdir(parents=True, exist_ok=True)
+        with open(destination/f"{self.run_name}_steps.json",
+                  'w') as f_out:
+            json.dump(self.steps, f_out)
+        self.save_surrogate(destination/'surrogates', sample_iteration)
+
+    def save_surrogate(self, iterations_folder: Path, sample_iteration: int):
+        surrogates_folder = iterations_folder / 'surrogates_iter-{:04d}_points-{:06d}'.format(sample_iteration, len(self.fit_points_x))
+        print(surrogates_folder)
+        surrogates_folder.mkdir(parents=True, exist_ok=True)
+        for i, surrogate in enumerate(self.surrogate_models):
+            surrogate_name = 'surrogate_{:02d}_iter-{:04d}_points-{:06d}'.format(i, sample_iteration, len(self.fit_points_x))
+            surrogate.save(surrogates_folder/surrogate_name)
+
     def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
         self._loop_initialization()
 
-        iteration = 0
+        iteration = 1
         # TODO: check if infinity is the bad part of a score
         score = math.inf
         while not self._stopping_criterium(iteration, max_iter, score):
             score = self._loop_iteration(iteration, n_new_points_per_interation)
             iteration += 1
-
-            #write results to json
-            with open(f"{os.path.join(self.save_dir, self.run_name)}_steps.json",
-                      'w') as f_out:
-                json.dump(self.steps, f_out)

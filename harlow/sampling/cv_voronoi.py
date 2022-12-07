@@ -21,7 +21,8 @@ for global surrogate modelling. Journal of Mechanical Design 143
 import os
 import pickle
 import time
-from typing import Callable, Tuple
+from pathlib import Path
+from typing import Callable, Tuple, Union
 
 import numpy as np
 from loguru import logger
@@ -56,7 +57,7 @@ class CVVoronoi(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = 'output',
         n_fold: int = 5,
     ):
 

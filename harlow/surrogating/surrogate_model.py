@@ -8,6 +8,9 @@ The main requirements towards each surrogate model are that they:
 
 """
 import re
+from pathlib import Path
+
+import joblib
 
 
 def warn(*args, **kwargs):
@@ -106,6 +109,10 @@ class Surrogate(ABC):
 
     @abstractmethod
     def create_model(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def save(self, destination: Path):
         raise NotImplementedError
 
     @staticmethod
@@ -225,6 +232,10 @@ class VanillaGaussianProcess(Surrogate):
         self.model = GaussianProcessRegressor(
             kernel=self.kernel, n_restarts_optimizer=self.train_restarts, random_state=0
         )
+
+    def save(self, destination: Path):
+        destination_file = destination.with_suffix('.joblib')
+        joblib.dump(self, destination_file)
 
     def _fit(self, X, y, **kwargs):
         self.X = X

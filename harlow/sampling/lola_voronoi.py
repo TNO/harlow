@@ -2,7 +2,8 @@ import itertools
 import os
 import pickle
 import time
-from typing import Callable, Optional, Tuple
+from pathlib import Path
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 from loguru import logger
@@ -59,7 +60,7 @@ class LolaVoronoi(Sampler):
             logging_metrics: list = None,
             verbose: bool = False,
             run_name: str = None,
-            save_dir: str = "",
+            save_dir: Union[str, Path] = 'output',
             ignore_far_neighborhoods: bool = True,
             ignore_old_neighborhoods: bool = True,
     ):

@@ -1,7 +1,8 @@
 import os
 import pickle
 import time
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Union
 
 import numpy as np
 from loguru import logger
@@ -34,7 +35,7 @@ class LatinHypercube(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = 'output',
     ):
         super(LatinHypercube, self).__init__(
             target_function,

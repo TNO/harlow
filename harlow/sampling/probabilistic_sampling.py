@@ -10,7 +10,8 @@ Adapted from implementation in Prob_Taralli:
 
 """
 import time
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Union
 
 import numpy as np
 from loguru import logger
@@ -38,7 +39,7 @@ class ProbabilisticSampler(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = 'output',
         stopping_score: float = None,
     ):
 

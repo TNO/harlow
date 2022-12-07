@@ -13,7 +13,8 @@ SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
 import os
 import pickle
 import time
-from typing import Callable, Tuple
+from pathlib import Path
+from typing import Callable, Tuple, Union
 
 import numpy as np
 import skfuzzy as fuzz
@@ -47,7 +48,7 @@ class FuzzyLolaVoronoi(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = 'output',
     ):
 
         super(FuzzyLolaVoronoi, self).__init__(
