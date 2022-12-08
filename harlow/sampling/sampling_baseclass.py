@@ -1,11 +1,11 @@
 import enum
+import json
 import math
 import os
 import time
 from abc import ABC, abstractmethod
 from typing import Callable, List
 
-import json
 import numpy as np
 import shortuuid
 from loguru import logger
@@ -214,18 +214,20 @@ class Sampler(ABC):
         self._fit_models()
         fit_time = time.time() - fit_start_time
         self.predicted_points_y = self._predict()
-        score = evaluate(self.logging_metrics, self.test_points_y,
-                         self.predicted_points_y)
+        score = evaluate(
+            self.logging_metrics, self.test_points_y, self.predicted_points_y
+        )
         self.step_score.append(score)
-        self.steps['initialization'] = StepInfo(self.fit_points_x, self.fit_points_y, score, 0, 0,
-                     fit_time).__dict__
-        self.steps['initialization']['test_points_x'] = \
-            self.test_points_x.tolist()
-        self.steps['initialization']['test_points_y'] = \
-            self.test_points_y.tolist()
+        self.steps["initialization"] = StepInfo(
+            self.fit_points_x, self.fit_points_y, score, 0, 0, fit_time
+        ).__dict__
+        self.steps["initialization"]["test_points_x"] = self.test_points_x.tolist()
+        self.steps["initialization"]["test_points_y"] = self.test_points_y.tolist()
+
     def _evaluate(self):
-        return evaluate(self.logging_metrics, self.test_points_y,
-                 self.predicted_points_y)
+        return evaluate(
+            self.logging_metrics, self.test_points_y, self.predicted_points_y
+        )
 
     def _loop_iteration(self, iteration: int, n_new_points_per_interation: int):
         logger.info(f"Started adaptive iteration step: {iteration}")
@@ -256,13 +258,13 @@ class Sampler(ABC):
         self.predicted_points_y = self._predict()
         score = self._evaluate()
         self.steps[iteration] = StepInfo(
-                new_fit_points_x,
-                new_fit_points_y,
-                score,
-                gen_time,
-                target_func_time,
-                fit_time,
-            ).__dict__
+            new_fit_points_x,
+            new_fit_points_y,
+            score,
+            gen_time,
+            target_func_time,
+            fit_time,
+        ).__dict__
 
         self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
         self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
@@ -279,6 +281,7 @@ class Sampler(ABC):
 
     def construct_surrogate(self):
         self.surrogate_models.append(self.surrogate_model_constructor())
+
     def surrogate_loop(self, n_new_points_per_interation: int, max_iter: int):
         self._loop_initialization()
 
@@ -289,7 +292,8 @@ class Sampler(ABC):
             score = self._loop_iteration(iteration, n_new_points_per_interation)
             iteration += 1
 
-            #write results to json
-            with open(f"{os.path.join(self.save_dir, self.run_name)}_steps.json",
-                      'w') as f_out:
+            # write results to json
+            with open(
+                f"{os.path.join(self.save_dir, self.run_name)}_steps.json", "w"
+            ) as f_out:
                 json.dump(self.steps, f_out)
