@@ -25,7 +25,8 @@ Usefull:
 
 import os
 import time
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Union
 
 import numpy as np
 import torch
@@ -62,7 +63,7 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = 'output',
         n_mc_points: int = 256,
         q: int = 1,
         num_restarts: int = 10,
@@ -222,7 +223,7 @@ class NegativeIntegratedPosteriorVarianceSampler(Sampler):
 
             # Check user-specified stopping criterion
             score = self.metric(
-                self.surrogate_model._predict(self.test_points_x), self.test_points_y
+                self.surrogate_model.predict(self.test_points_x), self.test_points_y
             )
 
             if stopping_criterion:
