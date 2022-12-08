@@ -1,0 +1,269 @@
+:py:mod:`harlow.sampling`
+=========================
+
+.. py:module:: harlow.sampling
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   SamplingException/index.rst
+   bayesian_optimization/index.rst
+   cv_voronoi/index.rst
+   fuzzy_lolavoronoi/index.rst
+   lola_voronoi/index.rst
+   probabilistic_sampling/index.rst
+   random_sampling/index.rst
+   sampling_baseclass/index.rst
+   step_info/index.rst
+
+
+Package Contents
+----------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.NegativeIntegratedPosteriorVarianceSampler
+   harlow.sampling.CVVoronoi
+   harlow.sampling.FuzzyLolaVoronoi
+   harlow.sampling.LolaVoronoi
+   harlow.sampling.ProbabilisticSampler
+   harlow.sampling.LatinHypercube
+   harlow.sampling.Sampler
+
+
+
+
+.. py:class:: NegativeIntegratedPosteriorVarianceSampler(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model: harlow.surrogating.surrogate_model.Surrogate, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', n_mc_points: int = 256, q: int = 1, num_restarts: int = 10, raw_samples: int = 512, optimizer_options: dict = None, func_sample: Callable = latin_hypercube_sampling)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   NOTE: This sampler is experimental and currently only works with GPyTorch surrogates
+
+   .. py:method:: optimize_acqf_and_get_observation(acq_func)
+
+      Optimizes the acquisition function, and returns a new candidate and a
+      noisy observation.
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterion: float = 0.05, max_n_iterations: int = 5000)
+
+
+
+.. py:class:: CVVoronoi(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', n_fold: int = 5)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = 0.05, max_n_iterations: int = 5000)
+
+      TODO: allow for providing starting points
+
+
+
+.. py:class:: FuzzyLolaVoronoi(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output')
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _best_new_points(n)
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = None, max_n_iterations: int = 5000)
+
+      TODO: allow for providing starting points
+
+
+
+.. py:class:: LolaVoronoi(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', ignore_far_neighborhoods: bool = True, ignore_old_neighborhoods: bool = True)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Lola-Vornoi adaptive design strategy for global surrogate modelling.
+
+   The algorithm is proposed and described in this paper:
+   [1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
+   surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
+   (2011): 1948-1974.
+
+   The implementation is influenced by:
+   * gitlab.com/energyincities/besos/-/blob/master/besos/
+   * https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = None, max_n_iterations: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = None, ignore_far_neighborhoods: Optional[bool] = True, ignore_old_neighborhoods: Optional[bool] = True)
+
+
+   .. py:method:: save_model()
+
+
+
+.. py:class:: ProbabilisticSampler(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', stopping_score: float = None)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = None, max_n_iterations: int = 5000, epsilon: float = 0.005)
+
+
+
+.. py:class:: LatinHypercube(target_function, surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output')
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Latin Hypercube Sampler
+
+   Lathin hypercube sampler is a space filling random sampler. This sampler
+   is non-sequenctial.
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = None, max_n_iterations: int = 20, n_new_points_per_iteration: int = 10, stopping_criterium: float = None)
+
+
+
+.. py:class:: Sampler(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', stopping_score: float = None, failure_handling: FailureHandling = FailureHandling.fail)
+
+   Bases: :py:obj:`abc.ABC`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = 0.05, max_n_iterations: int = 5000)
+      :abstractmethod:
+
+
+   .. py:method:: _filter_failed(x: numpy.ndarray, y: numpy.ndarray, s: numpy.array) -> (numpy.ndarray, numpy.ndarray)
+
+
+   .. py:method:: _retry_failed(x: numpy.ndarray, y: numpy.ndarray, s: numpy.array) -> (numpy.ndarray, numpy.ndarray)
+      :abstractmethod:
+
+
+   .. py:method:: _target_function_failure_handling(x: numpy.ndarray, y: numpy.ndarray, s: numpy.array) -> (numpy.ndarray, numpy.ndarray)
+
+
+   .. py:method:: exec_target_function(x: numpy.ndarray) -> (numpy.ndarray, numpy.ndarray)
+
+
+   .. py:method:: observer(X) -> (numpy.ndarray, numpy.array)
+
+      Wrapper for the user-specified `target_function` that checks input
+      and output consistency.
+
+
+   .. py:method:: _stopping_criterium(iteration: int, max_iter: int, last_score: float) -> bool
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+      :abstractmethod:
+
+
+   .. py:method:: _generate_run_name()
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _loop_initialization()
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _loop_iteration(sample_iteration: int, n_new_points_per_interation: int)
+
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: set_test_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _write_results(sample_iteration: int)
+
+
+   .. py:method:: save_surrogates(iterations_folder: pathlib.Path, sample_iteration: int)
+
+
+   .. py:method:: load_surrogates(surrogates_folder: pathlib.Path)
+
+
+   .. py:method:: surrogate_loop(n_new_points_per_interation: int, max_iter: int)
+
+
+

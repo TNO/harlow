@@ -1,0 +1,76 @@
+:py:mod:`harlow.utils.helper_functions`
+=======================================
+
+.. py:module:: harlow.utils.helper_functions
+
+.. autoapi-nested-parse::
+
+   Helper functions for the adaptive sampling strategies.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.helper_functions.evaluate_modellist
+   harlow.utils.helper_functions.evaluate_modellist_woPrediction
+   harlow.utils.helper_functions.evaluate
+   harlow.utils.helper_functions.normalized_response
+   harlow.utils.helper_functions.NLL
+   harlow.utils.helper_functions.normal_sp
+   harlow.utils.helper_functions.latin_hypercube_sampling
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.helper_functions.tfd
+
+
+.. py:data:: tfd
+   
+
+   
+
+.. py:function:: evaluate_modellist(metric, model, test_points_X, test_points_y)
+
+   Evaluate user specified metric for the current iteration
+
+   Returns:
+
+
+.. py:function:: evaluate_modellist_woPrediction(metric, model, test_points_y, predicted_points_y)
+
+   Evaluate user specified metric for the current iteration
+
+   Returns:
+
+
+.. py:function:: evaluate(metric, true_y, predicted_y)
+
+   Evaluate user specified metric for the current iteration
+
+   Returns:
+
+
+.. py:function:: normalized_response(model: object, X: numpy.ndarray)
+
+
+.. py:function:: NLL(y, distr)
+
+
+.. py:function:: normal_sp(params)
+
+
+.. py:function:: latin_hypercube_sampling(domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_sample: int, method='maximin')
+
+

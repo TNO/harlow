@@ -1,0 +1,31 @@
+:py:mod:`harlow.utils`
+======================
+
+.. py:module:: harlow.utils
+
+
+Subpackages
+-----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   examples/index.rst
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   benchmarks/index.rst
+   distance/index.rst
+   helper_functions/index.rst
+   log_writer/index.rst
+   metrics/index.rst
+   numba_utils/index.rst
+   test_functions/index.rst
+   transforms/index.rst
+
+

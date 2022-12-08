@@ -1,0 +1,86 @@
+:py:mod:`harlow.sampling.bayesian_optimization`
+===============================================
+
+.. py:module:: harlow.sampling.bayesian_optimization
+
+.. autoapi-nested-parse::
+
+   Active sampling test using BoTorch and the Predictive Variance acquisition
+   function.
+
+   The aim is to:
+
+   1. Use active learning to efficiently sample and surrogate an expensive
+   to evaluate model.
+       * Relevant to the development of efficient surrogating methods in
+       ERP DT WP.A.
+       * Based on: https://botorch.org/tutorials/closed_loop_botorch_only
+
+   2. Extend to the case where we have a ModelListGP surrogate, i.e. a surrogate
+   of a multi-output model with each output being an independent task.
+       * This is one of the surrogate models that would be interesting to
+       test in the Moerdijk case of ERP DT WP.B.
+
+   Usefull:
+       * Implementation in ax:
+       https://github.com/facebook/Ax/issues/460
+
+       * Issues with qNegIntegratedPosteriorVariance:
+       https://github.com/pytorch/botorch/issues/573
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.bayesian_optimization.NegativeIntegratedPosteriorVarianceSampler
+
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.bayesian_optimization.device
+   harlow.sampling.bayesian_optimization.dtype
+   harlow.sampling.bayesian_optimization.SMOKE_TEST
+
+
+.. py:data:: device
+   
+
+   
+
+.. py:data:: dtype
+   
+
+   
+
+.. py:data:: SMOKE_TEST
+   
+
+   
+
+.. py:class:: NegativeIntegratedPosteriorVarianceSampler(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model: harlow.surrogating.surrogate_model.Surrogate, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', n_mc_points: int = 256, q: int = 1, num_restarts: int = 10, raw_samples: int = 512, optimizer_options: dict = None, func_sample: Callable = latin_hypercube_sampling)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   NOTE: This sampler is experimental and currently only works with GPyTorch surrogates
+
+   .. py:method:: optimize_acqf_and_get_observation(acq_func)
+
+      Optimizes the acquisition function, and returns a new candidate and a
+      noisy observation.
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterion: float = 0.05, max_n_iterations: int = 5000)
+
+
+

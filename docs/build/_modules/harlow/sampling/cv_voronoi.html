@@ -1,0 +1,809 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+        <title>harlow.sampling.cv_voronoi - Adaptive sampling 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Adaptive sampling 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">Adaptive sampling 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../auto_examples/example_IJssel_model_list_adaptive_sampling.html">ModelListGP example.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../for_contributors.html">For contributors</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../autoapi/harlow/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../autoapi/harlow/sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/SamplingException/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.SamplingException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/bayesian_optimization/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.bayesian_optimization</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.cv_voronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/fuzzy_lolavoronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.fuzzy_lolavoronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/lola_voronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.lola_voronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/probabilistic_sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.probabilistic_sampling</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/random_sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.random_sampling</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/sampling_baseclass/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.sampling_baseclass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/sampling/step_info/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.step_info</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../autoapi/harlow/surrogating/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/surrogating/surrogate_model/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating.surrogate_model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../autoapi/harlow/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../autoapi/harlow/utils/examples/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../autoapi/harlow/utils/examples/model_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_data</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../../autoapi/harlow/utils/examples/model_data/truck_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_data.truck_data</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_twin_girder_betti</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/benchmarks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.benchmarks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/distance/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.helper_functions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/log_writer/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.log_writer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/metrics/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/numba_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.numba_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/test_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.test_functions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/utils/transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.transforms</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../autoapi/harlow/visualization/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.visualization</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../autoapi/harlow/visualization/corner/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.visualization.corner</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../autoapi/harlow/optimize_neighbourhood_calculation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.optimize_neighbourhood_calculation</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for harlow.sampling.cv_voronoi</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Cross Validation Voronoi adaptive design strategy for global surrogate</span>
+<span class="sd">modelling.</span>
+
+<span class="sd">Note that this</span>
+
+<span class="sd">The algorithm is proposed and described in this paper:</span>
+<span class="sd">[1] Xu, Shengli, et al. A robust error-pursuing sequential sampling approach</span>
+<span class="sd"> for global metamodeling based on voronoi diagram and cross validation.</span>
+<span class="sd"> Journal of Mechanical Design 136.7 (2014): 071009</span>
+
+<span class="sd">[2] Liu H, Xu S, Wang X, Yang S, Meng J. A (1996).</span>
+<span class="sd">A multi-response adaptive sampling approach for global metamodeling</span>
+<span class="sd">Proceedings of the Institution of Mechanical Engineers Part C Journal of</span>
+<span class="sd">Mechanical Engineering Science 1989-1996 (vols 203-210)</span>
+
+<span class="sd">[3] Kaminsky A.L., Wang Y, Pant K, Hashii W.N., Atachbarian A. (2020) An</span>
+<span class="sd">efficient batch k-fold cross-validation voronoi adaptive sampling technique</span>
+<span class="sd">for global surrogate modelling. Journal of Mechanical Design 143</span>
+<span class="sd"> &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">loguru</span> <span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="kn">import</span> <span class="n">cdist</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">KFold</span>
+
+<span class="kn">from</span> <span class="nn">harlow.sampling.sampling_baseclass</span> <span class="kn">import</span> <span class="n">Sampler</span>
+<span class="kn">from</span> <span class="nn">harlow.utils.helper_functions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">evaluate_modellist_woPrediction</span><span class="p">,</span>
+    <span class="n">latin_hypercube_sampling</span><span class="p">,</span>
+    <span class="n">normalized_response</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">harlow.utils.log_writer</span> <span class="kn">import</span> <span class="n">write_scores</span><span class="p">,</span> <span class="n">write_timer</span>
+<span class="kn">from</span> <span class="nn">harlow.utils.metrics</span> <span class="kn">import</span> <span class="n">nrmse</span><span class="p">,</span> <span class="n">rmse</span>
+
+
+<span class="c1"># -----------------------------------------------------</span>
+<span class="c1"># USER FACING API (class)</span>
+<span class="c1"># -----------------------------------------------------</span>
+<div class="viewcode-block" id="CVVoronoi"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/index.html#harlow.sampling.cv_voronoi.CVVoronoi">[docs]</a><span class="k">class</span> <span class="nc">CVVoronoi</span><span class="p">(</span><span class="n">Sampler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">target_function</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+        <span class="n">surrogate_model_constructor</span><span class="p">,</span>
+        <span class="n">domain_lower_bound</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">domain_upper_bound</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">fit_points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fit_points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">test_points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">test_points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">evaluation_metric</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">rmse</span><span class="p">,</span>
+        <span class="n">logging_metrics</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">run_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">save_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;output&#39;</span><span class="p">,</span>
+        <span class="n">n_fold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">CVVoronoi</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">target_function</span><span class="p">,</span>
+            <span class="n">surrogate_model_constructor</span><span class="p">,</span>
+            <span class="n">domain_lower_bound</span><span class="p">,</span>
+            <span class="n">domain_upper_bound</span><span class="p">,</span>
+            <span class="n">fit_points_x</span><span class="p">,</span>
+            <span class="n">fit_points_y</span><span class="p">,</span>
+            <span class="n">test_points_x</span><span class="p">,</span>
+            <span class="n">test_points_y</span><span class="p">,</span>
+            <span class="n">evaluation_metric</span><span class="p">,</span>
+            <span class="n">logging_metrics</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="p">,</span>
+            <span class="n">run_name</span><span class="p">,</span>
+            <span class="n">save_dir</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_fold</span> <span class="o">=</span> <span class="n">n_fold</span>
+
+<div class="viewcode-block" id="CVVoronoi.set_initial_set"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi.set_initial_set">[docs]</a>    <span class="k">def</span> <span class="nf">set_initial_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_initial_set</span><span class="p">(</span><span class="n">points_x</span><span class="p">,</span> <span class="n">points_y</span><span class="p">)</span>
+        <span class="c1"># Also create the output surrogates</span>
+        <span class="k">for</span> <span class="n">_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_out</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surrogate_models</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogate_model_constructor</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="CVVoronoi._fit_models"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi._fit_models">[docs]</a>    <span class="k">def</span> <span class="nf">_fit_models</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Standard case assumes single model</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dim_surrogate_model</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogate_models</span><span class="p">):</span>
+            <span class="n">dim_surrogate_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CVVoronoi._update_models"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi._update_models">[docs]</a>    <span class="k">def</span> <span class="nf">_update_models</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">new_fit_points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">new_fit_points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="p">):</span>
+        <span class="c1"># Standard case assumes single model</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dim_surrogate_model</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogate_models</span><span class="p">):</span>
+            <span class="n">dim_surrogate_model</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">new_fit_points_x</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">new_fit_points_y</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CVVoronoi.predict"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="c1"># Standard case assumes single model</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">points_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim_out</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dim_surrogate_model</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogate_models</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">dim_surrogate_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">points_x</span><span class="p">)</span>
+            <span class="n">y</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="CVVoronoi._evaluate"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi._evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">_evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">evaluate_modellist_woPrediction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logging_metrics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">surrogate_models</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">test_points_y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">predicted_points_y</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CVVoronoi._best_new_points"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi._best_new_points">[docs]</a>    <span class="k">def</span> <span class="nf">_best_new_points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="c1"># This sampler picks inherently new samples based on all surrogates.</span>
+        <span class="c1"># Hence there is no looping over the surrogates here.</span>
+        <span class="k">return</span> <span class="n">_best_new_points</span><span class="p">(</span>
+            <span class="n">points_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span><span class="p">,</span>
+            <span class="n">points_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span><span class="p">,</span>
+            <span class="n">test_points_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_points_x</span><span class="p">,</span>
+            <span class="n">test_points_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">test_points_y</span><span class="p">,</span>
+            <span class="n">domain_lower_bound</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">domain_lower_bound</span><span class="p">,</span>
+            <span class="n">domain_upper_bound</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">domain_upper_bound</span><span class="p">,</span>
+            <span class="n">n_new_point</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
+            <span class="n">surrogate_model_constructor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogate_model_constructor</span><span class="p">,</span>
+            <span class="n">surrogates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogate_models</span><span class="p">,</span>
+            <span class="n">n_fold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_fold</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="CVVoronoi.sample"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.CVVoronoi.sample">[docs]</a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n_initial_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">n_new_points_per_iteration</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">stopping_criterium</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">max_n_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;TODO: allow for providing starting points&quot;&quot;&quot;</span>
+        <span class="c1"># ..........................................</span>
+        <span class="c1"># Initialize</span>
+        <span class="c1"># ..........................................</span>
+        <span class="n">target_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_function</span>
+        <span class="n">domain_lower_bound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_lower_bound</span>
+        <span class="n">domain_upper_bound</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">domain_upper_bound</span>
+        <span class="n">n_dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">domain_lower_bound</span><span class="p">)</span>
+
+        <span class="sd">&quot;&quot;&quot;This is to support multi-output&quot;&quot;&quot;</span>
+        <span class="n">dim_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">n_initial_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_initial_points</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">n_dim</span>
+
+        <span class="c1"># ..........................................</span>
+        <span class="c1"># Initial sample of points</span>
+        <span class="c1"># ..........................................</span>
+        <span class="n">gen_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># latin hypercube sampling to get the initial sample of points</span>
+            <span class="n">points_x</span> <span class="o">=</span> <span class="n">latin_hypercube_sampling</span><span class="p">(</span>
+                <span class="n">n_sample</span><span class="o">=</span><span class="n">n_initial_points</span><span class="p">,</span>
+                <span class="n">domain_lower_bound</span><span class="o">=</span><span class="n">domain_lower_bound</span><span class="p">,</span>
+                <span class="n">domain_upper_bound</span><span class="o">=</span><span class="n">domain_upper_bound</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># evaluate the target function</span>
+            <span class="n">points_y</span> <span class="o">=</span> <span class="n">target_function</span><span class="p">(</span><span class="n">points_x</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span> <span class="o">=</span> <span class="n">points_x</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span> <span class="o">=</span> <span class="n">points_y</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">points_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span>
+            <span class="n">points_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_gen_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">gen_start_time</span><span class="p">)</span>
+
+        <span class="c1"># fit the surrogate model</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim_out</span><span class="p">):</span>
+            <span class="n">s_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">surrogate_model</span><span class="p">()</span>
+            <span class="n">s_i</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points_x</span><span class="p">,</span> <span class="n">points_y</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s_i</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Fitted the first surrogate model </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="si">}</span><span class="s2"> sec.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Additional class objects to help keep track of the sampling. `gen_time`</span>
+        <span class="c1"># denotes the time to generate new points. `fit_time` is the time</span>
+        <span class="c1"># to fit the surrogate.</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">evaluate_modellist</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logging_metrics</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_points_x</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_points_y</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">points_x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">points_y</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_score</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metric</span><span class="o">.</span><span class="vm">__name__</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_iter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_fit_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+
+        <span class="c1"># ..........................................</span>
+        <span class="c1"># Iterative improvement (adaptive stage)</span>
+        <span class="c1"># ..........................................</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_n_iterations</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Started adaptive iteration step: </span><span class="si">{</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> (max steps:&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">max_n_iterations</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                The following implements the algorithm from [1] [2] [3]</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># Step 1. Calculate the Voronoi cells</span>
+            <span class="n">random_points</span><span class="p">,</span> <span class="n">distance_mx</span><span class="p">,</span> <span class="n">closest_indicator_mx</span> <span class="o">=</span> <span class="n">calculate_voronoi_cells</span><span class="p">(</span>
+                <span class="n">points_x</span><span class="p">,</span>
+                <span class="n">domain_lower_bound</span><span class="o">=</span><span class="n">domain_lower_bound</span><span class="p">,</span>
+                <span class="n">domain_upper_bound</span><span class="o">=</span><span class="n">domain_upper_bound</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Step 2. Determine the Voronoi cell with the highest error</span>
+            <span class="n">most_sensitive_cell</span> <span class="o">=</span> <span class="n">identify_sensitive_voronoi_cell</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">surrogate_model</span><span class="p">,</span>
+                <span class="n">points_x</span><span class="p">,</span>
+                <span class="n">points_y</span><span class="p">,</span>
+                <span class="n">dim_out</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_points_x</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_points_y</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_fold</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Step 3. Pick the point within the most sensitive cell, furthest</span>
+            <span class="c1"># away from point i.</span>
+            <span class="n">new_points_x</span> <span class="o">=</span> <span class="n">pick_new_samples</span><span class="p">(</span>
+                <span class="n">most_sensitive_cell</span><span class="p">,</span>
+                <span class="n">random_points</span><span class="p">,</span>
+                <span class="n">distance_mx</span><span class="p">,</span>
+                <span class="n">closest_indicator_mx</span><span class="p">,</span>
+                <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_gen_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Found the next best </span><span class="si">{</span><span class="n">n_new_points_per_iteration</span><span class="si">}</span><span class="s2"> point(s) in &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="si">}</span><span class="s2"> sec.&quot;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># evaluate the target function</span>
+            <span class="n">new_points_y</span> <span class="o">=</span> <span class="n">target_function</span><span class="p">(</span><span class="n">new_points_x</span><span class="p">)</span>
+
+            <span class="c1"># add the new points to the old ones</span>
+            <span class="n">points_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">points_x</span><span class="p">,</span> <span class="n">new_points_x</span><span class="p">))</span>
+            <span class="n">points_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">((</span><span class="n">points_y</span><span class="p">,</span> <span class="n">new_points_y</span><span class="o">.</span><span class="n">ravel</span><span class="p">()))</span>
+
+            <span class="c1"># refit the surrogate</span>
+            <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">surrogate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="p">):</span>
+                <span class="c1"># surrogate.update(new_points_x, new_points_y[i])</span>
+                <span class="n">surrogate</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points_x</span><span class="p">,</span> <span class="n">points_y</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step_fit_time</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Fitted a new surrogate model in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="si">}</span><span class="s2"> sec.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span> <span class="o">=</span> <span class="n">points_x</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span> <span class="o">=</span> <span class="n">points_y</span>
+
+            <span class="n">score</span> <span class="o">=</span> <span class="n">evaluate_modellist</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logging_metrics</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_points_x</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_points_y</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Fitted a new surrogate model in </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="si">}</span><span class="s2"> sec.&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">points_x</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">points_y</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_score</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metric</span><span class="o">.</span><span class="vm">__name__</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_iter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">timing_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;Gen time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_gen_time</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="s2">&quot;Fit time&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_fit_time</span><span class="p">[</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="p">}</span>
+            <span class="n">write_scores</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">write_timer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="p">,</span> <span class="n">timing_dict</span><span class="p">,</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluation_metric</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">ii</span>
+            <span class="c1"># Save model every 200 iterations</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">s_i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="p">):</span>
+                    <span class="n">save_name</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">run_name</span><span class="si">}</span><span class="s2">_&quot;</span> <span class="sa">f</span><span class="s2">&quot;out</span><span class="si">{</span><span class="n">s_i</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="si">}</span><span class="s2">_iters.pkl&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">save_name</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">i</span> <span class="o">&lt;=</span> <span class="n">stopping_criterium</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Algorithm converged in </span><span class="si">{</span><span class="n">ii</span><span class="si">}</span><span class="s2"> iterations&quot;</span><span class="p">)</span>
+                <span class="c1"># Save model if converged</span>
+                <span class="k">for</span> <span class="n">s_i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">surrogates</span><span class="p">):</span>
+                    <span class="n">save_name</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">run_name</span><span class="si">}</span><span class="s2">_&quot;</span> <span class="sa">f</span><span class="s2">&quot;out</span><span class="si">{</span><span class="n">s_i</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="si">}</span><span class="s2">_converged.pkl&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">save_name</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                <span class="k">break</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_points_y</span></div></div>
+
+
+<div class="viewcode-block" id="_best_new_points"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi._best_new_points">[docs]</a><span class="k">def</span> <span class="nf">_best_new_points</span><span class="p">(</span>
+    <span class="n">points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">test_points_x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">test_points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">domain_lower_bound</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">domain_upper_bound</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_new_point</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">surrogate_model_constructor</span><span class="p">,</span>
+    <span class="n">surrogates</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">n_fold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The following implements the algorithm from [1] [2] [3]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Step 1. Calculate the Voronoi cells</span>
+    <span class="n">random_points</span><span class="p">,</span> <span class="n">distance_mx</span><span class="p">,</span> <span class="n">closest_indicator_mx</span> <span class="o">=</span> <span class="n">calculate_voronoi_cells</span><span class="p">(</span>
+        <span class="n">points_x</span><span class="p">,</span>
+        <span class="n">domain_lower_bound</span><span class="o">=</span><span class="n">domain_lower_bound</span><span class="p">,</span>
+        <span class="n">domain_upper_bound</span><span class="o">=</span><span class="n">domain_upper_bound</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 2. Determine the Voronoi cell with the highest error</span>
+    <span class="n">most_sensitive_cell</span> <span class="o">=</span> <span class="n">identify_sensitive_voronoi_cell</span><span class="p">(</span>
+        <span class="n">surrogates</span><span class="p">,</span>
+        <span class="n">surrogate_model_constructor</span><span class="p">,</span>
+        <span class="n">points_x</span><span class="p">,</span>
+        <span class="n">points_y</span><span class="p">,</span>
+        <span class="n">points_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">test_points_x</span><span class="p">,</span>
+        <span class="n">test_points_y</span><span class="p">,</span>
+        <span class="n">n_fold</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Step 3. Pick the point within the most sensitive cell, furthest</span>
+    <span class="c1"># away from point i.</span>
+    <span class="n">new_points_x</span> <span class="o">=</span> <span class="n">pick_new_samples</span><span class="p">(</span>
+        <span class="n">most_sensitive_cell</span><span class="p">,</span>
+        <span class="n">random_points</span><span class="p">,</span>
+        <span class="n">distance_mx</span><span class="p">,</span>
+        <span class="n">closest_indicator_mx</span><span class="p">,</span>
+        <span class="n">n</span><span class="o">=</span><span class="n">n_new_point</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_points_x</span></div>
+
+
+<div class="viewcode-block" id="pick_new_samples"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.pick_new_samples">[docs]</a><span class="k">def</span> <span class="nf">pick_new_samples</span><span class="p">(</span>
+    <span class="n">most_sensitive_cell</span><span class="p">,</span> <span class="n">random_points</span><span class="p">,</span> <span class="n">distance_mx</span><span class="p">,</span> <span class="n">closest_indicator_mx</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">):</span>
+    <span class="n">sens_cell</span> <span class="o">=</span> <span class="n">closest_indicator_mx</span><span class="p">[:,</span> <span class="n">most_sensitive_cell</span><span class="p">]</span>
+    <span class="n">voronoi_i_distances</span> <span class="o">=</span> <span class="n">distance_mx</span><span class="p">[</span><span class="n">sens_cell</span><span class="p">,</span> <span class="n">most_sensitive_cell</span><span class="p">]</span>
+    <span class="n">voronoi_i_points</span> <span class="o">=</span> <span class="n">random_points</span><span class="p">[</span><span class="n">sens_cell</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="n">max_dist_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="n">voronoi_i_distances</span><span class="p">,</span> <span class="o">-</span><span class="n">n</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">return</span> <span class="n">voronoi_i_points</span><span class="p">[</span><span class="n">max_dist_i</span><span class="p">,</span> <span class="p">:][:]</span></div>
+
+
+<div class="viewcode-block" id="identify_sensitive_voronoi_cell"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.identify_sensitive_voronoi_cell">[docs]</a><span class="k">def</span> <span class="nf">identify_sensitive_voronoi_cell</span><span class="p">(</span>
+    <span class="n">surrogates</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span>
+    <span class="n">surrogate_model</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+    <span class="n">points_X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_dim_out</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">test_points_X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">test_points_y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">normalized_responses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">surrogates_nrmse</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">surrogates</span><span class="p">):</span>
+        <span class="n">normalized_responses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">normalized_response</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">points_X</span><span class="p">))</span>
+        <span class="c1"># equation 4 from [2]</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_points_X</span><span class="p">)</span>
+        <span class="n">surrogates_nrmse</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nrmse</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">test_points_y</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]))</span>  <span class="c1"># equation 5</span>
+        <span class="c1"># from [2]</span>
+
+    <span class="n">total_error</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">surrogates_nrmse</span><span class="p">)</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">i</span> <span class="o">/</span> <span class="n">total_error</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">surrogates_nrmse</span><span class="p">])</span>  <span class="c1"># eq.</span>
+    <span class="c1"># 15 from</span>
+    <span class="c1"># [2]</span>
+
+    <span class="c1"># nrmse_sys = max(surrogates_nrmse)  # equation 8 from [2]. not used.</span>
+    <span class="n">kfold</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">kfold_results</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">surrogates</span><span class="p">)))</span>
+    <span class="n">kfold_results_multiout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">k</span><span class="p">))</span>
+    <span class="n">split_indices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># CV approach from [3] to avoid costly surrogate building for higher</span>
+    <span class="c1"># number of points</span>
+    <span class="k">for</span> <span class="n">train_index</span><span class="p">,</span> <span class="n">test_index</span> <span class="ow">in</span> <span class="n">kfold</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">points_X</span><span class="p">):</span>
+        <span class="n">split_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_dim_out</span><span class="p">):</span>
+            <span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span> <span class="o">=</span> <span class="n">points_X</span><span class="p">[</span><span class="n">train_index</span><span class="p">],</span> <span class="n">points_X</span><span class="p">[</span><span class="n">test_index</span><span class="p">]</span>
+            <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">points_y</span><span class="p">[</span><span class="n">train_index</span><span class="p">,</span> <span class="n">s</span><span class="p">],</span> <span class="n">points_y</span><span class="p">[</span><span class="n">test_index</span><span class="p">,</span> <span class="n">s</span><span class="p">]</span>
+
+            <span class="n">s_i</span> <span class="o">=</span> <span class="n">surrogate_model</span><span class="p">()</span>
+            <span class="n">s_i</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">y_pred</span> <span class="o">=</span> <span class="n">s_i</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+            <span class="n">kfold_results</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">kfold_results_multiout</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kfold_results</span><span class="p">)</span>  <span class="c1"># eq. 10 from [3]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">worst_fold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">kfold_results_multiout</span><span class="p">)</span>  <span class="c1"># identify the worst fold</span>
+    <span class="n">worst_point_indices</span> <span class="o">=</span> <span class="n">split_indices</span><span class="p">[</span><span class="n">worst_fold</span><span class="p">]</span>
+    <span class="n">worst_points_X</span> <span class="o">=</span> <span class="n">points_X</span><span class="p">[</span><span class="n">worst_point_indices</span><span class="p">]</span>
+    <span class="n">worst_points_y</span> <span class="o">=</span> <span class="n">points_y</span><span class="p">[</span><span class="n">worst_point_indices</span><span class="p">]</span>
+    <span class="n">cv_error_per_point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">worst_points_X</span><span class="p">),</span> <span class="n">n_dim_out</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">worst_point_indices</span><span class="p">)):</span>
+        <span class="n">X_i</span> <span class="o">=</span> <span class="n">worst_points_X</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">y_i</span> <span class="o">=</span> <span class="n">worst_points_y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="n">idx_exc_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">worst_points_X</span> <span class="o">!=</span> <span class="n">X_i</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">points_X_exc_i</span> <span class="o">=</span> <span class="n">worst_points_X</span><span class="p">[</span><span class="n">idx_exc_i</span><span class="p">]</span>
+        <span class="n">points_y_exc_i</span> <span class="o">=</span> <span class="n">worst_points_y</span><span class="p">[</span><span class="n">idx_exc_i</span><span class="p">]</span>
+
+        <span class="c1"># implements #13 #14 from [2]</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_dim_out</span><span class="p">):</span>
+            <span class="n">s_i</span> <span class="o">=</span> <span class="n">surrogate_model</span><span class="p">()</span>
+            <span class="n">s_i</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">points_X_exc_i</span><span class="p">,</span> <span class="n">points_y_exc_i</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="c1"># predict X[i] with surrogate</span>
+            <span class="n">y_pred</span> <span class="o">=</span> <span class="n">s_i</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_i</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+
+            <span class="n">cv_error_per_point</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+                <span class="n">y_i</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_pred</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">1</span>
+            <span class="p">)</span>  <span class="c1"># eq. 14 from [2]</span>
+
+    <span class="n">max_eij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cv_error_per_point</span><span class="p">)</span>
+
+    <span class="c1"># TODO check axis</span>
+    <span class="n">LOOCV_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cv_error_per_point</span> <span class="o">*</span> <span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">max_eij</span>  <span class="c1">#</span>
+    <span class="c1"># eq. 16 from [2]</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">LOOCV_scores</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="calculate_voronoi_cells"><a class="viewcode-back" href="../../../autoapi/harlow/sampling/cv_voronoi/index.html#harlow.sampling.cv_voronoi.calculate_voronoi_cells">[docs]</a><span class="k">def</span> <span class="nf">calculate_voronoi_cells</span><span class="p">(</span>
+    <span class="n">points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">domain_lower_bound</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">domain_upper_bound</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">n_simulation</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">random_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Estimate the Voronoi tessellation of `points` bounded by</span>
+<span class="sd">    `domain_lower_bound` and `domain_upper_bound`.</span>
+
+<span class="sd">    The algorithm is described in algorithm 1 of [1].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        points:</span>
+<span class="sd">            n_point x n_dim.</span>
+<span class="sd">        domain_lower_bound:</span>
+<span class="sd">            n_dim.</span>
+<span class="sd">        domain_upper_bound:</span>
+<span class="sd">            n_dim</span>
+<span class="sd">        n_simulation:</span>
+<span class="sd">            Number of random points used to estimate the relative volumes. If</span>
+<span class="sd">            `random_points` is provided then this argument is ignored.</span>
+<span class="sd">        random_points:</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Relative volumes in the same order as `points`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># dimensions are not checked</span>
+    <span class="k">if</span> <span class="n">n_simulation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_simulation</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">random_points</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_dim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">domain_lower_bound</span><span class="p">)</span>
+        <span class="n">random_points</span> <span class="o">=</span> <span class="n">domain_lower_bound</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n_simulation</span><span class="p">,</span> <span class="n">n_dim</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">domain_upper_bound</span> <span class="o">-</span> <span class="n">domain_lower_bound</span>
+        <span class="p">)</span>
+    <span class="c1"># TODO CHECK THE RANDOM POINTS INCREASES A LOT !</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Random and points shapes&quot;</span><span class="p">,</span> <span class="n">random_points</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># all relevant distances, n_simulation x n_point</span>
+    <span class="n">distance_mx</span> <span class="o">=</span> <span class="n">cdist</span><span class="p">(</span><span class="n">random_points</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;euclidean&quot;</span><span class="p">)</span>
+
+    <span class="c1"># index of the closest `point` to each `random_point`</span>
+    <span class="n">col_idx_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">distance_mx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">row_idx_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">distance_mx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># indicator matrix to count the number of `random_points` closest to each `points`</span>
+    <span class="n">closest_indicator_mx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">distance_mx</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="c1"># place a one (True) in the indicator matrix if the element (distance) is a closest</span>
+    <span class="c1"># distance</span>
+    <span class="n">closest_indicator_mx</span><span class="p">[</span><span class="n">row_idx_min</span><span class="p">,</span> <span class="n">col_idx_min</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">random_points</span><span class="p">,</span> <span class="n">distance_mx</span><span class="p">,</span> <span class="n">closest_indicator_mx</span></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, TNO
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/scripts/furo.js"></script>
+    <script src="../../../_static/js/custom.js"></script>
+    </body>
+</html>

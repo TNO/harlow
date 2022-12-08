@@ -1,0 +1,794 @@
+:py:mod:`harlow.surrogating.surrogate_model`
+============================================
+
+.. py:module:: harlow.surrogating.surrogate_model
+
+.. autoapi-nested-parse::
+
+   Surrogate model (function) module for fitting (not adaptive) and prediction.
+
+   `f_surrogate(x) ~= f_target(x)` for `R^n -> R^1` functions.
+
+   The main requirements towards each surrogate model are that they:
+   * can be fitted to points from the target function.
+   * can make predictions at user selected points.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.surrogating.surrogate_model.Surrogate
+   harlow.surrogating.surrogate_model.VanillaGaussianProcess
+   harlow.surrogating.surrogate_model.GaussianProcessTFP
+   harlow.surrogating.surrogate_model.GaussianProcessRegression
+   harlow.surrogating.surrogate_model.ModelListGaussianProcess
+   harlow.surrogating.surrogate_model.BatchIndependentGaussianProcess
+   harlow.surrogating.surrogate_model.MultiTaskGaussianProcess
+   harlow.surrogating.surrogate_model.DeepKernelMultiTaskGaussianProcess
+   harlow.surrogating.surrogate_model.NeuralNetwork
+   harlow.surrogating.surrogate_model.BayesianNeuralNetwork
+   harlow.surrogating.surrogate_model.ExactGPModel
+   harlow.surrogating.surrogate_model.MultitaskGPModel
+   harlow.surrogating.surrogate_model.BatchIndependentMultitaskGPModel
+   harlow.surrogating.surrogate_model.LargeFeatureExtractor
+   harlow.surrogating.surrogate_model.DeepKernelLearningGPModel
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.surrogating.surrogate_model.warn
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.surrogating.surrogate_model.tfb
+   harlow.surrogating.surrogate_model.tfd
+   harlow.surrogating.surrogate_model.tfk
+   harlow.surrogating.surrogate_model.show_sklearn_warnings
+   harlow.surrogating.surrogate_model.warn
+
+
+.. py:function:: warn(*args, **kwargs)
+
+
+.. py:data:: tfb
+   
+
+   
+
+.. py:data:: tfd
+   
+
+   
+
+.. py:data:: tfk
+   
+
+   
+
+.. py:data:: show_sklearn_warnings
+   :annotation: = False
+
+   
+
+.. py:data:: warn
+   
+
+   
+
+.. py:class:: Surrogate(input_transform: Optional[harlow.utils.transforms.Transform] = Identity, output_transform: Optional[harlow.utils.transforms.Transform] = Identity, **kwargs)
+
+   Bases: :py:obj:`abc.ABC`
+
+   Abstract base class for the surrogate models. Each surrogate
+   model must initialize the abstact base class using the following
+   statement during initialization:
+
+       super().__init__(
+           input_transform=input_transform,
+           output_transform=output_transform
+       )
+
+   All surrogates must also implement the following methods:
+   * `create_model`
+   * `_fit`
+   * `_predict`
+   * `_update`
+
+   .. py:property:: is_probabilistic
+      :abstractmethod:
+
+
+   .. py:property:: is_multioutput
+      :abstractmethod:
+
+
+   .. py:property:: is_torch
+      :abstractmethod:
+
+
+   .. py:method:: _fit(X, y, **kwargs)
+      :abstractmethod:
+
+
+   .. py:method:: _predict(X, **kwargs) -> Union[numpy.ndarray, torch.tensor]
+      :abstractmethod:
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+      :abstractmethod:
+
+
+   .. py:method:: create_model()
+      :abstractmethod:
+
+
+   .. py:method:: save(destination: pathlib.Path)
+      :abstractmethod:
+
+
+   .. py:method:: load(source: pathlib.Path)
+      :staticmethod:
+      :abstractmethod:
+
+
+   .. py:method:: check_inputs(X, y=None)
+      :staticmethod:
+
+
+   .. py:method:: fit(X: numpy.ndarray, y: numpy.ndarray, **kwargs)
+
+      Calls the `_fit()` method of the surrogate model instance after applying
+      transforms and checking inputs. A user specified surrogate model only
+      has to implement the `_fit()` method. Note that `fit()` is a user-facing
+      method and should not be called from within the class.
+
+
+   .. py:method:: update(X: numpy.ndarray, y: numpy.ndarray, **kwargs)
+
+      Calls the `_update()` method of the surrogate model instance after applying
+      transforms and checking inputs. A user specified surrogate model only
+      has to implement the `_update()` method. Note that `update()` is a user-facing
+      method and should not be called from within the class.
+
+
+   .. py:method:: predict(X: numpy.ndarray, return_std: Optional = False, **kwargs) -> Union[torch.tensor, numpy.ndarray, Tuple[torch.tensor, torch.tensor], Tuple[numpy.ndarray, numpy.ndarray]]
+
+      Calls the `_predict()` method of the surrogate model instance after applying
+      transforms and checking inputs. A user specified surrogate model only
+      has to implement the `_predict()` method. Note that `predict()` is a user-facing
+      method and should not be called from within the class.
+
+
+
+.. py:class:: VanillaGaussianProcess(train_restarts: int = 10, kernel=kernel, noise_std=None, input_transform=Identity, output_transform=Identity, **kwargs)
+
+   Bases: :py:obj:`Surrogate`
+
+   Abstract base class for the surrogate models. Each surrogate
+   model must initialize the abstact base class using the following
+   statement during initialization:
+
+       super().__init__(
+           input_transform=input_transform,
+           output_transform=output_transform
+       )
+
+   All surrogates must also implement the following methods:
+   * `create_model`
+   * `_fit`
+   * `_predict`
+   * `_update`
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = False
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = False
+
+      
+
+   .. py:attribute:: kernel
+      
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: save(destination: pathlib.Path)
+
+
+   .. py:method:: load(source: pathlib.Path)
+      :staticmethod:
+
+
+   .. py:method:: _fit(X, y, **kwargs)
+
+
+   .. py:method:: get_noise()
+
+
+   .. py:method:: _predict(X, return_std=False, **kwargs)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+
+.. py:class:: GaussianProcessTFP(train_iterations=50, input_transform=Identity, output_transform=Identity, **kwargs)
+
+   Bases: :py:obj:`Surrogate`
+
+   Abstract base class for the surrogate models. Each surrogate
+   model must initialize the abstact base class using the following
+   statement during initialization:
+
+       super().__init__(
+           input_transform=input_transform,
+           output_transform=output_transform
+       )
+
+   All surrogates must also implement the following methods:
+   * `create_model`
+   * `_fit`
+   * `_predict`
+   * `_update`
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = False
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = False
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: optimize_parameters(verbose=0)
+
+
+   .. py:method:: target_log_prob(amplitude, length_scale, observation_noise_variance)
+
+
+   .. py:method:: _fit(X, y, **kwargs)
+
+
+   .. py:method:: _predict(X, iterations=50, return_std=False, return_samples=False, **kwargs)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+
+.. py:class:: GaussianProcessRegression(training_max_iter=100, learning_rate=0.1, input_transform=TensorTransform, output_transform=TensorTransform, min_loss_rate=None, optimizer=None, mean=None, covar=None, show_progress=True, silence_warnings=False, fast_pred_var=False, dev=None, **kwargs)
+
+   Bases: :py:obj:`Surrogate`
+
+   DEPRECATED
+
+   Simple Gaussian process regression model using GPyTorch
+
+   .. rubric:: Notes
+
+   * This model must be initialized with data
+   * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+   with its arguments every time it is called.
+   * The `.update(X, y)` method will append the new X and y training tensors
+   to the existing `train_X`, `train_y` and perform the fitting.
+   * Both `.fit()` and `.update()` will re-instantiate a new model. There
+   is likely a better solution to this.
+
+   TODO:
+   * GpyTorch probably has existing functionality for updating and refitting
+   models. This is likely the prefered approach and should replace the current
+   approach where the model is redefined at each call to `fit()` or `.update()`.
+   * Rewrite to use the existing Gaussian process surrogate class
+   * Add type hinting
+   * Improve docstrings
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = False
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = True
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: _fit(train_X, train_y, **kwargs)
+
+
+   .. py:method:: _predict(X_pred, return_std=False, **kwargs)
+
+
+   .. py:method:: sample_posterior(n_samples=1)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+   .. py:method:: get_noise()
+
+
+
+.. py:class:: ModelListGaussianProcess(model_names=None, training_max_iter=100, learning_rate=0.1, input_transform=TensorTransform, output_transform=TensorTransform, min_loss_rate=None, optimizer=None, mean=None, covar=None, list_params=None, show_progress=True, silence_warnings=False, fast_pred_var=False, dev=None)
+
+   Bases: :py:obj:`Surrogate`
+
+   Utility class to generate a surrogate composed of multiple independent
+   Gaussian processes. Currently uses GPyTorch.
+
+   It is assumed that the training inputs are common between the N_task GPs,
+   but not all features are used in each GP.
+
+   .. rubric:: Notes
+
+   * This model must be initialized with data
+   * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+   with its arguments every time it is called.
+   * The `.update(X, y)` method will append the new X and y training tensors
+   to the existing `train_X`, `train_y` and perform the fitting.
+   * Both `.fit()` and `.update()` will re-instantiate a new model. There
+   is likely a better solution to this.
+
+   TODO:
+   * GpyTorch probably has existing functionality for updating and refitting
+   models. This is likely the prefered approach and should replace the current
+   approach where the model is redefined at each call to `fit()` or `.update()`.
+   * Rewrite to use the existing Gaussian process surrogate class
+   * Add type hinting
+   * Improve docstrings
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = True
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: _fit(train_X, train_y, **kwargs)
+
+
+   .. py:method:: _predict(X_pred, return_std=False, as_array=False, **kwargs)
+
+
+   .. py:method:: sample_posterior(n_samples=1)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+   .. py:method:: get_noise()
+
+
+
+.. py:class:: BatchIndependentGaussianProcess(training_max_iter=100, learning_rate=0.1, input_transform=TensorTransform, output_transform=TensorTransform, min_loss_rate=None, optimizer=None, mean=None, covar=None, show_progress=True, silence_warnings=False, fast_pred_var=False, dev=None)
+
+   Bases: :py:obj:`Surrogate`
+
+   Utility class to generate a surrogate composed of multiple independent
+   Gaussian processes with the same covariance and likelihood:
+   https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html
+
+   .. rubric:: Notes
+
+   * This model must be initialized with data
+   * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+   with its arguments every time it is called.
+   * The `.update(X, y)` method will append the new X and y training tensors
+   to the existing `train_X`, `train_y` and perform the fitting.
+   * Both `.fit()` and `.update()` will re-instantiate a new model. There
+   is likely a better solution to this.
+
+   TODO:
+   * GpyTorch probably has existing functionality for updating and refitting
+   models. This is likely the prefered approach and should replace the current
+   approach where the model is redefined at each call to `fit()` or `.update()`.
+   * Rewrite to use the existing Gaussian process surrogate class
+   * Add type hinting
+   * Improve docstrings
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = True
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: _fit(train_X, train_y, **kwargs)
+
+
+   .. py:method:: _predict(X_pred, return_std=False, **kwargs)
+
+
+   .. py:method:: sample_posterior(n_samples=1)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+   .. py:method:: get_noise()
+
+
+
+.. py:class:: MultiTaskGaussianProcess(num_tasks=None, training_max_iter=100, learning_rate=0.1, input_transform=TensorTransform, output_transform=TensorTransform, min_loss_rate=None, optimizer=None, mean=None, covar=None, show_progress=True, silence_warnings=False, fast_pred_var=False, dev=None)
+
+   Bases: :py:obj:`Surrogate`
+
+   !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
+
+   Utility class to generate a surrogate composed of multiple correlated
+   Gaussian processes:
+   https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html
+
+   .. rubric:: Notes
+
+   * This model must be initialized with data
+   * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+   with its arguments every time it is called.
+   * The `.update(X, y)` method will append the new X and y training tensors
+   to the existing `train_X`, `train_y` and perform the fitting.
+   * Both `.fit()` and `.update()` will re-instantiate a new model. There
+   is likely a better solution to this.
+
+   TODO:
+   * GpyTorch probably has existing functionality for updating and refitting
+   models. This is likely the prefered approach and should replace the current
+   approach where the model is redefined at each call to `fit()` or `.update()`.
+   * Rewrite to use the existing Gaussian process surrogate class
+   * Add type hinting
+   * Improve docstrings
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = True
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: _fit(train_X, train_y, **kwargs)
+
+
+   .. py:method:: _predict(X_pred, return_std=False, **kwargs)
+
+
+   .. py:method:: sample_posterior(n_samples=1)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+   .. py:method:: get_noise()
+
+
+
+.. py:class:: DeepKernelMultiTaskGaussianProcess(input_transform=TensorTransform, output_transform=TensorTransform, training_max_iter=100, learning_rate=0.1, min_loss_rate=None, optimizer=None, mean=None, covar=None, show_progress=True, silence_warnings=False, fast_pred_var=False, dev=None, layers=None, num_mixtures=4)
+
+   Bases: :py:obj:`Surrogate`
+
+   !!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!
+
+   MultiTask Deep kernel learning Gaussian process, based on this single-output
+   example:
+   https://docs.gpytorch.ai/en/stable/examples/02_Scalable_Exact_GPs/
+   Simple_GP_Regression_With_LOVE_Fast_Variances_and_Sampling.html
+
+   .. rubric:: Notes
+
+   * This model must be initialized with data
+   * The `.fit(X, y)` method replaces the current `train_X` and `train_y`
+   with its arguments every time it is called.
+   * The `.update(X, y)` method will append the new X and y training tensors
+   to the existing `train_X`, `train_y` and perform the fitting.
+   * Both `.fit()` and `.update()` will re-instantiate a new model. There
+   is likely a better solution to this.
+
+   TODO:
+   * GpyTorch probably has existing functionality for updating and refitting
+   models. This is likely the prefered approach and should replace the current
+   approach where the model is redefined at each call to `fit()` or `.update()`.
+   * Rewrite to use the existing Gaussian process surrogate class
+   * Add type hinting
+   * Improve docstrings
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = True
+
+      
+
+   .. py:method:: create_model()
+
+
+   .. py:method:: _fit(train_X, train_y, **kwargs)
+
+
+   .. py:method:: _predict(X_pred, return_std=False, **kwargs)
+
+
+   .. py:method:: sample_posterior(n_samples=1)
+
+
+   .. py:method:: _update(new_X, new_y, **kwargs)
+
+
+   .. py:method:: get_noise()
+
+
+
+.. py:class:: NeuralNetwork(epochs=10, batch_size=32, loss='mse', input_transform=Identity, output_transform=Identity, **kwargs)
+
+   Bases: :py:obj:`Surrogate`
+
+   Class for Neural Networks.
+   The class takes an uncompiled tensorflow Model, e.g.
+
+
+
+   .. py:attribute:: learning_rate_update
+      :annotation: = 0.001
+
+      
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = False
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = False
+
+      
+
+   .. py:method:: create_model(input_dim=(2, ), output_dim=1, activation='relu', learning_rate=0.01)
+
+
+   .. py:method:: _fit(X, y, **kwargs)
+
+
+   .. py:method:: _update(X_new, y_new, **kwargs)
+
+
+   .. py:method:: _predict(X, **kwargs)
+
+
+
+.. py:class:: BayesianNeuralNetwork(epochs=10, batch_size=32, input_transform=Identity, output_transform=Identity, **kwargs)
+
+   Bases: :py:obj:`Surrogate`
+
+   Abstract base class for the surrogate models. Each surrogate
+   model must initialize the abstact base class using the following
+   statement during initialization:
+
+       super().__init__(
+           input_transform=input_transform,
+           output_transform=output_transform
+       )
+
+   All surrogates must also implement the following methods:
+   * `create_model`
+   * `_fit`
+   * `_predict`
+   * `_update`
+
+   .. py:attribute:: learning_rate_initial
+      :annotation: = 0.01
+
+      
+
+   .. py:attribute:: learning_rate_update
+      :annotation: = 0.001
+
+      
+
+   .. py:attribute:: is_probabilistic
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_multioutput
+      :annotation: = True
+
+      
+
+   .. py:attribute:: is_torch
+      :annotation: = False
+
+      
+
+   .. py:method:: kernel_divergence_fn(q, p, _)
+
+
+   .. py:method:: bias_divergence_fn(q, p, _)
+
+
+   .. py:method:: create_model(input_dim=(2, ), output_dim=1, activation='relu', learning_rate=0.01)
+
+
+   .. py:method:: _fit(X, y, **kwargs)
+
+
+   .. py:method:: _update(X_new, y_new, **kwargs)
+
+
+   .. py:method:: _predict(X, return_std=False, iterations=100, **kwargs)
+
+
+   .. py:method:: get_predictions()
+
+
+
+.. py:class:: ExactGPModel(train_x, train_y, likelihood)
+
+   Bases: :py:obj:`gpytorch.models.ExactGP`, :py:obj:`botorch.models.gpytorch.GPyTorchModel`
+
+   From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/ModelList_GP_Regression.html # noqa: E501
+
+   .. py:attribute:: _num_outputs
+      :annotation: = 1
+
+      
+
+   .. py:method:: forward(x)
+
+
+
+.. py:class:: MultitaskGPModel(train_x, train_y, likelihood, N_tasks)
+
+   Bases: :py:obj:`gpytorch.models.ExactGP`
+
+   From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html # noqa: E501
+
+   .. py:method:: forward(x)
+
+
+
+.. py:class:: BatchIndependentMultitaskGPModel(train_x, train_y, likelihood, N_tasks)
+
+   Bases: :py:obj:`gpytorch.models.ExactGP`
+
+   From: https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html  # noqa: E501
+
+   .. py:method:: forward(x)
+
+
+
+.. py:class:: LargeFeatureExtractor(input_dim, n_features, layers=Optional[list])
+
+   Bases: :py:obj:`torch.nn.Sequential`
+
+   From: https://docs.gpytorch.ai/en/stable/examples/02_Scalable_Exact_GPs/
+   Simple_GP_Regression_With_LOVE_Fast_Variances_and_Sampling.html
+
+
+.. py:class:: DeepKernelLearningGPModel(train_x, train_y, likelihood, N_tasks, n_features, n_mixtures, layers)
+
+   Bases: :py:obj:`gpytorch.models.ExactGP`
+
+   The base class for any Gaussian process latent function to be used in conjunction
+   with exact inference.
+
+   :param torch.Tensor train_inputs: (size n x d) The training features :math:`\mathbf X`.
+   :param torch.Tensor train_targets: (size n) The training targets :math:`\mathbf y`.
+   :param ~gpytorch.likelihoods.GaussianLikelihood likelihood: The Gaussian likelihood that defines
+       the observational distribution. Since we're using exact inference, the likelihood must be Gaussian.
+
+   The :meth:`forward` function should describe how to compute the prior latent distribution
+   on a given input. Typically, this will involve a mean and kernel function.
+   The result must be a :obj:`~gpytorch.distributions.MultivariateNormal`.
+
+   Calling this model will return the posterior of the latent Gaussian process when conditioned
+   on the training data. The output will be a :obj:`~gpytorch.distributions.MultivariateNormal`.
+
+   .. rubric:: Example
+
+   >>> class MyGP(gpytorch.models.ExactGP):
+   >>>     def __init__(self, train_x, train_y, likelihood):
+   >>>         super().__init__(train_x, train_y, likelihood)
+   >>>         self.mean_module = gpytorch.means.ZeroMean()
+   >>>         self.covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+   >>>
+   >>>     def forward(self, x):
+   >>>         mean = self.mean_module(x)
+   >>>         covar = self.covar_module(x)
+   >>>         return gpytorch.distributions.MultivariateNormal(mean, covar)
+   >>>
+   >>> # train_x = ...; train_y = ...
+   >>> likelihood = gpytorch.likelihoods.GaussianLikelihood()
+   >>> model = MyGP(train_x, train_y, likelihood)
+   >>>
+   >>> # test_x = ...;
+   >>> model(test_x)  # Returns the GP latent function at test_x
+   >>> likelihood(model(test_x))  # Returns the (approximate) predictive posterior distribution at test_x
+
+   .. py:method:: forward(x)
+
+
+

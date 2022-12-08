@@ -1,0 +1,146 @@
+:py:mod:`harlow.sampling.sampling_baseclass`
+============================================
+
+.. py:module:: harlow.sampling.sampling_baseclass
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.sampling_baseclass.FailureHandling
+   harlow.sampling.sampling_baseclass.Sampler
+
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.sampling_baseclass.SAMPLER_PROPERTIES_FILE
+
+
+.. py:exception:: TargetFunctionEvaluationFailedException
+
+   Bases: :py:obj:`Exception`
+
+   Common base class for all non-exit exceptions.
+
+
+.. py:class:: FailureHandling
+
+   Bases: :py:obj:`enum.Enum`
+
+   Generic enumeration.
+
+   Derive from this class to define new enumerations.
+
+   .. py:attribute:: fail
+      :annotation: = 0
+
+      
+
+   .. py:attribute:: filter
+      :annotation: = 1
+
+      
+
+   .. py:attribute:: retry
+      :annotation: = 2
+
+      
+
+   .. py:attribute:: retry_new
+      :annotation: = 3
+
+      
+
+
+.. py:data:: SAMPLER_PROPERTIES_FILE
+   :annotation: = sampler_properties.json
+
+   
+
+.. py:class:: Sampler(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', stopping_score: float = None, failure_handling: FailureHandling = FailureHandling.fail)
+
+   Bases: :py:obj:`abc.ABC`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = 0.05, max_n_iterations: int = 5000)
+      :abstractmethod:
+
+
+   .. py:method:: _filter_failed(x: numpy.ndarray, y: numpy.ndarray, s: numpy.array) -> (numpy.ndarray, numpy.ndarray)
+
+
+   .. py:method:: _retry_failed(x: numpy.ndarray, y: numpy.ndarray, s: numpy.array) -> (numpy.ndarray, numpy.ndarray)
+      :abstractmethod:
+
+
+   .. py:method:: _target_function_failure_handling(x: numpy.ndarray, y: numpy.ndarray, s: numpy.array) -> (numpy.ndarray, numpy.ndarray)
+
+
+   .. py:method:: exec_target_function(x: numpy.ndarray) -> (numpy.ndarray, numpy.ndarray)
+
+
+   .. py:method:: observer(X) -> (numpy.ndarray, numpy.array)
+
+      Wrapper for the user-specified `target_function` that checks input
+      and output consistency.
+
+
+   .. py:method:: _stopping_criterium(iteration: int, max_iter: int, last_score: float) -> bool
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+      :abstractmethod:
+
+
+   .. py:method:: _generate_run_name()
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _loop_initialization()
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _loop_iteration(sample_iteration: int, n_new_points_per_interation: int)
+
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: set_test_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _write_results(sample_iteration: int)
+
+
+   .. py:method:: save_surrogates(iterations_folder: pathlib.Path, sample_iteration: int)
+
+
+   .. py:method:: load_surrogates(surrogates_folder: pathlib.Path)
+
+
+   .. py:method:: surrogate_loop(n_new_points_per_interation: int, max_iter: int)
+
+
+

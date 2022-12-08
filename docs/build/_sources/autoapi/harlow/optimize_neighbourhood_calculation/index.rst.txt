@@ -1,0 +1,240 @@
+:py:mod:`harlow.optimize_neighbourhood_calculation`
+===================================================
+
+.. py:module:: harlow.optimize_neighbourhood_calculation
+
+.. autoapi-nested-parse::
+
+   Comparison of different methods for reducing the optimzal neighbourhood
+   calculation time. The different methods are compared for a given random
+   seed to determine:
+
+   * The surrogating wall clock time.
+   * The loss of efficiency caused by the heuristic, if any.
+   * That the optimizations are implemented correctly.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.optimize_neighbourhood_calculation.rmse
+   harlow.optimize_neighbourhood_calculation.create_test_set
+   harlow.optimize_neighbourhood_calculation.run_benchmark
+   harlow.optimize_neighbourhood_calculation.test_sampling_full
+   harlow.optimize_neighbourhood_calculation.test_sampling_median
+   harlow.optimize_neighbourhood_calculation.test_sampling_new
+   harlow.optimize_neighbourhood_calculation.test_sampling_both
+   harlow.optimize_neighbourhood_calculation.dict_to_array
+   harlow.optimize_neighbourhood_calculation.steps_to_array
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.optimize_neighbourhood_calculation.domains_lower_bound
+   harlow.optimize_neighbourhood_calculation.domains_upper_bound
+   harlow.optimize_neighbourhood_calculation.n_initial_point
+   harlow.optimize_neighbourhood_calculation.n_new_points_per_iteration
+   harlow.optimize_neighbourhood_calculation.rmse_criterium
+   harlow.optimize_neighbourhood_calculation.n_iter_sampling
+   harlow.optimize_neighbourhood_calculation.n_iter_runs
+   harlow.optimize_neighbourhood_calculation.npts_grid
+   harlow.optimize_neighbourhood_calculation.x_min
+   harlow.optimize_neighbourhood_calculation.x_max
+   harlow.optimize_neighbourhood_calculation.x
+   harlow.optimize_neighbourhood_calculation.y
+   harlow.optimize_neighbourhood_calculation.Z
+   harlow.optimize_neighbourhood_calculation.full_samples_list
+   harlow.optimize_neighbourhood_calculation.median_sampling_list
+   harlow.optimize_neighbourhood_calculation.new_sampling_list
+   harlow.optimize_neighbourhood_calculation.both_sampling_list
+   harlow.optimize_neighbourhood_calculation.iterations
+   harlow.optimize_neighbourhood_calculation.ql
+   harlow.optimize_neighbourhood_calculation.qh
+   harlow.optimize_neighbourhood_calculation.full_score
+   harlow.optimize_neighbourhood_calculation.median_score
+   harlow.optimize_neighbourhood_calculation.new_score
+   harlow.optimize_neighbourhood_calculation.both_score
+   harlow.optimize_neighbourhood_calculation.full_time
+   harlow.optimize_neighbourhood_calculation.median_time
+   harlow.optimize_neighbourhood_calculation.new_time
+   harlow.optimize_neighbourhood_calculation.both_time
+
+
+.. py:data:: domains_lower_bound
+   
+
+   
+
+.. py:data:: domains_upper_bound
+   
+
+   
+
+.. py:data:: n_initial_point
+   :annotation: = 10
+
+   
+
+.. py:data:: n_new_points_per_iteration
+   :annotation: = 1
+
+   
+
+.. py:data:: rmse_criterium
+   :annotation: = 0.001
+
+   
+
+.. py:data:: n_iter_sampling
+   :annotation: = 25
+
+   
+
+.. py:data:: n_iter_runs
+   :annotation: = 100
+
+   
+
+.. py:function:: rmse(x, y)
+
+
+.. py:function:: create_test_set(min_domain, max_domain, n)
+
+
+.. py:function:: run_benchmark()
+
+
+.. py:function:: test_sampling_full(start_points_X, start_points_y, domain_lower_bound, domain_upper_bound, test_X, test_y, n_iter)
+
+
+.. py:function:: test_sampling_median(start_points_X, start_points_y, domain_lower_bound, domain_upper_bound, test_X, test_y, n_iter)
+
+
+.. py:function:: test_sampling_new(start_points_X, start_points_y, domain_lower_bound, domain_upper_bound, test_X, test_y, n_iter)
+
+
+.. py:function:: test_sampling_both(start_points_X, start_points_y, domain_lower_bound, domain_upper_bound, test_X, test_y, n_iter)
+
+
+.. py:data:: npts_grid
+   :annotation: = 100
+
+   
+
+.. py:data:: x_min
+   
+
+   
+
+.. py:data:: x_max
+   :annotation: = 8.0
+
+   
+
+.. py:data:: x
+   
+
+   
+
+.. py:data:: y
+   
+
+   
+
+.. py:data:: Z
+   
+
+   
+
+.. py:data:: full_samples_list
+   :annotation: = []
+
+   
+
+.. py:data:: median_sampling_list
+   :annotation: = []
+
+   
+
+.. py:data:: new_sampling_list
+   :annotation: = []
+
+   
+
+.. py:data:: both_sampling_list
+   :annotation: = []
+
+   
+
+.. py:function:: dict_to_array(list_of_dicts, key)
+
+
+.. py:function:: steps_to_array(list_of_dicts, key)
+
+
+.. py:data:: iterations
+   
+
+   
+
+.. py:data:: ql
+   :annotation: = 0.1
+
+   
+
+.. py:data:: qh
+   
+
+   
+
+.. py:data:: full_score
+   
+
+   
+
+.. py:data:: median_score
+   
+
+   
+
+.. py:data:: new_score
+   
+
+   
+
+.. py:data:: both_score
+   
+
+   
+
+.. py:data:: full_time
+   
+
+   
+
+.. py:data:: median_time
+   
+
+   
+
+.. py:data:: new_time
+   
+
+   
+
+.. py:data:: both_time
+   
+
+   
+

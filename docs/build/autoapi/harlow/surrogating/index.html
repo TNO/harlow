@@ -1,0 +1,1150 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" />
+
+    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+        <title>harlow.surrogating - Adaptive sampling 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../index.html"><div class="brand">Adaptive sampling 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">Adaptive sampling 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../auto_examples/example_IJssel_model_list_adaptive_sampling.html">ModelListGP example.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../for_contributors.html">For contributors</a></li>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
+<li class="toctree-l3 has-children"><a class="reference internal" href="../sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/SamplingException/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.SamplingException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/bayesian_optimization/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.bayesian_optimization</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/cv_voronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.cv_voronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/fuzzy_lolavoronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.fuzzy_lolavoronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/lola_voronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.lola_voronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/probabilistic_sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.probabilistic_sampling</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/random_sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.random_sampling</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/sampling_baseclass/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.sampling_baseclass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sampling/step_info/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.step_info</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating</span></code></a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="surrogate_model/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating.surrogate_model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../utils/examples/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../utils/examples/model_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_data</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../utils/examples/model_data/truck_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_data.truck_data</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../utils/examples/model_twin_girder_betti/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_twin_girder_betti</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/benchmarks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.benchmarks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/distance/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.helper_functions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/log_writer/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.log_writer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/metrics/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/numba_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.numba_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/test_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.test_functions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../utils/transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.transforms</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../visualization/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.visualization</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../visualization/corner/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.visualization.corner</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../optimize_neighbourhood_calculation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.optimize_neighbourhood_calculation</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="module-harlow.surrogating">
+<span id="harlow-surrogating"></span><h1><a class="reference internal" href="#module-harlow.surrogating" title="harlow.surrogating"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating</span></code></a><a class="headerlink" href="#module-harlow.surrogating" title="Permalink to this headline">#</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">#</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="surrogate_model/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating.surrogate_model</span></code></a></li>
+</ul>
+</div>
+</section>
+<section id="package-contents">
+<h2>Package Contents<a class="headerlink" href="#package-contents" title="Permalink to this headline">#</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">#</a></h3>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess" title="harlow.surrogating.BatchIndependentGaussianProcess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BatchIndependentGaussianProcess</span></code></a></p></td>
+<td><p>Utility class to generate a surrogate composed of multiple independent</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork" title="harlow.surrogating.BayesianNeuralNetwork"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BayesianNeuralNetwork</span></code></a></p></td>
+<td><p>Abstract base class for the surrogate models. Each surrogate</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess" title="harlow.surrogating.DeepKernelMultiTaskGaussianProcess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DeepKernelMultiTaskGaussianProcess</span></code></a></p></td>
+<td><p>!!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP" title="harlow.surrogating.GaussianProcessTFP"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GaussianProcessTFP</span></code></a></p></td>
+<td><p>Abstract base class for the surrogate models. Each surrogate</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess" title="harlow.surrogating.ModelListGaussianProcess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ModelListGaussianProcess</span></code></a></p></td>
+<td><p>Utility class to generate a surrogate composed of multiple independent</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess" title="harlow.surrogating.MultiTaskGaussianProcess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiTaskGaussianProcess</span></code></a></p></td>
+<td><p>!!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#harlow.surrogating.NeuralNetwork" title="harlow.surrogating.NeuralNetwork"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NeuralNetwork</span></code></a></p></td>
+<td><p>Class for Neural Networks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p></td>
+<td><p>Abstract base class for the surrogate models. Each surrogate</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess" title="harlow.surrogating.VanillaGaussianProcess"><code class="xref py py-obj docutils literal notranslate"><span class="pre">VanillaGaussianProcess</span></code></a></p></td>
+<td><p>Abstract base class for the surrogate models. Each surrogate</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">BatchIndependentGaussianProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">training_max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_loss_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">covar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silence_warnings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_pred_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#BatchIndependentGaussianProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>Utility class to generate a surrogate composed of multiple independent
+Gaussian processes with the same covariance and likelihood:
+<a class="reference external" href="https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html">https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Batch_Independent_Multioutput_GP.html</a></p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This model must be initialized with data</p></li>
+<li><p>The <cite>.fit(X, y)</cite> method replaces the current <cite>train_X</cite> and <cite>train_y</cite></p></li>
+</ul>
+<p>with its arguments every time it is called.
+* The <cite>.update(X, y)</cite> method will append the new X and y training tensors
+to the existing <cite>train_X</cite>, <cite>train_y</cite> and perform the fitting.
+* Both <cite>.fit()</cite> and <cite>.update()</cite> will re-instantiate a new model. There
+is likely a better solution to this.</p>
+<p>TODO:
+* GpyTorch probably has existing functionality for updating and refitting
+models. This is likely the prefered approach and should replace the current
+approach where the model is redefined at each call to <cite>fit()</cite> or <cite>.update()</cite>.
+* Rewrite to use the existing Gaussian process surrogate class
+* Add type hinting
+* Improve docstrings</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess.sample_posterior">
+<span class="sig-name descname"><span class="pre">sample_posterior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess.sample_posterior" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BatchIndependentGaussianProcess.get_noise">
+<span class="sig-name descname"><span class="pre">get_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BatchIndependentGaussianProcess.get_noise" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">BayesianNeuralNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#BayesianNeuralNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>Abstract base class for the surrogate models. Each surrogate
+model must initialize the abstact base class using the following
+statement during initialization:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>super().__init__(</dt><dd><p>input_transform=input_transform,
+output_transform=output_transform</p>
+</dd>
+</dl>
+<p>)</p>
+</div></blockquote>
+<p>All surrogates must also implement the following methods:
+* <cite>create_model</cite>
+* <cite>_fit</cite>
+* <cite>_predict</cite>
+* <cite>_update</cite></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.learning_rate_initial">
+<span class="sig-name descname"><span class="pre">learning_rate_initial</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">0.01</span></em><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.learning_rate_initial" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.learning_rate_update">
+<span class="sig-name descname"><span class="pre">learning_rate_update</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">0.001</span></em><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.learning_rate_update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.kernel_divergence_fn">
+<span class="sig-name descname"><span class="pre">kernel_divergence_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.kernel_divergence_fn" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.bias_divergence_fn">
+<span class="sig-name descname"><span class="pre">bias_divergence_fn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.bias_divergence_fn" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(2,)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_new</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_new</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.BayesianNeuralNetwork.get_predictions">
+<span class="sig-name descname"><span class="pre">get_predictions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.BayesianNeuralNetwork.get_predictions" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">DeepKernelMultiTaskGaussianProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_loss_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">covar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silence_warnings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_pred_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_mixtures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#DeepKernelMultiTaskGaussianProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>!!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!</p>
+<p>MultiTask Deep kernel learning Gaussian process, based on this single-output
+example:
+<a class="reference external" href="https://docs.gpytorch.ai/en/stable/examples/02_Scalable_Exact_GPs/">https://docs.gpytorch.ai/en/stable/examples/02_Scalable_Exact_GPs/</a>
+Simple_GP_Regression_With_LOVE_Fast_Variances_and_Sampling.html</p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This model must be initialized with data</p></li>
+<li><p>The <cite>.fit(X, y)</cite> method replaces the current <cite>train_X</cite> and <cite>train_y</cite></p></li>
+</ul>
+<p>with its arguments every time it is called.
+* The <cite>.update(X, y)</cite> method will append the new X and y training tensors
+to the existing <cite>train_X</cite>, <cite>train_y</cite> and perform the fitting.
+* Both <cite>.fit()</cite> and <cite>.update()</cite> will re-instantiate a new model. There
+is likely a better solution to this.</p>
+<p>TODO:
+* GpyTorch probably has existing functionality for updating and refitting
+models. This is likely the prefered approach and should replace the current
+approach where the model is redefined at each call to <cite>fit()</cite> or <cite>.update()</cite>.
+* Rewrite to use the existing Gaussian process surrogate class
+* Add type hinting
+* Improve docstrings</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess.sample_posterior">
+<span class="sig-name descname"><span class="pre">sample_posterior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.sample_posterior" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.DeepKernelMultiTaskGaussianProcess.get_noise">
+<span class="sig-name descname"><span class="pre">get_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.get_noise" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">GaussianProcessTFP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#GaussianProcessTFP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>Abstract base class for the surrogate models. Each surrogate
+model must initialize the abstact base class using the following
+statement during initialization:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>super().__init__(</dt><dd><p>input_transform=input_transform,
+output_transform=output_transform</p>
+</dd>
+</dl>
+<p>)</p>
+</div></blockquote>
+<p>All surrogates must also implement the following methods:
+* <cite>create_model</cite>
+* <cite>_fit</cite>
+* <cite>_predict</cite>
+* <cite>_update</cite></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP.optimize_parameters">
+<span class="sig-name descname"><span class="pre">optimize_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP.optimize_parameters" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP.target_log_prob">
+<span class="sig-name descname"><span class="pre">target_log_prob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">amplitude</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">length_scale</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_noise_variance</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP.target_log_prob" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.GaussianProcessTFP._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.GaussianProcessTFP._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">ModelListGaussianProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_loss_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">covar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silence_warnings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_pred_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#ModelListGaussianProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>Utility class to generate a surrogate composed of multiple independent
+Gaussian processes. Currently uses GPyTorch.</p>
+<p>It is assumed that the training inputs are common between the N_task GPs,
+but not all features are used in each GP.</p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This model must be initialized with data</p></li>
+<li><p>The <cite>.fit(X, y)</cite> method replaces the current <cite>train_X</cite> and <cite>train_y</cite></p></li>
+</ul>
+<p>with its arguments every time it is called.
+* The <cite>.update(X, y)</cite> method will append the new X and y training tensors
+to the existing <cite>train_X</cite>, <cite>train_y</cite> and perform the fitting.
+* Both <cite>.fit()</cite> and <cite>.update()</cite> will re-instantiate a new model. There
+is likely a better solution to this.</p>
+<p>TODO:
+* GpyTorch probably has existing functionality for updating and refitting
+models. This is likely the prefered approach and should replace the current
+approach where the model is redefined at each call to <cite>fit()</cite> or <cite>.update()</cite>.
+* Rewrite to use the existing Gaussian process surrogate class
+* Add type hinting
+* Improve docstrings</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">as_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess.sample_posterior">
+<span class="sig-name descname"><span class="pre">sample_posterior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess.sample_posterior" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.ModelListGaussianProcess.get_noise">
+<span class="sig-name descname"><span class="pre">get_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.ModelListGaussianProcess.get_noise" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">MultiTaskGaussianProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_tasks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">TensorTransform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_loss_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">covar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silence_warnings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fast_pred_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#MultiTaskGaussianProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>!!!!!!!!!!!! IN PROGRESS !!!!!!!!!!!!!!!</p>
+<p>Utility class to generate a surrogate composed of multiple correlated
+Gaussian processes:
+<a class="reference external" href="https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html">https://docs.gpytorch.ai/en/stable/examples/03_Multitask_Exact_GPs/Multitask_GP_Regression.html</a></p>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This model must be initialized with data</p></li>
+<li><p>The <cite>.fit(X, y)</cite> method replaces the current <cite>train_X</cite> and <cite>train_y</cite></p></li>
+</ul>
+<p>with its arguments every time it is called.
+* The <cite>.update(X, y)</cite> method will append the new X and y training tensors
+to the existing <cite>train_X</cite>, <cite>train_y</cite> and perform the fitting.
+* Both <cite>.fit()</cite> and <cite>.update()</cite> will re-instantiate a new model. There
+is likely a better solution to this.</p>
+<p>TODO:
+* GpyTorch probably has existing functionality for updating and refitting
+models. This is likely the prefered approach and should replace the current
+approach where the model is redefined at each call to <cite>fit()</cite> or <cite>.update()</cite>.
+* Rewrite to use the existing Gaussian process surrogate class
+* Add type hinting
+* Improve docstrings</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess.sample_posterior">
+<span class="sig-name descname"><span class="pre">sample_posterior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess.sample_posterior" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.MultiTaskGaussianProcess.get_noise">
+<span class="sig-name descname"><span class="pre">get_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.MultiTaskGaussianProcess.get_noise" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">NeuralNetwork</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#NeuralNetwork"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.NeuralNetwork" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>Class for Neural Networks.
+The class takes an uncompiled tensorflow Model, e.g.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork.learning_rate_update">
+<span class="sig-name descname"><span class="pre">learning_rate_update</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">0.001</span></em><a class="headerlink" href="#harlow.surrogating.NeuralNetwork.learning_rate_update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.NeuralNetwork.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.NeuralNetwork.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.NeuralNetwork.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(2,)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'relu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.NeuralNetwork.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.NeuralNetwork._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_new</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_new</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.NeuralNetwork._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.NeuralNetwork._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.NeuralNetwork._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">Surrogate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../utils/transforms/index.html#harlow.utils.transforms.Transform" title="harlow.utils.transforms.Transform"><span class="pre">harlow.utils.transforms.Transform</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../utils/transforms/index.html#harlow.utils.transforms.Transform" title="harlow.utils.transforms.Transform"><span class="pre">harlow.utils.transforms.Transform</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#Surrogate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.Surrogate" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Abstract base class for the surrogate models. Each surrogate
+model must initialize the abstact base class using the following
+statement during initialization:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>super().__init__(</dt><dd><p>input_transform=input_transform,
+output_transform=output_transform</p>
+</dd>
+</dl>
+<p>)</p>
+</div></blockquote>
+<p>All surrogates must also implement the following methods:
+* <cite>create_model</cite>
+* <cite>_fit</cite>
+* <cite>_predict</cite>
+* <cite>_update</cite></p>
+<dl class="py property">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.is_probabilistic">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_probabilistic</span></span><a class="headerlink" href="#harlow.surrogating.Surrogate.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.is_multioutput">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_multioutput</span></span><a class="headerlink" href="#harlow.surrogating.Surrogate.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.is_torch">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_torch</span></span><a class="headerlink" href="#harlow.surrogating.Surrogate.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate._fit">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate._predict">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">torch.tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#harlow.surrogating.Surrogate._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate._update">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.create_model">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.save">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">destination</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate.save" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.load">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate.load" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.check_inputs">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate.check_inputs" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate.fit" title="Permalink to this definition">#</a></dt>
+<dd><p>Calls the <cite>_fit()</cite> method of the surrogate model instance after applying
+transforms and checking inputs. A user specified surrogate model only
+has to implement the <cite>_fit()</cite> method. Note that <cite>fit()</cite> is a user-facing
+method and should not be called from within the class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.Surrogate.update" title="Permalink to this definition">#</a></dt>
+<dd><p>Calls the <cite>_update()</cite> method of the surrogate model instance after applying
+transforms and checking inputs. A user specified surrogate model only
+has to implement the <cite>_update()</cite> method. Note that <cite>update()</cite> is a user-facing
+method and should not be called from within the class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.Surrogate.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.tensor</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">torch.tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#harlow.surrogating.Surrogate.predict" title="Permalink to this definition">#</a></dt>
+<dd><p>Calls the <cite>_predict()</cite> method of the surrogate model instance after applying
+transforms and checking inputs. A user specified surrogate model only
+has to implement the <cite>_predict()</cite> method. Note that <cite>predict()</cite> is a user-facing
+method and should not be called from within the class.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">harlow.surrogating.</span></span><span class="sig-name descname"><span class="pre">VanillaGaussianProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_restarts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Identity</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/harlow/surrogating/surrogate_model.html#VanillaGaussianProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#harlow.surrogating.Surrogate" title="harlow.surrogating.Surrogate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Surrogate</span></code></a></p>
+<p>Abstract base class for the surrogate models. Each surrogate
+model must initialize the abstact base class using the following
+statement during initialization:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>super().__init__(</dt><dd><p>input_transform=input_transform,
+output_transform=output_transform</p>
+</dd>
+</dl>
+<p>)</p>
+</div></blockquote>
+<p>All surrogates must also implement the following methods:
+* <cite>create_model</cite>
+* <cite>_fit</cite>
+* <cite>_predict</cite>
+* <cite>_update</cite></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.is_probabilistic">
+<span class="sig-name descname"><span class="pre">is_probabilistic</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">True</span></em><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.is_probabilistic" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.is_multioutput">
+<span class="sig-name descname"><span class="pre">is_multioutput</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.is_multioutput" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.is_torch">
+<span class="sig-name descname"><span class="pre">is_torch</span></span><em class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">False</span></em><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.is_torch" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.kernel">
+<span class="sig-name descname"><span class="pre">kernel</span></span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.kernel" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.create_model" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">destination</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.save" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.load">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pathlib.Path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.load" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess._fit">
+<span class="sig-name descname"><span class="pre">_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess._fit" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess.get_noise">
+<span class="sig-name descname"><span class="pre">get_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess.get_noise" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess._predict">
+<span class="sig-name descname"><span class="pre">_predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess._predict" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="harlow.surrogating.VanillaGaussianProcess._update">
+<span class="sig-name descname"><span class="pre">_update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_y</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#harlow.surrogating.VanillaGaussianProcess._update" title="Permalink to this definition">#</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, TNO
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating</span></code></a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#package-contents">Package Contents</a><ul>
+<li><a class="reference internal" href="#classes">Classes</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess">BatchIndependentGaussianProcess</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess.sample_posterior">sample_posterior</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BatchIndependentGaussianProcess.get_noise">get_noise</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork">BayesianNeuralNetwork</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.learning_rate_initial">learning_rate_initial</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.learning_rate_update">learning_rate_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.kernel_divergence_fn">kernel_divergence_fn</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.bias_divergence_fn">bias_divergence_fn</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.BayesianNeuralNetwork.get_predictions">get_predictions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess">DeepKernelMultiTaskGaussianProcess</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.sample_posterior">sample_posterior</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.DeepKernelMultiTaskGaussianProcess.get_noise">get_noise</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP">GaussianProcessTFP</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP.optimize_parameters">optimize_parameters</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP.target_log_prob">target_log_prob</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.GaussianProcessTFP._update">_update</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess">ModelListGaussianProcess</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess.sample_posterior">sample_posterior</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.ModelListGaussianProcess.get_noise">get_noise</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess">MultiTaskGaussianProcess</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess.sample_posterior">sample_posterior</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.MultiTaskGaussianProcess.get_noise">get_noise</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork">NeuralNetwork</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork.learning_rate_update">learning_rate_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.NeuralNetwork._predict">_predict</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate">Surrogate</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate._update">_update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.save">save</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.load">load</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.check_inputs">check_inputs</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.fit">fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.update">update</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.Surrogate.predict">predict</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess">VanillaGaussianProcess</a><ul>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.is_probabilistic">is_probabilistic</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.is_multioutput">is_multioutput</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.is_torch">is_torch</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.kernel">kernel</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.create_model">create_model</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.save">save</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.load">load</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess._fit">_fit</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess.get_noise">get_noise</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess._predict">_predict</a></li>
+<li><a class="reference internal" href="#harlow.surrogating.VanillaGaussianProcess._update">_update</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/scripts/furo.js"></script>
+    <script src="../../../_static/js/custom.js"></script>
+    </body>
+</html>

@@ -1,0 +1,60 @@
+:py:mod:`harlow`
+================
+
+.. py:module:: harlow
+
+
+Subpackages
+-----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 3
+
+   sampling/index.rst
+   surrogating/index.rst
+   utils/index.rst
+   visualization/index.rst
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   optimize_neighbourhood_calculation/index.rst
+
+
+Package Contents
+----------------
+
+.. py:data:: __version__
+   :annotation: = 0.1.0
+
+   
+
+.. py:data:: REAL_TYPE
+   
+
+   
+
+.. py:data:: REAL_VECT_TYPE
+   
+
+   
+
+.. py:data:: RANGE_FACECOLOR
+   :annotation: = blue
+
+   
+
+.. py:data:: PLOT_STYLE
+   :annotation: = seaborn-white
+
+   
+
+.. py:data:: DPI
+   :annotation: = 400
+
+   
+

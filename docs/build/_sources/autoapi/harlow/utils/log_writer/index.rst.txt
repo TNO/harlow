@@ -1,0 +1,26 @@
+:py:mod:`harlow.utils.log_writer`
+=================================
+
+.. py:module:: harlow.utils.log_writer
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.log_writer.write_scores
+   harlow.utils.log_writer.write_timer
+
+
+
+.. py:function:: write_scores(writer, score_dict, iteration)
+
+
+.. py:function:: write_timer(writer, time_dict, iteration)
+
+

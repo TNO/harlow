@@ -1,0 +1,65 @@
+:py:mod:`harlow.visualization.corner`
+=====================================
+
+.. py:module:: harlow.visualization.corner
+
+.. autoapi-nested-parse::
+
+   Corner plot visualization of R^n -> R functions. Plotting interesting 1D and 2D
+   sections.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.visualization.corner.corner
+   harlow.visualization.corner.add_samples_to_cornerplot
+   harlow.visualization.corner.iso_line_2d
+   harlow.visualization.corner.signif_ceil
+   harlow.visualization.corner.signif_floor
+
+
+
+.. py:function:: corner(func: Callable[[numpy.ndarray], numpy.ndarray], support_range: harlow.REAL_VECT_TYPE, title: str = '', n_discr: int = 40, fixed_var_in_support_range: harlow.REAL_TYPE = 0.5, func_label: str = '$f$', dim_labels: List[str] = None, iso_value: harlow.REAL_TYPE = None, rectangular_range: harlow.REAL_VECT_TYPE = None, sample_points: numpy.ndarray = None)
+
+   Corner plot of a function (`func`): interesting 1D and 2D sections.
+   For each subplot, each not plotted independent variable (`x_i`) is fixed to a
+   constant value: `x_i_fix = x_i_support_lower_bound + fixed_var_in_support_range *
+   x_i_support_range`.
+
+
+.. py:function:: add_samples_to_cornerplot(fig, axes, x: numpy.ndarray)
+
+   Add samples to the corner plot
+   :param x: coordinates (samples x features)
+
+
+.. py:function:: iso_line_2d(x_mx, y_mx, z_mx, iso_level)
+
+   Get coordinates for a 2d contour plot.
+   :param x_mx: grid coordinates along the x-axis.
+   :param y_mx: grid coordinates along the y-axis.
+   :param z_mx: grid coordinates along the z-axis.
+   :param iso_level: z value for which the contour plot is obtained.
+
+   :returns: array of coordinates of the credible region.
+   :rtype: p
+
+
+.. py:function:: signif_ceil(x, digits: int = 3)
+
+   x = sci_coeff * 10**sci_exp
+
+
+.. py:function:: signif_floor(x, digits: int = 3)
+
+   x = sci_coeff * 10**sci_exp
+
+

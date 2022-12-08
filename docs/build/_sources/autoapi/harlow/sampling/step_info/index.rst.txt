@@ -1,0 +1,22 @@
+:py:mod:`harlow.sampling.step_info`
+===================================
+
+.. py:module:: harlow.sampling.step_info
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.step_info.StepInfo
+
+
+
+
+.. py:class:: StepInfo(x: numpy.ndarray, y: numpy.ndarray, score, target_func_time, gen_time, fit_time)
+
+

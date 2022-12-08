@@ -1,0 +1,36 @@
+:py:mod:`harlow.sampling.random_sampling`
+=========================================
+
+.. py:module:: harlow.sampling.random_sampling
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.random_sampling.LatinHypercube
+
+
+
+
+.. py:class:: LatinHypercube(target_function, surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output')
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Latin Hypercube Sampler
+
+   Lathin hypercube sampler is a space filling random sampler. This sampler
+   is non-sequenctial.
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = None, max_n_iterations: int = 20, n_new_points_per_iteration: int = 10, stopping_criterium: float = None)
+
+
+

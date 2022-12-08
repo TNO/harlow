@@ -1,0 +1,655 @@
+<!doctype html>
+<html class="no-js">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../../genindex.html" /><link rel="search" title="Search" href="../../../../search.html" />
+
+    <meta name="generator" content="sphinx-4.5.0, furo 2022.09.29"/>
+        <title>harlow.utils.examples.model_twin_girder_betti - Adaptive sampling 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo.css?digest=d81277517bee4d6b0349d71bb2661d4890b5617c" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-binder.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-dataframe.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/sg_gallery-rendered-html.css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../../../index.html"><div class="brand">Adaptive sampling 0.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../../../index.html">
+  
+  
+  <span class="sidebar-brand-text">Adaptive sampling 0.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../../../search.html" role="search">
+  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../auto_examples/index.html">Examples</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../auto_examples/example_IJssel_model_list_adaptive_sampling.html">ModelListGP example.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../for_contributors.html">For contributors</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../../autoapi/index.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../../autoapi/harlow/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/harlow/sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/SamplingException/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.SamplingException</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/bayesian_optimization/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.bayesian_optimization</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/cv_voronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.cv_voronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/fuzzy_lolavoronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.fuzzy_lolavoronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/lola_voronoi/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.lola_voronoi</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/probabilistic_sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.probabilistic_sampling</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/random_sampling/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.random_sampling</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/sampling_baseclass/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.sampling_baseclass</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/sampling/step_info/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.sampling.step_info</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/harlow/surrogating/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/surrogating/surrogate_model/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.surrogating.surrogate_model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/harlow/utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="../../../../autoapi/harlow/utils/examples/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5 has-children"><a class="reference internal" href="../../../../autoapi/harlow/utils/examples/model_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_data</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../../../autoapi/harlow/utils/examples/model_data/truck_data/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_data.truck_data</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.examples.model_twin_girder_betti</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/benchmarks/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.benchmarks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/distance/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/helper_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.helper_functions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/log_writer/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.log_writer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/metrics/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.metrics</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/numba_utils/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.numba_utils</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/test_functions/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.test_functions</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/utils/transforms/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.utils.transforms</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../../autoapi/harlow/visualization/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.visualization</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../autoapi/harlow/visualization/corner/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.visualization.corner</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../autoapi/harlow/optimize_neighbourhood_calculation/index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">harlow.optimize_neighbourhood_calculation</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for harlow.utils.examples.model_twin_girder_betti</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">IJsselbridge twin girder Euler-Bernoulli beam model.</span>
+
+<span class="sd">This modified model does not have a Julia dependency, but instead</span>
+<span class="sd">loads the pre-computed stiffness matrix.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># IMPORTS</span>
+<span class="c1"># ============================================================================</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span><span class="p">,</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">jit</span>
+<span class="kn">from</span> <span class="nn">scipy.linalg</span> <span class="kn">import</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">cho_solve</span>
+
+<span class="kn">from</span> <span class="nn">harlow.utils.examples.model_data.truck_data</span> <span class="kn">import</span> <span class="o">*</span>  <span class="c1"># noqa: F403</span>
+
+
+<span class="c1"># ============================================================================</span>
+<span class="c1"># FEM SOLVE FUNCTIONS</span>
+<span class="c1"># ============================================================================</span>
+<div class="viewcode-block" id="lateral_load_func"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.lateral_load_func">[docs]</a><span class="k">def</span> <span class="nf">lateral_load_func</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+
+    <span class="c1"># If c is a single value, assumes its a linear coefficient. otherwise its</span>
+    <span class="c1"># assumed to be the n coefficients of a polynomial</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">c</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mf">2.85</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">z</span> <span class="o">-</span> <span class="mf">2.85</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">z</span> <span class="o">-</span> <span class="mf">2.85</span><span class="p">)</span></div>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="find_nearest"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.find_nearest">[docs]</a><span class="k">def</span> <span class="nf">find_nearest</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="c1"># By default in case of multiple equal values the first is returned</span>
+    <span class="c1"># (see numpy documentation for argmin())</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+        <span class="n">idx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">array</span> <span class="o">-</span> <span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">idx</span></div>
+
+
+<div class="viewcode-block" id="find_all"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.find_all">[docs]</a><span class="k">def</span> <span class="nf">find_all</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">))</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+        <span class="n">idx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">array</span> <span class="o">==</span> <span class="n">val</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></div>
+
+
+<span class="c1"># @jit(nopython = True)</span>
+<div class="viewcode-block" id="betti"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.betti">[docs]</a><span class="k">def</span> <span class="nf">betti</span><span class="p">(</span><span class="n">nnode</span><span class="p">,</span> <span class="n">cho_factor</span><span class="p">,</span> <span class="n">W_sensor</span><span class="p">,</span> <span class="n">hinge_node</span><span class="p">,</span> <span class="n">hinge_left_node</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">idx_keep</span><span class="p">):</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">nnode</span><span class="p">)</span>
+
+    <span class="c1"># Note: Given equal Ks and fs, both the cholesky and conventional solve</span>
+    <span class="c1"># will give slightly different results than the corresponding Julia</span>
+    <span class="c1"># solve: us = Ks \ fs.</span>
+    <span class="n">us</span> <span class="o">=</span> <span class="n">cho_solve</span><span class="p">(</span><span class="n">cho_factor</span><span class="p">,</span> <span class="n">fs</span><span class="p">,</span> <span class="n">check_finite</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">u</span><span class="p">[</span><span class="n">idx_keep</span><span class="p">]</span> <span class="o">=</span> <span class="n">us</span>
+    <span class="n">r_hinge</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="n">hinge_left_node</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">u</span><span class="p">[</span><span class="n">hinge_node</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># scale to unit hinge rotation</span>
+    <span class="n">m_b_1</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">r_hinge</span> <span class="o">*</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">::</span><span class="mi">4</span><span class="p">]</span>
+    <span class="n">m_b_2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">r_hinge</span> <span class="o">*</span> <span class="n">u</span><span class="p">[</span><span class="mi">2</span><span class="p">::</span><span class="mi">4</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">m_b_1</span><span class="p">,</span> <span class="n">m_b_2</span><span class="p">])</span> <span class="o">/</span> <span class="n">W_sensor</span></div>
+
+
+<div class="viewcode-block" id="solve_inf_line"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.solve_inf_line">[docs]</a><span class="k">def</span> <span class="nf">solve_inf_line</span><span class="p">(</span><span class="n">m_b</span><span class="p">,</span> <span class="n">axle_pos_x</span><span class="p">,</span> <span class="n">node_xs</span><span class="p">,</span> <span class="n">loads</span><span class="p">):</span>
+    <span class="n">stress_1</span> <span class="o">=</span> <span class="n">loads</span><span class="p">[:]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">axle_pos_x</span><span class="p">[:],</span> <span class="n">node_xs</span><span class="p">,</span> <span class="n">m_b</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">stress_2</span> <span class="o">=</span> <span class="n">loads</span><span class="p">[:]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">axle_pos_x</span><span class="p">[:],</span> <span class="n">node_xs</span><span class="p">,</span> <span class="n">m_b</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">stress_1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">stress_2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<span class="c1"># ====================================================================</span>
+<span class="c1"># INITIALIZATION</span>
+<span class="c1"># ====================================================================</span>
+<div class="viewcode-block" id="IJssel_bridge_model"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.IJssel_bridge_model">[docs]</a><span class="k">class</span> <span class="nc">IJssel_bridge_model</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sensor_name</span><span class="p">,</span>
+        <span class="n">E</span><span class="p">,</span>
+        <span class="n">max_elem_length</span><span class="p">,</span>
+        <span class="n">truck_load</span><span class="o">=</span><span class="s2">&quot;TNO&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># ====================================================================</span>
+        <span class="c1"># INITIALIZATION</span>
+        <span class="c1"># ====================================================================</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_name</span> <span class="o">=</span> <span class="n">sensor_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_elem_length</span> <span class="o">=</span> <span class="n">max_elem_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truck_load</span> <span class="o">=</span> <span class="n">truck_load</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E</span> <span class="o">=</span> <span class="n">E</span>
+
+        <span class="c1"># Load model data</span>
+        <span class="n">fpath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;model_dict#max_elem_length=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_elem_length</span><span class="si">}</span><span class="s2">#E=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">E</span><span class="si">}</span><span class="s2">.dat&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">fpath</span> <span class="o">/</span> <span class="s2">&quot;model_data&quot;</span> <span class="o">/</span> <span class="n">fname</span><span class="p">),</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+            <span class="n">model_properties</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+
+        <span class="c1"># Get sensor names and positions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_names</span> <span class="o">=</span> <span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;sensor_names&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_positions</span> <span class="o">=</span> <span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;sensor_positions&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Get sensor index and position for this model</span>
+        <span class="n">idx_sensor</span> <span class="o">=</span> <span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;sensor_names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sensor_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_position</span> <span class="o">=</span> <span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;sensor_positions&quot;</span><span class="p">][</span><span class="n">idx_sensor</span><span class="p">]</span>
+
+        <span class="c1"># Check that the requested sensor exists</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor_names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Specified sensor name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sensor_name</span><span class="si">}</span><span class="s2"> not found in&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sensor_names</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Keep model properties for requested sensor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span> <span class="o">=</span> <span class="n">model_properties</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sensor_name</span><span class="p">]</span>
+
+        <span class="c1"># ====================================================================</span>
+        <span class="c1"># STRUCTURE PROPERTIES FROM JULIA MODEL</span>
+        <span class="c1"># ====================================================================</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hinge_left_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;hinge_left_pos&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">support_xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;support_xs&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;node_xs&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elem_c_ys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;elem_c_ys&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elem_h_ys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;elem_h_ys&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elem_I_zs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;elem_I_zs&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Element stiffness</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elem_EIs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">elem_I_zs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">E</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W_bot_temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">elem_I_zs</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elem_h_ys</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">elem_c_ys</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">elem_W_bottom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">W_bot_temp</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nelems</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elem_EIs</span><span class="p">)</span>
+
+        <span class="c1"># NOTE: This gives the closest node.</span>
+        <span class="c1"># It does not ensure that sensor_pos == node_pos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sensor_node</span> <span class="o">=</span> <span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor_position</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hinge_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sensor_node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hinge_left_node</span> <span class="o">=</span> <span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">hinge_left_pos</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W_sensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">elem_W_bottom</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sensor_node</span><span class="p">]</span>
+
+        <span class="c1"># Load stiffness matrix, nodes, spring positions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ks0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;Ks0&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_keep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;idx_keep&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lin_idx_springs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_properties</span><span class="p">[</span><span class="s2">&quot;lin_idx_springs&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Convert the flat, 1-indexed indices from Julia into numpy indices</span>
+        <span class="n">K_shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks0</span><span class="p">)</span>
+        <span class="n">lin_idx_spring_off_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lin_idx_springs</span><span class="p">[</span><span class="s2">&quot;off_diag&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">lin_idx_spring_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lin_idx_springs</span><span class="p">[</span><span class="s2">&quot;diag&quot;</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_spring_off_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">lin_idx_spring_off_diag</span><span class="p">,</span> <span class="n">K_shape</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_spring_diag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">lin_idx_spring_diag</span><span class="p">,</span> <span class="n">K_shape</span><span class="p">)</span>
+
+        <span class="c1"># TODO: Use sparse matrices for Ks to improve performance.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nnode</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndof</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">support_nodes</span> <span class="o">=</span> <span class="n">find_all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">support_xs</span><span class="p">)</span>
+
+        <span class="c1"># Boolean masking for applying rotational stiffnesses to Ks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ks_stiff_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">nnode</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ks_stiff_mask</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">support_nodes</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ks_stiff_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ks_stiff_mask</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_keep</span><span class="p">]</span>
+
+        <span class="c1"># Copy and factorize Ks. Ks and K are related as follows:</span>
+        <span class="c1"># # Ks = K[idx_keep][:, idx_keep]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ks</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ks_factor</span> <span class="o">=</span> <span class="n">cho_factor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks</span><span class="p">)</span>
+
+        <span class="c1"># Precalculate unit load pair for betti theorem</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nnode</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">f</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hinge_left_node</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e6</span>
+        <span class="n">f</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hinge_node</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_keep</span><span class="p">]</span>
+
+        <span class="c1"># Precalculate unit influence line</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_il</span> <span class="o">=</span> <span class="n">betti</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nnode</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Ks_factor</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">W_sensor</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sensor_node</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hinge_left_node</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">idx_keep</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># ====================================================================</span>
+        <span class="c1"># TRUCK DATA</span>
+        <span class="c1">#</span>
+        <span class="c1"># The truck data corresponding to &#39;TNO&#39; or &#39;fugro&#39; measurements is</span>
+        <span class="c1"># loaded. Default is &#39;TNO&#39;.</span>
+        <span class="c1"># ====================================================================</span>
+
+        <span class="c1"># Wheel z positions</span>
+        <span class="n">z_truck_r_wheel_r</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;right&quot;</span><span class="p">][</span><span class="s2">&quot;z_wheel_r&quot;</span><span class="p">]</span>  <span class="c1"># noqa: F405</span>
+        <span class="n">z_truck_r_wheel_l</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;right&quot;</span><span class="p">][</span><span class="s2">&quot;z_wheel_l&quot;</span><span class="p">]</span>  <span class="c1"># noqa: F405</span>
+        <span class="n">z_truck_l_wheel_r</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;left&quot;</span><span class="p">][</span><span class="s2">&quot;z_wheel_r&quot;</span><span class="p">]</span>  <span class="c1"># noqa: F405</span>
+        <span class="n">z_truck_l_wheel_l</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;left&quot;</span><span class="p">][</span><span class="s2">&quot;z_wheel_l&quot;</span><span class="p">]</span>  <span class="c1"># noqa: F405</span>
+
+        <span class="c1"># Forces</span>
+        <span class="n">right_truck_force</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;right&quot;</span><span class="p">][</span><span class="s2">&quot;force&quot;</span><span class="p">]</span>  <span class="c1"># noqa: F405</span>
+        <span class="n">left_truck_force</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;left&quot;</span><span class="p">][</span><span class="s2">&quot;force&quot;</span><span class="p">]</span>  <span class="c1"># noqa: F405</span>
+
+        <span class="c1"># Axle distances</span>
+        <span class="n">right_truck_axle_dist_x</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;right&quot;</span><span class="p">][</span>  <span class="c1"># noqa: F405</span>
+            <span class="s2">&quot;axle_dist&quot;</span>
+        <span class="p">]</span>
+        <span class="n">left_truck_axle_dist_x</span> <span class="o">=</span> <span class="n">truck_data</span><span class="p">[</span><span class="n">truck_load</span><span class="p">][</span><span class="s2">&quot;left&quot;</span><span class="p">][</span>  <span class="c1"># noqa: F405</span>
+            <span class="s2">&quot;axle_dist&quot;</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Create objects holding the parameter values for left, right and double</span>
+        <span class="c1"># case. This is to avoid the if-else statements that were used previously.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truck_z</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;left&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">z_truck_l_wheel_r</span><span class="p">,</span> <span class="n">z_truck_l_wheel_l</span><span class="p">],</span>
+            <span class="s2">&quot;right&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">z_truck_r_wheel_r</span><span class="p">,</span> <span class="n">z_truck_r_wheel_l</span><span class="p">],</span>
+            <span class="s2">&quot;double&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">z_truck_r_wheel_r</span><span class="p">,</span>
+                <span class="n">z_truck_r_wheel_l</span><span class="p">,</span>
+                <span class="n">z_truck_l_wheel_r</span><span class="p">,</span>
+                <span class="n">z_truck_l_wheel_l</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truck_force</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;left&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">left_truck_force</span><span class="p">),</span>
+            <span class="s2">&quot;right&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">right_truck_force</span><span class="p">),</span>
+            <span class="s2">&quot;double&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">right_truck_force</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">left_truck_force</span><span class="p">))</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">truck_axle_dist</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;left&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">left_truck_axle_dist_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+            <span class="s2">&quot;right&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">right_truck_axle_dist_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+            <span class="s2">&quot;double&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">right_truck_axle_dist_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">left_truck_axle_dist_x</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="c1"># ====================================================================</span>
+        <span class="c1"># PRECALCULATE LOAD PATHS AND INFLUENCE LINES</span>
+        <span class="c1">#</span>
+        <span class="c1"># NOTES:</span>
+        <span class="c1">#   * This is not optimized for speed. This should not be a problem</span>
+        <span class="c1">#   since this only runs once on model initialization.</span>
+        <span class="c1"># ====================================================================</span>
+
+        <span class="c1"># Dictionaries to store precalculation output</span>
+        <span class="n">all_paths</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">,</span> <span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="s2">&quot;double&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_truck_load</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">all_paths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axle_pos_x</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">all_paths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loaded_nodes</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">all_paths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loads</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">all_paths</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">_i</span><span class="p">,</span> <span class="n">lane</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_paths</span><span class="p">):</span>
+
+            <span class="c1"># Assemble the vectors of loads and axle distances</span>
+            <span class="n">loads</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truck_force</span><span class="p">[</span><span class="n">lane</span><span class="p">])</span>
+            <span class="n">axle_dist_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truck_axle_dist</span><span class="p">[</span><span class="n">lane</span><span class="p">])</span>
+            <span class="n">ax_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">axle_dist_x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:])</span>
+            <span class="n">load_i</span> <span class="o">=</span> <span class="n">loads</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="n">ax_pos</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">l_node</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">)):</span>
+                <span class="c1"># For each load position sum the corresponding moments from the il and</span>
+                <span class="c1"># calculate the stress at the sensor position</span>
+                <span class="n">curr_pos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">ax_dist</span><span class="p">)</span>
+                <span class="n">ax_pos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_pos</span><span class="p">)</span>
+                <span class="n">l_node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">find_nearest</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">,</span> <span class="n">curr_pos</span><span class="p">))</span>
+
+                <span class="c1"># Make load zero for points that have not fully entererd the st</span>
+                <span class="c1"># ructure yet</span>
+                <span class="n">temp_load</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">load_i</span><span class="p">)</span>
+                <span class="n">temp_load</span><span class="p">[</span><span class="n">curr_pos</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">load</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_load</span><span class="p">)</span>
+
+            <span class="c1"># Append to global list</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axle_pos_x</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span> <span class="o">=</span> <span class="n">ax_pos</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loaded_nodes</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span> <span class="o">=</span> <span class="n">l_node</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loads</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span> <span class="o">=</span> <span class="n">load</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_truck_load</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+                <span class="n">solve_inf_line</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">unit_il</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axle_pos_x</span><span class="p">[</span><span class="n">lane</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loads</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span>
+                <span class="p">),</span>
+                <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truck_z</span><span class="p">[</span><span class="n">lane</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="c1"># ========================================================================</span>
+    <span class="c1"># DEFINE FUNCTIONS</span>
+    <span class="c1"># ========================================================================</span>
+
+<div class="viewcode-block" id="IJssel_bridge_model.il_stress_truckload"><a class="viewcode-back" href="../../../../autoapi/harlow/utils/examples/model_twin_girder_betti/index.html#harlow.utils.examples.model_twin_girder_betti.IJssel_bridge_model.il_stress_truckload">[docs]</a>    <span class="k">def</span> <span class="nf">il_stress_truckload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">lane</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Kr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Kv</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate influence line</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">           c: Lateral load coefficient</span>
+<span class="sd">           lane: String, can be &quot;left&quot; or &quot;right&quot;</span>
+<span class="sd">           Kr: Vector with 12 elements containing the</span>
+<span class="sd">           support rotational stiffnesses. If omitted, the</span>
+<span class="sd">           last calculated rotational stiffness vector is used</span>
+<span class="sd">           Kv: Scalar vertical spring stiffness</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check if stiffnesses have been updated, if yes, update the il</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">lane</span> <span class="o">==</span> <span class="s2">&quot;double&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">lane</span> <span class="o">==</span> <span class="s2">&quot;Double&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not implemented&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">Kr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">Kv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+
+            <span class="c1"># Add new stiffnesses to stiffness matrix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Ks</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Ks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks_stiff_mask</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ks_stiff_mask</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">Kr</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Ks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_spring_diag</span><span class="p">]</span> <span class="o">+=</span> <span class="n">Kv</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Ks</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">idx_spring_off_diag</span><span class="p">]</span> <span class="o">-=</span> <span class="n">Kv</span>
+
+            <span class="c1"># Factorize</span>
+            <span class="n">Ks_factor</span> <span class="o">=</span> <span class="n">cho_factor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Ks</span><span class="p">)</span>
+
+            <span class="c1"># Calculate new influence line</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unit_il</span> <span class="o">=</span> <span class="n">betti</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nnode</span><span class="p">,</span>
+                <span class="n">Ks_factor</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">W_sensor</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sensor_node</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hinge_left_node</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">idx_keep</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="c1"># The returned stress arrays contain two stress influence lines for each</span>
+        <span class="c1"># truck z value. lines [0::2] correspond to the right girder stress and</span>
+        <span class="c1"># lines [1::2] correspond to the left girder stress</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_truck_load</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+            <span class="n">solve_inf_line</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">unit_il</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">axle_pos_x</span><span class="p">[</span><span class="n">lane</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loads</span><span class="p">[</span><span class="n">lane</span><span class="p">]</span>
+            <span class="p">),</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truck_z</span><span class="p">[</span><span class="n">lane</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="n">stress</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_xs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">z</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truck_z</span><span class="p">[</span><span class="n">lane</span><span class="p">]):</span>
+            <span class="n">stress</span> <span class="o">+=</span> <span class="n">lateral_load_func</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_truck_load</span><span class="p">[</span><span class="n">lane</span><span class="p">][</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">stress</span> <span class="o">+=</span> <span class="n">lateral_load_func</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="n">c</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_truck_load</span><span class="p">[</span><span class="n">lane</span><span class="p">][</span><span class="mi">2</span> <span class="o">*</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="k">return</span> <span class="n">stress</span> <span class="o">/</span> <span class="mi">1000</span>  <span class="c1"># Return stress in MPa</span></div></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2022, TNO
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            <div class="icons">
+              
+            </div>
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/scripts/furo.js"></script>
+    <script src="../../../../_static/js/custom.js"></script>
+    </body>
+</html>

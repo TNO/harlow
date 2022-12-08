@@ -1,0 +1,46 @@
+:py:mod:`harlow.utils.metrics`
+==============================
+
+.. py:module:: harlow.utils.metrics
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.metrics._rrse
+   harlow.utils.metrics.nrmse
+   harlow.utils.metrics.rrse
+   harlow.utils.metrics.rmse
+   harlow.utils.metrics.logrmse
+   harlow.utils.metrics.mae
+
+
+
+.. py:function:: _rrse(x, y)
+
+
+.. py:function:: nrmse(predictions: numpy.ndarray, test_points_y: numpy.ndarray)
+
+   normalized root mean square error
+
+
+.. py:function:: rrse(actual: numpy.ndarray, predicted: numpy.ndarray)
+
+   Root Relative Squared Error
+
+
+.. py:function:: rmse(x, y)
+
+
+.. py:function:: logrmse(x, y)
+
+
+.. py:function:: mae(x, y)
+
+

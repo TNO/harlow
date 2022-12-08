@@ -1,0 +1,16 @@
+:py:mod:`harlow.sampling.SamplingException`
+===========================================
+
+.. py:module:: harlow.sampling.SamplingException
+
+
+Module Contents
+---------------
+
+.. py:exception:: SamplingException
+
+   Bases: :py:obj:`Exception`
+
+   Common base class for all non-exit exceptions.
+
+

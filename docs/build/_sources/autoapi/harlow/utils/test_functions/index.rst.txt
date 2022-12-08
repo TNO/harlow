@@ -1,0 +1,114 @@
+:py:mod:`harlow.utils.test_functions`
+=====================================
+
+.. py:module:: harlow.utils.test_functions
+
+.. autoapi-nested-parse::
+
+   Target functions for testing.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.test_functions.lldeh_1d
+   harlow.utils.test_functions.peaks_2d
+   harlow.utils.test_functions.peaks_2d_multivariate
+   harlow.utils.test_functions.ackley_nd
+   harlow.utils.test_functions.six_hump_camel_2D
+   harlow.utils.test_functions.six_hump_camel_2D_2input
+   harlow.utils.test_functions.forrester_1d
+   harlow.utils.test_functions.bohachevsky_2D
+   harlow.utils.test_functions.shekel
+   harlow.utils.test_functions.hartmann
+   harlow.utils.test_functions.stybtang
+   harlow.utils.test_functions.F_3
+   harlow.utils.test_functions.F_4
+   harlow.utils.test_functions.F_5
+   harlow.utils.test_functions.F_6
+   harlow.utils.test_functions.F_3_6
+   harlow.utils.test_functions.F_3_4_6
+   harlow.utils.test_functions.F_4_5_6
+
+
+
+.. py:function:: lldeh_1d(x: numpy.ndarray, a: float) -> numpy.ndarray
+
+   An interesting 1D non-linear function.
+
+   Source: https://www.reddit.com/r/math/comments/5mwr9g/what_are_your_favourite_or_most_interesting/  # noqa E301
+   :param x:
+   :param a: parameter to control the shape, interesting variants: a=0, a=2.1
+
+   Returns:
+
+
+
+.. py:function:: peaks_2d(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: peaks_2d_multivariate(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: ackley_nd(x_mx: numpy.ndarray, a: float = 20.0, b: float = 0.2, c: float = 2 * np.pi) -> numpy.ndarray
+
+   n-dimensional Ackley function based on https://www.sfu.ca/~ssurjano/ackley.html.
+
+   :param x_mx: Independent variable values, [x1, x2, ..., xd], vectorized input is
+                supported (provide them along the row dimension).
+   :param a: Constant/parameter in the function.
+   :param b: Constant/parameter in the function.
+   :param c: Constant/parameter in the function.
+
+   :returns: Dependent variable values.
+
+
+.. py:function:: six_hump_camel_2D(X: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: six_hump_camel_2D_2input(x: numpy.ndarray, y: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: forrester_1d(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: bohachevsky_2D(X: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: shekel(X: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: hartmann(X: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: stybtang(X: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_3(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_4(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_5(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_6(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_3_6(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_3_4_6(x: numpy.ndarray) -> numpy.ndarray
+
+
+.. py:function:: F_4_5_6(x: numpy.ndarray) -> numpy.ndarray
+
+

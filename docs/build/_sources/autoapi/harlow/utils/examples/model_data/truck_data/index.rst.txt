@@ -1,0 +1,159 @@
+:py:mod:`harlow.utils.examples.model_data.truck_data`
+=====================================================
+
+.. py:module:: harlow.utils.examples.model_data.truck_data
+
+.. autoapi-nested-parse::
+
+   Creates a dictionary with truck information for influence line calculation. Two
+   setups are included: the single sensor TNO measurement setup used initially
+   and the additional fugro sensors.
+
+   STRUCTURE:
+       truck_data -> series -> lane -> data
+
+
+
+Module Contents
+---------------
+
+.. py:data:: keys_data
+   :annotation: = ['force', 'axle_dist', 'center_z', 'wheel_z_dist']
+
+   
+
+.. py:data:: keys_lane
+   :annotation: = ['left', 'right']
+
+   
+
+.. py:data:: keys_series
+   :annotation: = ['TNO', 'fugro', 'uniform']
+
+   
+
+.. py:data:: truck_data
+   
+
+   
+
+.. py:data:: right_truck_force
+   
+
+   
+
+.. py:data:: right_truck_axle_dist_x
+   
+
+   
+
+.. py:data:: right_truck_center_z
+   
+
+   
+
+.. py:data:: right_truck_wheel_z_dist
+   :annotation: = 2.15
+
+   
+
+.. py:data:: right_truck_num_axle
+   
+
+   
+
+.. py:data:: left_truck_force
+   
+
+   
+
+.. py:data:: left_truck_axle_dist_x
+   
+
+   
+
+.. py:data:: left_truck_center_z
+   
+
+   
+
+.. py:data:: left_truck_wheel_z_dist
+   
+
+   
+
+.. py:data:: left_truck_num_axle
+   
+
+   
+
+.. py:data:: right_ax_flatlist
+   
+
+   
+
+.. py:data:: right_ax_flatlist
+   
+
+   
+
+.. py:data:: right_truck_x
+   
+
+   
+
+.. py:data:: right_truck_z
+   
+
+   
+
+.. py:data:: left_ax_flatlist
+   
+
+   
+
+.. py:data:: left_ax_flatlist
+   
+
+   
+
+.. py:data:: left_truck_x
+   
+
+   
+
+.. py:data:: left_truck_z
+   
+
+   
+
+.. py:data:: z_truck_r_wheel_r
+   
+
+   
+
+.. py:data:: z_truck_r_wheel_l
+   
+
+   
+
+.. py:data:: z_truck_l_wheel_r
+   
+
+   
+
+.. py:data:: z_truck_l_wheel_l
+   
+
+   
+
+.. py:data:: truck_axle_dist_x_fugro
+   
+
+   
+
+.. py:data:: truck_force_fugro
+   
+
+   
+

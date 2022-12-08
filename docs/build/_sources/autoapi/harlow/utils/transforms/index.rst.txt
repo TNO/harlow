@@ -1,0 +1,142 @@
+:py:mod:`harlow.utils.transforms`
+=================================
+
+.. py:module:: harlow.utils.transforms
+
+.. autoapi-nested-parse::
+
+   Forward and reverse transforms typically used in surrogating and optimization.
+
+   .. rubric:: Notes
+
+   * It may be usefull to define a convention for in/output shapes to ensure that
+   the different surrogating, sampling, transformation and vizualization tools adhere
+   to a common structure for the input and output data.
+   * For now we assume that features `X` have size (n_batch x n_points x n_features)
+   and outputs `y` have size (n_batch x n_points x n_outputs).
+
+   .. todo::
+
+      * More thorough testing
+      * Add docstrings
+      * Add type hints
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.transforms.Transform
+   harlow.utils.transforms.ChainTransform
+   harlow.utils.transforms.Identity
+   harlow.utils.transforms.TensorTransform
+   harlow.utils.transforms.Standardize
+   harlow.utils.transforms.Normalize
+   harlow.utils.transforms.ExpandDims
+
+
+
+
+.. py:class:: Transform
+
+   Bases: :py:obj:`abc.ABC`
+
+   Abstract base class for the input and output transforms. Implements the forward
+   and reverse transform methods.
+
+   .. py:method:: forward(X)
+      :abstractmethod:
+
+
+   .. py:method:: reverse(X)
+      :abstractmethod:
+
+
+
+.. py:class:: ChainTransform(*args)
+
+   Bases: :py:obj:`Transform`
+
+   Class used to chain together a series of transforms
+
+   .. todo:: * Should this make a copy of `X` first or change it inplace?
+
+   .. py:method:: forward(X)
+
+
+   .. py:method:: reverse(X)
+
+
+
+.. py:class:: Identity
+
+   Bases: :py:obj:`Transform`
+
+   Defines the identity transform that can be used as a placeholder
+   if no transforms are specified.
+
+   .. py:method:: forward(X)
+
+
+   .. py:method:: reverse(X)
+
+
+
+.. py:class:: TensorTransform(target_type=torch.float32)
+
+   Bases: :py:obj:`Transform`
+
+   Transforms an input `numpy.ndarray` to `torch.tensor` and vice-versa
+
+   .. py:method:: forward(X)
+
+
+   .. py:method:: reverse(X)
+
+
+
+.. py:class:: Standardize
+
+   Bases: :py:obj:`Transform`
+
+   Scales features to zero mean and unit standard deviation.
+
+   .. py:method:: forward(X)
+
+
+   .. py:method:: reverse(X, mean=None, std=None)
+
+
+
+.. py:class:: Normalize
+
+   Bases: :py:obj:`Transform`
+
+   Applies min-max scaling to given features.
+
+   .. py:method:: forward(X)
+
+
+   .. py:method:: reverse(X, xmin=None, xmax=None)
+
+
+
+.. py:class:: ExpandDims
+
+   Bases: :py:obj:`Transform`
+
+   Expands a two-dimensional feature array `X` to three dimensions,
+   or expands a one-dimensional target array `y` to two dimensions.
+
+   .. py:method:: forward(X)
+
+
+   .. py:method:: reverse(X)
+
+
+

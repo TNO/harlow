@@ -1,0 +1,70 @@
+:py:mod:`harlow.utils.numba_utils`
+==================================
+
+.. py:module:: harlow.utils.numba_utils
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.numba_utils.np_apply_along_axis
+   harlow.utils.numba_utils.np_min
+   harlow.utils.numba_utils.np_all
+   harlow.utils.numba_utils.np_argmax
+   harlow.utils.numba_utils.np_any
+   harlow.utils.numba_utils.euclidean_distance
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.numba_utils.nopython
+   harlow.utils.numba_utils.fastmath
+   harlow.utils.numba_utils.cache
+
+
+.. py:data:: nopython
+   :annotation: = True
+
+   
+
+.. py:data:: fastmath
+   :annotation: = True
+
+   
+
+.. py:data:: cache
+   :annotation: = True
+
+   
+
+.. py:function:: np_apply_along_axis(func1d, axis, arr)
+
+   Until `axis` is supported by `numba`.
+   Source: https://github.com/numba/numba/issues/1269#issuecomment-472574352
+
+
+.. py:function:: np_min(array, axis)
+
+
+.. py:function:: np_all(array, axis)
+
+
+.. py:function:: np_argmax(array, axis)
+
+
+.. py:function:: np_any(array, axis)
+
+
+.. py:function:: euclidean_distance(X)
+
+

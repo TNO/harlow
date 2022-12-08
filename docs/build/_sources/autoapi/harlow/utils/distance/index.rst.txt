@@ -1,0 +1,104 @@
+:py:mod:`harlow.utils.distance`
+===============================
+
+.. py:module:: harlow.utils.distance
+
+.. autoapi-nested-parse::
+
+   Fast and numba compatible scipy.distance like functions.
+   Inspired by and based on: https://github.com/talboger/fastdist
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.distance.euclidean_distance
+   harlow.utils.distance.fractional_distance
+   harlow.utils.distance.pdist_condensed
+   harlow.utils.distance.pdist_full_matrix
+   harlow.utils.distance.fractional_pdist_full_matrix
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.distance.nopython
+   harlow.utils.distance.fastmath
+   harlow.utils.distance.parallel
+   harlow.utils.distance.cache
+
+
+.. py:data:: nopython
+   :annotation: = True
+
+   
+
+.. py:data:: fastmath
+   :annotation: = True
+
+   
+
+.. py:data:: parallel
+   :annotation: = True
+
+   
+
+.. py:data:: cache
+   :annotation: = True
+
+   
+
+.. py:function:: euclidean_distance(u_vec: numpy.ndarray, v_vec: numpy.ndarray) -> float
+
+   Euclidean distance between two vectors.
+
+
+.. py:function:: fractional_distance(u_vec: numpy.ndarray, v_vec: numpy.ndarray) -> float
+
+   Fractional distance between two vectors.
+
+
+.. py:function:: pdist_condensed(x_mx: numpy.ndarray) -> numpy.ndarray
+
+   Pairwise Euclidean distances between n-dimensional vectors. Similar to
+   `scipy.spatial.distance.pdist` but faster for a large number of vectors.
+
+   TODO: maybe it could be faster if there was just one loop, kk -> ii, jj.
+
+   :param x_mx: An `m` by `n` matrix of `m` vectors in an `n`-dimensional space.
+
+   :returns: Condensed distance matrix.
+
+
+.. py:function:: pdist_full_matrix(x_mx: numpy.ndarray) -> numpy.ndarray
+
+   Pairwise Euclidean distances between n-dimensional vectors. Similar to
+   `scipy.spatial.distance.pdist` and `scipy.spatial.distance.squareform` but faster
+   for a large number of vectors.
+
+   :param x_mx: An `m` by `n` matrix of `m` vectors in an `n`-dimensional space.
+
+   :returns: A full (`m` by `m`) distance matrix.
+
+
+.. py:function:: fractional_pdist_full_matrix(x_mx: numpy.ndarray) -> numpy.ndarray
+
+   Pairwise Euclidean distances between n-dimensional vectors. Similar to
+   `scipy.spatial.distance.pdist` and `scipy.spatial.distance.squareform` but faster
+   for a large number of vectors.
+
+   :param x_mx: An `m` by `n` matrix of `m` vectors in an `n`-dimensional space.
+
+   :returns: A full (`m` by `m`) distance matrix.
+
+

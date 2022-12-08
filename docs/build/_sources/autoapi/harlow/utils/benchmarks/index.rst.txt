@@ -1,0 +1,30 @@
+:py:mod:`harlow.utils.benchmarks`
+=================================
+
+.. py:module:: harlow.utils.benchmarks
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.benchmarks.shekel_benchmark
+   harlow.utils.benchmarks.run_random_experiment
+   harlow.utils.benchmarks.run_lv_experiment
+
+
+
+.. py:function:: shekel_benchmark()
+
+
+.. py:function:: run_random_experiment(model, test_fun, train_X, train_y, test_X, test_y, domain, n_samples_list)
+
+
+.. py:function:: run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples_list)
+
+

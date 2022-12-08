@@ -1,0 +1,242 @@
+:py:mod:`harlow.sampling.fuzzy_lolavoronoi`
+===========================================
+
+.. py:module:: harlow.sampling.fuzzy_lolavoronoi
+
+.. autoapi-nested-parse::
+
+   Fuzzy Lola-Vornoi adaptive design strategy for global surrogate modelling.
+
+   The algorithm is proposed and described in this paper:
+   [1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
+   surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
+   (2011): 1948-1974.
+
+   [2] van der Herten, J., Couckuyt, I., Deschrijver, D., & Dhaene, T. (2015).
+   A fuzzy hybrid sequential design strategy for global surrogate modeling of
+    high-dimensional computer experiments.
+   SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.fuzzy_lolavoronoi.FuzzyLolaVoronoi
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.fuzzy_lolavoronoi._best_new_points
+   harlow.sampling.fuzzy_lolavoronoi.best_neighbourhoods
+   harlow.sampling.fuzzy_lolavoronoi.init_FIS
+   harlow.sampling.fuzzy_lolavoronoi.assign_weights
+   harlow.sampling.fuzzy_lolavoronoi.coh_high
+   harlow.sampling.fuzzy_lolavoronoi.adh_high
+   harlow.sampling.fuzzy_lolavoronoi.adh_low
+   harlow.sampling.fuzzy_lolavoronoi.get_adhesion_cohesion
+   harlow.sampling.fuzzy_lolavoronoi.get_neighbourhood
+   harlow.sampling.fuzzy_lolavoronoi.calculate_alpha
+   harlow.sampling.fuzzy_lolavoronoi.calculate_distance_matrix
+   harlow.sampling.fuzzy_lolavoronoi.flola_voronoi_score
+   harlow.sampling.fuzzy_lolavoronoi.nonlinearity_measure
+   harlow.sampling.fuzzy_lolavoronoi.voronoi_volume_estimate
+   harlow.sampling.fuzzy_lolavoronoi.flola_gradient_estimate
+
+
+
+.. py:class:: FuzzyLolaVoronoi(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output')
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _best_new_points(n)
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = None, max_n_iterations: int = 5000)
+
+      TODO: allow for providing starting points
+
+
+
+.. py:function:: _best_new_points(points_x: numpy.ndarray, points_y: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_new_point: int, dim_in: int) -> numpy.ndarray
+
+   Hybrid Sequential Strategy - Alg. (2) [2].
+   Combines an exploitation (FLOLA) and an exploration (Voronoi) score
+   and selects a new candindate sample in the neighborhood of the N_new
+   highest ranked samples
+
+   :param points_x: Nxd-dimensional input data points
+   :param points_y: Nxd-dimensional target data points
+   :param domain_lower_bound: The lower bound of the function's space
+   :param domain_upper_bound: The upper bound of the function's space
+   :param n_new_point: The number of new points we wish to sample
+   :return new_reference_point_x: The new highly-ranked samples in the neighborhood
+
+
+.. py:function:: best_neighbourhoods(points_x: numpy.ndarray, points_y: numpy.ndarray, distance_matrix: numpy.ndarray, volume_estimate: numpy.ndarray) -> numpy.ndarray
+
+   Exploitation Aglorithm - Alg. (1) [2].
+   Computes a score fir all points p in P_r, indicating the nonlinearity
+   of the region surrounding p. New samples are chosen in the neighborhood
+   of the N_new highest ranked samples.
+
+   :param points_x: Nxd-dimensional input data points
+   :param points_y: Nxd-dimensional target data points
+   :param distance_matrix: NxN distance matrix
+   :volume_estimate: N-dimensional Voronoi volume estimate
+   :returns: H_fuzz: N-dimensional Hybrid score
+
+
+.. py:function:: init_FIS(data_points: numpy.ndarray, adhesion: numpy.ndarray)
+
+   Initialize the Fuzzy Inference System S; Section 4 [2].
+
+   :param data_points: Nxd-dimensional input vector of N data points with d dimensions
+   :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
+   :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
+   :return flola_sim: The Fuzzy Inference System S
+
+
+.. py:function:: assign_weights(data_points: numpy.ndarray, cohesion: numpy.ndarray, adhesion: numpy.ndarray, flola_sim) -> numpy.ndarray
+
+   Weight calculation of data_points based on cohesion & adhesion values between
+   the data points; Section 4 [2].
+
+   :param data_points: Nxd-dimensional input vector of N data points with d dimensions
+   :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
+   :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
+   :param flola_sim: The Fuzzy Inference System S
+   :return weight: The N-dimensional weight values returned by the evaluation of FIS S
+
+
+.. py:function:: coh_high(x, s_c=0.3)
+
+   Cohesion High membership function
+
+
+.. py:function:: adh_high(x, A_max, s_ah=0.3)
+
+   Adhesion High membership function
+
+
+.. py:function:: adh_low(x, A_max, s_al=0.27)
+
+   Adhesion Low membership function
+
+
+.. py:function:: get_adhesion_cohesion(Pr_index: int, P_neigbors_idxs: numpy.ndarray, distance_matix: numpy.ndarray) -> Tuple[numpy.array, numpy.array]
+
+   Calculation of adhesion and cohesion values for the neighbors of P_r.
+   According to Eq. (4.1) and (4.2) [2].
+
+   :param Pr_index: Index of reference point
+   :param P_neigbors_idxs: neighbour indexes for point Pr
+   :param distance_matix: The precalculated distance matrix for all p in P
+   :return: Adhesion and Cohesion arrays for N
+
+
+.. py:function:: get_neighbourhood(Pr_idx: int, distance_matrix: numpy.ndarray, alpha: float, n_dim: int) -> numpy.array
+
+   Calculate the neighbourhood for point Pr.
+   Eq. (3.3) [2].
+
+   :param Pr_idx: Index of reference point
+   :param distance_matrix: The NxN-dimensional precalculated distance matrix
+   for all p in P
+   :param alpha: Distance parameter Eq. (3.4) [2]
+   :param n_dim: Number of dimensions
+   :return neighbors_idx: N-dimensional array with neighbour indexes for
+   point Pr
+
+
+.. py:function:: calculate_alpha(Pr_idx: int, K: int, distance_matrix: numpy.ndarray) -> numpy.ndarray
+
+   Calculate distance parameter alpha.
+   Eq. (3.4) [2].
+
+   :param Pr_idx: Index of reference point
+   :param K: Parameter K = 4d
+   :param distance_matrix: The precalculated distance matrix for all p in P
+   :return: alpha as float
+
+
+.. py:function:: calculate_distance_matrix(points_x: numpy.ndarray, n_dim: int, fractional: bool = False) -> numpy.ndarray
+
+   This function calculates the distance matrix for the points P.
+   Instead of calculating the distance for alpha, A and
+   C for Pr in the loop, this function is meant to be called once,
+   prior to the main for loop iterating over all Pr.
+
+   :param points_x: The set of point P
+   :return: A distance matrix for P
+
+
+.. py:function:: flola_voronoi_score(nonlinearity_measures: float, relative_volumes: numpy.ndarray) -> numpy.ndarray
+
+   Eq.(5.1) of [2].
+
+
+.. py:function:: nonlinearity_measure(reference_point_x: numpy.ndarray, reference_point_y: float, reference_point_gradient: numpy.ndarray, neighbor_points_x: numpy.ndarray, neighbor_points_y: numpy.ndarray) -> float
+
+   Eq.(4.9) of [1].
+
+
+.. py:function:: voronoi_volume_estimate(points: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_simulation: int = None, random_points: numpy.ndarray = None) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+   Estimate the relative volume of the Voronoi tessellation of `points` bounded by
+   `domain_lower_bound` and `domain_upper_bound`.
+
+   The algorithm is described in section 3 of [1].
+
+   :param points: n_point x n_dim.
+   :param domain_lower_bound: n_dim.
+   :param domain_upper_bound: n_dim
+   :param n_simulation: Number of random points used to estimate the relative volumes. If
+                        `random_points` is provided then this argument is ignored.
+   :param random_points:
+
+   :returns: Relative volumes in the same order as `points`.
+
+
+.. py:function:: flola_gradient_estimate(reference_point_x: numpy.ndarray, reference_point_y: numpy.ndarray, neighbor_points_x: numpy.ndarray, neighbor_points_y: numpy.ndarray, weights: numpy.ndarray) -> numpy.ndarray
+
+   Estimate the gradient at `reference_point` (P_r) by fitting a hyperplane to
+   `neighbor_points` in a least-square sense. A hyperplane that goes exactly
+   through the `reference_point`. Eq.(3.2) [2] wrt to weights for all neighbors of P_r
+   obtained from solving FIS S.
+
+   :param reference_point_x: The d-dimensional reference sample P_r
+   :param reference_point y: -//-
+   :param neigbor_points_x: The m x d-dimensional neighbors of P_r
+   :param neigbor_points_y: -//-
+   :param weights: The weights of every neighbor of P_r
+   :return gradient: The d-dimensional gradient at P_r
+
+

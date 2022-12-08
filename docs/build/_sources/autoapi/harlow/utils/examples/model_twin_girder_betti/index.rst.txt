@@ -1,0 +1,70 @@
+:py:mod:`harlow.utils.examples.model_twin_girder_betti`
+=======================================================
+
+.. py:module:: harlow.utils.examples.model_twin_girder_betti
+
+.. autoapi-nested-parse::
+
+   IJsselbridge twin girder Euler-Bernoulli beam model.
+
+   This modified model does not have a Julia dependency, but instead
+   loads the pre-computed stiffness matrix.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.examples.model_twin_girder_betti.IJssel_bridge_model
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.utils.examples.model_twin_girder_betti.lateral_load_func
+   harlow.utils.examples.model_twin_girder_betti.find_nearest
+   harlow.utils.examples.model_twin_girder_betti.find_all
+   harlow.utils.examples.model_twin_girder_betti.betti
+   harlow.utils.examples.model_twin_girder_betti.solve_inf_line
+
+
+
+.. py:function:: lateral_load_func(z, c)
+
+
+.. py:function:: find_nearest(array, values)
+
+
+.. py:function:: find_all(array, values)
+
+
+.. py:function:: betti(nnode, cho_factor, W_sensor, hinge_node, hinge_left_node, fs, idx_keep)
+
+
+.. py:function:: solve_inf_line(m_b, axle_pos_x, node_xs, loads)
+
+
+.. py:class:: IJssel_bridge_model(sensor_name, E, max_elem_length, truck_load='TNO')
+
+   .. py:method:: il_stress_truckload(c, lane: str, Kr=None, Kv=None)
+
+      Calculate influence line
+
+      :param c: Lateral load coefficient
+      :param lane: String, can be "left" or "right"
+      :param Kr: Vector with 12 elements containing the
+      :param support rotational stiffnesses. If omitted:
+      :param the:
+      :param last calculated rotational stiffness vector is used:
+      :param Kv: Scalar vertical spring stiffness
+
+
+

@@ -1,0 +1,112 @@
+:py:mod:`harlow.sampling.cv_voronoi`
+====================================
+
+.. py:module:: harlow.sampling.cv_voronoi
+
+.. autoapi-nested-parse::
+
+   Cross Validation Voronoi adaptive design strategy for global surrogate
+   modelling.
+
+   Note that this
+
+   The algorithm is proposed and described in this paper:
+   [1] Xu, Shengli, et al. A robust error-pursuing sequential sampling approach
+    for global metamodeling based on voronoi diagram and cross validation.
+    Journal of Mechanical Design 136.7 (2014): 071009
+
+   [2] Liu H, Xu S, Wang X, Yang S, Meng J. A (1996).
+   A multi-response adaptive sampling approach for global metamodeling
+   Proceedings of the Institution of Mechanical Engineers Part C Journal of
+   Mechanical Engineering Science 1989-1996 (vols 203-210)
+
+   [3] Kaminsky A.L., Wang Y, Pant K, Hashii W.N., Atachbarian A. (2020) An
+   efficient batch k-fold cross-validation voronoi adaptive sampling technique
+   for global surrogate modelling. Journal of Mechanical Design 143
+
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.cv_voronoi.CVVoronoi
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.cv_voronoi._best_new_points
+   harlow.sampling.cv_voronoi.pick_new_samples
+   harlow.sampling.cv_voronoi.identify_sensitive_voronoi_cell
+   harlow.sampling.cv_voronoi.calculate_voronoi_cells
+
+
+
+.. py:class:: CVVoronoi(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', n_fold: int = 5)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = 0.05, max_n_iterations: int = 5000)
+
+      TODO: allow for providing starting points
+
+
+
+.. py:function:: _best_new_points(points_x: numpy.ndarray, points_y: numpy.ndarray, test_points_x: numpy.ndarray, test_points_y: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_new_point: int, surrogate_model_constructor, surrogates: list, n_fold: int) -> numpy.ndarray
+
+   The following implements the algorithm from [1] [2] [3]
+
+
+.. py:function:: pick_new_samples(most_sensitive_cell, random_points, distance_mx, closest_indicator_mx, n=1)
+
+
+.. py:function:: identify_sensitive_voronoi_cell(surrogates: list, surrogate_model: object, points_X: numpy.ndarray, points_y: numpy.ndarray, n_dim_out: int, test_points_X: numpy.ndarray, test_points_y: numpy.ndarray, k: int)
+
+
+.. py:function:: calculate_voronoi_cells(points: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_simulation: int = None, random_points: numpy.ndarray = None) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+   Estimate the Voronoi tessellation of `points` bounded by
+   `domain_lower_bound` and `domain_upper_bound`.
+
+   The algorithm is described in algorithm 1 of [1].
+
+   :param points: n_point x n_dim.
+   :param domain_lower_bound: n_dim.
+   :param domain_upper_bound: n_dim
+   :param n_simulation: Number of random points used to estimate the relative volumes. If
+                        `random_points` is provided then this argument is ignored.
+   :param random_points:
+
+   :returns: Relative volumes in the same order as `points`.
+
+

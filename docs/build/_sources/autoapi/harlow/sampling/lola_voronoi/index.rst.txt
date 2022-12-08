@@ -1,0 +1,190 @@
+:py:mod:`harlow.sampling.lola_voronoi`
+======================================
+
+.. py:module:: harlow.sampling.lola_voronoi
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.lola_voronoi.LolaVoronoi
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.lola_voronoi.get_best_new_points
+   harlow.sampling.lola_voronoi.best_new_points_with_neighbors
+   harlow.sampling.lola_voronoi.best_neighborhoods
+   harlow.sampling.lola_voronoi.best_neighborhoods_numba
+   harlow.sampling.lola_voronoi.lola_voronoi_score
+   harlow.sampling.lola_voronoi.neighborhood_score
+   harlow.sampling.lola_voronoi.lola_score
+   harlow.sampling.lola_voronoi.nonlinearity_measure
+   harlow.sampling.lola_voronoi.voronoi_volume_estimate
+   harlow.sampling.lola_voronoi.gradient_estimate
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.lola_voronoi.nopython
+   harlow.sampling.lola_voronoi.fastmath
+
+
+.. py:data:: nopython
+   :annotation: = True
+
+   
+
+.. py:data:: fastmath
+   :annotation: = True
+
+   
+
+.. py:class:: LolaVoronoi(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', ignore_far_neighborhoods: bool = True, ignore_old_neighborhoods: bool = True)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Lola-Vornoi adaptive design strategy for global surrogate modelling.
+
+   The algorithm is proposed and described in this paper:
+   [1] Crombecq, Karel, et al. (2011) A novel hybrid sequential design strategy for global
+   surrogate modeling of computer experiments. SIAM Journal on Scientific Computing 33.4
+   (2011): 1948-1974.
+
+   The implementation is influenced by:
+   * gitlab.com/energyincities/besos/-/blob/master/besos/
+   * https://github.com/FuhgJan/StateOfTheArtAdaptiveSampling/blob/master/src/adaptive_techniques/LOLA_function.m  # noqa E501
+
+
+   .. py:method:: set_initial_set(points_x: numpy.ndarray, points_y: numpy.ndarray)
+
+
+   .. py:method:: _fit_models()
+
+
+   .. py:method:: _update_models(new_fit_points_x: numpy.ndarray, new_fit_points_y: numpy.ndarray)
+
+
+   .. py:method:: predict(points_x: numpy.ndarray)
+
+
+   .. py:method:: _evaluate()
+
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = None, max_n_iterations: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = None, ignore_far_neighborhoods: Optional[bool] = True, ignore_old_neighborhoods: Optional[bool] = True)
+
+
+   .. py:method:: save_model()
+
+
+
+.. py:function:: get_best_new_points(points_x: numpy.ndarray, points_y: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_point_last_iter: int, n_new_point: int = 1, ignore_far_neighborhoods: Optional[bool] = True, ignore_old_neighborhoods: Optional[bool] = True)
+
+
+.. py:function:: best_new_points_with_neighbors(reference_points_x: numpy.ndarray, reference_points_y: numpy.ndarray, all_neighbor_points_x: numpy.ndarray, all_neighbor_points_y: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_next_point: int)
+
+   Find the new/next reference point(s) where the target function will be evaluated.
+
+   TODO: reuse the random point used here for other calls of this function (
+       `best_next_points`)
+
+
+.. py:function:: best_neighborhoods(points_x: numpy.ndarray, n_point_last_iter: int, ignore_far_neighborhoods: Optional[bool] = True, ignore_old_neighborhoods: Optional[bool] = True)
+
+   Find the best neighborhood for each row of `points_x`. This function is expected
+   to be used with the initial sample of `points_x`, when no best neighborhoods yet
+   available from preceding iteration steps. This function exists to separate numba
+   compatible code from non-compatible one.
+
+
+.. py:function:: best_neighborhoods_numba(points_x: numpy.ndarray, all_neighbor_point_idxs_combinations: numpy.ndarray, n_point_last_iter: int, ignore_far_neighborhoods: Optional[bool] = True, ignore_old_neighborhoods: Optional[bool] = True) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+   Find the best neighborhood for each row of `points_x`. This function is expected
+   to be used with the initial sample of `points_x`, when no best neighborhoods yet
+   available from preceding iteration steps.
+
+   :param points_x: n_point x n_dim.
+   :param all_neighbor_point_idxs_combinations:
+   :param n_point_last_iter:
+   :param ignore_far_neighborhoods:
+   :param ignore_old_neighborhoods:
+
+   Returns:
+
+
+
+.. py:function:: lola_voronoi_score(nonlinearity_measures: numpy.ndarray, relative_volumes: numpy.ndarray) -> numpy.ndarray
+
+   Eq.(5.1) of [1].
+
+
+.. py:function:: neighborhood_score(neighbor_points_x: numpy.ndarray, reference_point_x: numpy.ndarray) -> Tuple[float, float]
+
+   :param neighbor_points_x: n_point x n_dim.
+   :param reference_point_x: 1 x n_dim
+
+   :returns: Neighborhood score.
+
+
+.. py:function:: lola_score(all_neighbor_points_x: numpy.ndarray, all_neighbor_points_y: numpy.ndarray, reference_points_x: numpy.ndarray, reference_points_y: numpy.ndarray) -> numpy.ndarray
+
+   Non-linearity measure for each point and its neighbor. Measures how much a
+   neighborhood deviates from a hyperplane.
+
+
+.. py:function:: nonlinearity_measure(reference_point_x: numpy.ndarray, reference_point_y: float, reference_point_gradient: numpy.ndarray, neighbor_points_x: numpy.ndarray, neighbor_points_y: numpy.ndarray) -> float
+
+
+.. py:function:: voronoi_volume_estimate(points: numpy.ndarray, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, n_simulation: int = None, random_points: numpy.ndarray = None) -> Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]
+
+   Estimate the relative volume of the Voronoi tessellation of `points` bounded by
+   `domain_lower_bound` and `domain_upper_bound`.
+
+   The algorithm is described in section 3 of [1].
+
+   :param points: n_point x n_dim.
+   :param domain_lower_bound: n_dim.
+   :param domain_upper_bound: n_dim
+   :param n_simulation: Number of random points used to estimate the relative volumes. If
+                        `random_points` is provided then this argument is ignored.
+   :param random_points:
+
+   :returns: Relative volumes in the same order as `points`.
+
+
+.. py:function:: gradient_estimate(reference_point_x: numpy.ndarray, reference_point_y: float, neighbor_points_x: numpy.ndarray, neighbor_points_y: numpy.ndarray) -> numpy.ndarray
+
+   Estimate the gradient at `reference_point` by fitting a hyperplane to
+   `neighbor_points` in a least-square sense. A hyperplane that goes exactly
+   through the `reference_point`.
+
+   We think that the there is a mistake in Eq.(4.8) of [1], the right hand side
+   should be `f(p_neighbor) - f(p_reference)`, or on the left hand side the
+   `-p_reference` should be dropped if the formulation is in line with this:
+   "Without loss of generality, we assume that pr lies in the origin."
+   section 4.2.1 of [1].
+
+   :param reference_point_x: 1 x n_dim.
+   :param reference_point_y:
+   :param neighbor_points_x: n_neighbor x n_dim.
+   :param neighbor_points_y: n_neighbor x 1.
+
+   :returns: Gradient estimate, 1 x n_dim.
+
+

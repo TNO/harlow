@@ -1,0 +1,45 @@
+:py:mod:`harlow.sampling.probabilistic_sampling`
+================================================
+
+.. py:module:: harlow.sampling.probabilistic_sampling
+
+.. autoapi-nested-parse::
+
+   Adaptive sampling based on uncertainty heuristics.
+   This algorithm is from:
+       Xuzheng Chai (2019) Probabilistic system identification and reliability updating
+       for hydraulic structures - Application to sheet pile walls
+
+   Adapted from implementation in Prob_Taralli:
+       https://gitlab.com/tno-bim/taralli/-/blob/d82a5f42e918f4864d4d6f18f0dbdf8c1f2799c6/
+       prob_taralli/surrogating/adaptive_infill_gpr.py
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   harlow.sampling.probabilistic_sampling.ProbabilisticSampler
+
+
+
+
+.. py:class:: ProbabilisticSampler(target_function: Callable[[numpy.ndarray], numpy.ndarray], surrogate_model_constructor, domain_lower_bound: numpy.ndarray, domain_upper_bound: numpy.ndarray, fit_points_x: numpy.ndarray = None, fit_points_y: numpy.ndarray = None, test_points_x: numpy.ndarray = None, test_points_y: numpy.ndarray = None, evaluation_metric: Callable = rmse, logging_metrics: list = None, verbose: bool = False, run_name: str = None, save_dir: Union[str, pathlib.Path] = 'output', stopping_score: float = None)
+
+   Bases: :py:obj:`harlow.sampling.sampling_baseclass.Sampler`
+
+   Helper class that provides a standard way to create an ABC using
+   inheritance.
+
+   .. py:method:: _best_new_points(n) -> numpy.ndarray
+
+
+   .. py:method:: sample(n_initial_points: int = 20, n_new_points_per_iteration: int = 1, stopping_criterium: float = None, max_n_iterations: int = 5000, epsilon: float = 0.005)
+
+
+
