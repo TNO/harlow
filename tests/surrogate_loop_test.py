@@ -76,10 +76,10 @@ def offloaded_hartman(x: np.ndarray) -> np.ndarray:
 
 
 def main():
-    domains_lower_bound = np.array([0, 0, 0, 0, 0, 0])
-    domains_upper_bound = np.array([1, 1, 1, 1, 1, 1])
-    #domains_lower_bound = np.array([-8, -8])
-    #domains_upper_bound = np.array([8, 8])
+    # domains_lower_bound = np.array([0, 0, 0, 0, 0, 0])
+    # domains_upper_bound = np.array([1, 1, 1, 1, 1, 1])
+    domains_lower_bound = np.array([-8, -8])
+    domains_upper_bound = np.array([8, 8])
     # surrogate = GaussianProcessRegression()
     surrogate = VanillaGaussianProcess
     # sampler = ProbabilisticSampler(
@@ -91,6 +91,9 @@ def main():
     # sampler = CVVoronoi(
     #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
     # )
+    sampler = FuzzyLolaVoronoi(
+        peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
+    )
     # sampler = CVVoronoi(
     #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     # )
@@ -100,9 +103,9 @@ def main():
     # sampler = FuzzyLolaVoronoi(
     #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
     # )
-    sampler = LolaVoronoi(
-        succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
-    )
+    # sampler = LolaVoronoi(
+    #     succeeding_hartman, surrogate, domains_lower_bound, domains_upper_bound
+    # )
     # sampler = LolaVoronoi(
     #     peaks_2d_multivariate, surrogate, domains_lower_bound, domains_upper_bound
     # )
@@ -131,6 +134,7 @@ def main():
     sampler.construct_surrogate()
     sampler.surrogate_loop(1, 3)
 
+    print(sampler.predict(test_points_x))
     print("doneeee")
 
 

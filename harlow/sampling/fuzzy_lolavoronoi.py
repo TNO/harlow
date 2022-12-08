@@ -13,7 +13,8 @@ SIAM Journal on Scientific Computing, 37(2), A1020-A1039.
 import os
 import pickle
 import time
-from typing import Callable, Tuple
+from pathlib import Path
+from typing import Callable, Tuple, Union
 
 import numpy as np
 import skfuzzy as fuzz
@@ -23,8 +24,11 @@ from skfuzzy import control as ctrl
 
 from harlow.sampling.sampling_baseclass import Sampler
 from harlow.sampling.SamplingException import SamplingException
-from harlow.utils.helper_functions import evaluate, evaluate_modellist_woPrediction,\
-    latin_hypercube_sampling
+from harlow.utils.helper_functions import (
+    evaluate,
+    evaluate_modellist_woPrediction,
+    latin_hypercube_sampling,
+)
 from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
 
@@ -47,7 +51,7 @@ class FuzzyLolaVoronoi(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = "output",
     ):
 
         super(FuzzyLolaVoronoi, self).__init__(
@@ -96,24 +100,30 @@ class FuzzyLolaVoronoi(Sampler):
                 new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
             )
 
-    def _predict(self):
+    def predict(self, points_x: np.ndarray):
         # Standard case assumes single model
-        y = np.zeros((self.test_points_x.shape[0], self.dim_out))
+        y = np.zeros((points_x.shape[0], self.dim_out))
 
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            a = dim_surrogate_model.predict(self.test_points_x)
+            a = dim_surrogate_model.predict(points_x)
             y[:, i] = a[0]
         return y
 
     def _evaluate(self):
-        return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
-                           self.test_points_y, self.predicted_points_y)
+        return evaluate_modellist_woPrediction(
+            self.logging_metrics,
+            self.surrogate_models,
+            self.test_points_y,
+            self.predicted_points_y,
+        )
 
     def construct_surrogate(self):
         if self.dim_out is None:
-            raise SamplingException("Trying to create a surrogate for every "
-                                    "output dimension, but dim_out is not "
-                                    "yet set")
+            raise SamplingException(
+                "Trying to create a surrogate for every "
+                "output dimension, but dim_out is not "
+                "yet set"
+            )
         for _i in range(self.dim_out):
             self.surrogate_models.append(self.surrogate_model_constructor())
 

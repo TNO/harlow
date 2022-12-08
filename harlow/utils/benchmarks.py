@@ -27,7 +27,7 @@ def shekel_benchmark():
     nn = NN()
     nn.create_model(input_dim=(4,))
     nn.fit(train_X, train_y)
-    y_hat = nn._predict(test_X)
+    y_hat = nn.predict(test_X)
     rmse = math.sqrt(mean_squared_error(test_y, y_hat))
 
     print(f"RMSE with initial trainingset of size {train_X.shape[0]}: {rmse}")
@@ -60,7 +60,7 @@ def run_random_experiment(
             new_y = test_fun(np.expand_dims(new_X[j, :], axis=0))
             model.update(np.expand_dims(new_X[j, :], axis=0), new_y)
 
-        y_hat = model._predict(test_X)
+        y_hat = model.predict(test_X)
         rmse = math.sqrt(mean_squared_error(test_y, y_hat))
         results[i] = rmse
         print(f"RMSE with trainingset of size {train_X.shape[0]+i}: {rmse}")
@@ -86,7 +86,7 @@ def run_lv_experiment(model, train_X, train_y, test_X, test_y, domain, n_samples
             evaluation_metric="rmse",
         )
         lv.run_sequential_design()
-        y_hat = lv.surrogate_model._predict(test_X)
+        y_hat = lv.surrogate_model.predict(test_X)
         rmse = math.sqrt(mean_squared_error(test_y, y_hat))
         results[i] = rmse
         print(f"RMSE with trainingset of size {lv.train_X.shape[0]}: {rmse}")

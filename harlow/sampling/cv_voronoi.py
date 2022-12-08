@@ -21,7 +21,8 @@ for global surrogate modelling. Journal of Mechanical Design 143
 import os
 import pickle
 import time
-from typing import Callable, Tuple
+from pathlib import Path
+from typing import Callable, Tuple, Union
 
 import numpy as np
 from loguru import logger
@@ -57,7 +58,7 @@ class CVVoronoi(Sampler):
         logging_metrics: list = None,
         verbose: bool = False,
         run_name: str = None,
-        save_dir: str = "",
+        save_dir: Union[str, Path] = "output",
         n_fold: int = 5,
     ):
 
@@ -96,24 +97,30 @@ class CVVoronoi(Sampler):
                 new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
             )
 
-    def _predict(self):
+    def predict(self, points_x: np.ndarray):
         # Standard case assumes single model
-        y = np.zeros((self.test_points_x.shape[0], self.dim_out))
+        y = np.zeros((points_x.shape[0], self.dim_out))
 
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
-            a = dim_surrogate_model.predict(self.test_points_x)
+            a = dim_surrogate_model.predict(points_x)
             y[:, i] = a[0]
         return y
 
     def _evaluate(self):
-        return evaluate_modellist_woPrediction(self.logging_metrics, self.surrogate_models,
-                           self.test_points_y, self.predicted_points_y)
+        return evaluate_modellist_woPrediction(
+            self.logging_metrics,
+            self.surrogate_models,
+            self.test_points_y,
+            self.predicted_points_y,
+        )
 
     def construct_surrogate(self):
         if self.dim_out is None:
-            raise SamplingException("Trying to create a surrogate for every "
-                                    "output dimension, but dim_out is not "
-                                    "yet set")
+            raise SamplingException(
+                "Trying to create a surrogate for every "
+                "output dimension, but dim_out is not "
+                "yet set"
+            )
         for _i in range(self.dim_out):
             self.surrogate_models.append(self.surrogate_model_constructor())
 
@@ -448,7 +455,7 @@ def identify_sensitive_voronoi_cell(
             s_i = surrogate_model()
             s_i.fit(points_X_exc_i, points_y_exc_i[:, j].reshape(-1, 1))
             # predict X[i] with surrogate
-            y_pred = s_i._predict(X_i.reshape((1, -1)))
+            y_pred = s_i.predict(X_i.reshape((1, -1)))
 
             cv_error_per_point[i, j] = np.linalg.norm(
                 y_i[j] - y_pred, ord=1

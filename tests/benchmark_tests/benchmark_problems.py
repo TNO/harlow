@@ -310,13 +310,13 @@ output_transform = TensorTransform
 # # DEFINE SURROGATE
 # # ====================================================================
 
-surrogate_GPR = BatchIndependentGaussianProcess(
-    training_max_iter=N_iter,
-    input_transform=input_transform,
-    output_transform=output_transform,
-    silence_warnings=silence_warnings,
-    dev=device,
-)
+# surrogate_GPR = BatchIndependentGaussianProcess(
+#     training_max_iter=N_iter,
+#     input_transform=input_transform,
+#     output_transform=output_transform,
+#     silence_warnings=silence_warnings,
+#     dev=device,
+# )
 
 surrogate_VGP = VanillaGaussianProcess
 
