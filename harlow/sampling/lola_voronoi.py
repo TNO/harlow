@@ -104,7 +104,7 @@ class LolaVoronoi(Sampler):
                 new_fit_points_x, np.expand_dims(new_fit_points_y[:, i], axis=1)
             )
 
-    def predict(self, points_x: np.ndarray):
+    def _predict(self, points_x: np.ndarray):
         # Standard case assumes single model
         y = np.zeros((points_x.shape[0], self.dim_out))
 
@@ -114,12 +114,9 @@ class LolaVoronoi(Sampler):
         return y
 
     def _evaluate(self):
-        return evaluate_modellist_woPrediction(
-            self.logging_metrics,
-            self.surrogate_models,
-            self.test_points_y,
-            self.predicted_points_y,
-        )
+        return evaluate_modellist_woPrediction(self.logging_metrics,
+                                               self.test_points_y,
+                                               self.predicted_points_y)
 
     def construct_surrogate(self):
         if self.dim_out is None:

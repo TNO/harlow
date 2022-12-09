@@ -34,8 +34,7 @@ def evaluate_modellist(metric, model, test_points_X, test_points_y):
 
     return metric_dict
 
-def evaluate_modellist_woPrediction(metric, model, test_points_y,
-                              predicted_points_y):
+def evaluate_modellist_woPrediction(metric, test_points_y, predicted_points_y):
     """
     Evaluate user specified metric for the current iteration
 
@@ -50,9 +49,9 @@ def evaluate_modellist_woPrediction(metric, model, test_points_y,
     else:
         for metric_fun in metric:
             scores = []
-            for m in model:
+            for i in range(predicted_points_y.shape[1]):
                 scores.append(
-                    metric_fun(test_points_y, predicted_points_y)
+                    metric_fun(test_points_y[:,i], predicted_points_y[:,i])
                 )
             metric_dict[metric_fun.__name__] = scores
 

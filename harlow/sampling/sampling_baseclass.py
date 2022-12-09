@@ -15,6 +15,7 @@ from tensorboardX import SummaryWriter
 from harlow.sampling.step_info import StepInfo
 from harlow.surrogating.surrogate_model import Surrogate
 from harlow.utils.helper_functions import evaluate
+from harlow.utils.log_writer import write_scores, write_timer
 from harlow.utils.metrics import rmse
 
 
@@ -208,7 +209,7 @@ class Sampler(ABC):
         # Standard case assumes single model
         self.surrogate_models[0].update(new_fit_points_x, new_fit_points_y)
 
-    def predict(self, points_x: np.ndarray):
+    def _predict(self, points_x: np.ndarray):
         # Standard case assumes single model
         return self.surrogate_models[0].predict(points_x)
 
@@ -216,7 +217,7 @@ class Sampler(ABC):
         fit_start_time = time.time()
         self._fit_models()
         fit_time = time.time() - fit_start_time
-        self.predicted_points_y = self.predict(self.test_points_x)
+        self.predicted_points_y = self._predict(self.test_points_x)
         score = evaluate(
             self.logging_metrics, self.test_points_y, self.predicted_points_y
         )
@@ -227,6 +228,12 @@ class Sampler(ABC):
         self.steps["initialization"]["test_points_x"] = self.test_points_x.tolist()
         self.steps["initialization"]["test_points_y"] = self.test_points_y.tolist()
         self._write_results(0)
+        timing_dict = {
+            "Gen time": 0,
+            "Fit time": fit_time,
+        }
+        write_scores(self.writer, score, 0)
+        write_timer(self.writer, timing_dict, 0)
 
     def _evaluate(self):
         return evaluate(
@@ -259,7 +266,7 @@ class Sampler(ABC):
         logger.info(f"Fitted a new surrogate model in {fit_time} sec.")
 
         # Evaluate
-        self.predicted_points_y = self.predict(self.test_points_x)
+        self.predicted_points_y = self._predict(self.test_points_x)
         score = self._evaluate()
         self.steps[sample_iteration] = StepInfo(
             new_fit_points_x,
@@ -273,6 +280,13 @@ class Sampler(ABC):
         self.fit_points_x = np.vstack([self.fit_points_x, new_fit_points_x])
         self.fit_points_y = np.vstack([self.fit_points_y, new_fit_points_y])
         self._write_results(sample_iteration)
+
+        timing_dict = {
+            "Gen time": gen_time,
+            "Fit time": fit_time,
+        }
+        write_scores(self.writer, score, sample_iteration)
+        write_timer(self.writer, timing_dict, sample_iteration)
         return score
 
     def set_initial_set(self, points_x: np.ndarray, points_y: np.ndarray):

@@ -18,8 +18,8 @@ def nrmse(predictions: np.ndarray, test_points_y: np.ndarray):
     """normalized root mean square error"""
 
     return np.sqrt(
-        1
-        / len(test_points_y)
+        (1
+        / len(test_points_y))
         * np.sum(
             np.square(
                 (test_points_y - predictions)

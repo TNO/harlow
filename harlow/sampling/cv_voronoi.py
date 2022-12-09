@@ -103,16 +103,13 @@ class CVVoronoi(Sampler):
 
         for i, dim_surrogate_model in enumerate(self.surrogate_models):
             a = dim_surrogate_model.predict(points_x)
-            y[:, i] = a[0]
+            y[:, i] = a.flatten()
         return y
 
     def _evaluate(self):
-        return evaluate_modellist_woPrediction(
-            self.logging_metrics,
-            self.surrogate_models,
-            self.test_points_y,
-            self.predicted_points_y,
-        )
+        return evaluate_modellist_woPrediction(self.logging_metrics,
+                                               self.test_points_y,
+                                               self.predicted_points_y)
 
     def construct_surrogate(self):
         if self.dim_out is None:
