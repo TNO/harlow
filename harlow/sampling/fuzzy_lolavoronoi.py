@@ -136,6 +136,11 @@ class FuzzyLolaVoronoi(Sampler):
             return [num // div + (1 if x < num % div else 0) for x in range(div)]
 
         n_per_surrogate = distribute(n, len(self.surrogate_models))
+
+        # Calculate distance matrix P. This was previously done for every
+        # surrogate
+        distance_matrix = calculate_distance_matrix(self.fit_points_x, self.dim_in)
+
         for dim, n_p in enumerate(n_per_surrogate):
             new_points = _best_new_points(
                 points_x=self.fit_points_x,
@@ -144,6 +149,7 @@ class FuzzyLolaVoronoi(Sampler):
                 domain_upper_bound=self.domain_upper_bound,
                 n_new_point=n_p,
                 dim_in=self.dim_in,
+                distance_matrix=distance_matrix
             )
             if best_new_points is None:
                 best_new_points = new_points
@@ -304,6 +310,7 @@ def _best_new_points(
     domain_upper_bound: np.ndarray,
     n_new_point: int,
     dim_in: int,
+    distance_matrix: np.ndarray
 ) -> np.ndarray:
     """
     Hybrid Sequential Strategy - Alg. (2) [2].
@@ -323,7 +330,7 @@ def _best_new_points(
     points_x = points_x.reshape((-1, dim_in))
     points_y = points_y.reshape((-1, 1))
     # Calculate distance matrix P
-    distance_matrix = calculate_distance_matrix(points_x, dim_in)
+    # distance_matrix = calculate_distance_matrix(points_x, dim_in)
     # Calculate the V for every Pr
     (
         relative_volumes,
@@ -612,7 +619,6 @@ def calculate_distance_matrix(
     :param points_x: The set of point P
     :return: A distance matrix for P
     """
-
     if not fractional:
         return squareform(pdist(points_x, "euclidean"))
     else:
