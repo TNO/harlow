@@ -496,7 +496,7 @@ def calculate_voronoi_cells(
     """
     # dimensions are not checked
     if n_simulation is None:
-        n_simulation = 100 * points.shape[0] * points.shape[1]
+        n_simulation = 100 * points.shape[1]
 
     if random_points is None:
         n_dim = len(domain_lower_bound)
