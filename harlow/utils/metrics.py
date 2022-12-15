@@ -14,7 +14,7 @@ def _rrse(x, y):
     return math.sqrt(mean_squared_error(x, y) / mean_squared_error(x, x_bar_arr))
 
 
-def nrmse(predictions: np.ndarray, test_points_y: np.ndarray):
+def nrmse(test_points_y: np.ndarray, predictions: np.ndarray):
     """normalized root mean square error"""
 
     return np.sqrt(
