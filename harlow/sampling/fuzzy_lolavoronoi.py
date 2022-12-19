@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 from typing import Callable, Tuple, Union
 
+import dask
 import numpy as np
 import skfuzzy as fuzz
 from loguru import logger
@@ -136,14 +137,20 @@ class FuzzyLolaVoronoi(Sampler):
             return [num // div + (1 if x < num % div else 0) for x in range(div)]
 
         n_per_surrogate = distribute(n, len(self.surrogate_models))
+
+        # Calculate distance matrix P. This was previously done for every
+        # surrogate
+        distance_matrix = calculate_distance_matrix(self.fit_points_x, self.dim_in)
+
         for dim, n_p in enumerate(n_per_surrogate):
-            new_points = _best_new_points(
+            new_points = _best_new_points_(
                 points_x=self.fit_points_x,
                 points_y=self.fit_points_y[:, dim],
                 domain_lower_bound=self.domain_lower_bound,
                 domain_upper_bound=self.domain_upper_bound,
                 n_new_point=n_p,
                 dim_in=self.dim_in,
+                distance_matrix=distance_matrix
             )
             if best_new_points is None:
                 best_new_points = new_points
@@ -297,13 +304,14 @@ class FuzzyLolaVoronoi(Sampler):
 # -----------------------------------------------------
 # SUPPORTING FUNCTIONS
 # -----------------------------------------------------
-def _best_new_points(
+def _best_new_points_(
     points_x: np.ndarray,
     points_y: np.ndarray,
     domain_lower_bound: np.ndarray,
     domain_upper_bound: np.ndarray,
     n_new_point: int,
     dim_in: int,
+    distance_matrix: np.ndarray
 ) -> np.ndarray:
     """
     Hybrid Sequential Strategy - Alg. (2) [2].
@@ -323,7 +331,7 @@ def _best_new_points(
     points_x = points_x.reshape((-1, dim_in))
     points_y = points_y.reshape((-1, 1))
     # Calculate distance matrix P
-    distance_matrix = calculate_distance_matrix(points_x, dim_in)
+    # distance_matrix = calculate_distance_matrix(points_x, dim_in)
     # Calculate the V for every Pr
     (
         relative_volumes,
@@ -363,7 +371,6 @@ def _best_new_points(
 
     return new_reference_points_x
 
-
 def best_neighbourhoods(
     points_x: np.ndarray,
     points_y: np.ndarray,
@@ -396,6 +403,10 @@ def best_neighbourhoods(
     if K >= n_point - 1:
         K = n_point - 1
 
+    total_fis_time = 0.0
+    total_assign_weights_time_parallel = 0.0
+    total_gradient_time = 0.0
+    total_nonlscore_time = 0.0
     for ii in range(n_point):
         alpha = calculate_alpha(ii, K, distance_matrix)
         # gets the neighbours of Pr as indices
@@ -405,9 +416,17 @@ def best_neighbourhoods(
         # print("Neighbor coords ", neighbors_coords, '\n', neighbors_coords.shape)
         adhesion, cohesion = get_adhesion_cohesion(ii, neighbors_idx, distance_matrix)
         # print("ADH & COH ", adhesion, adhesion.shape, cohesion, cohesion.shape)
+        fis_start_time = time.time()
         FIS = init_FIS(neighbors_coords, adhesion)
-        w = assign_weights(neighbors_coords, cohesion, adhesion, FIS)
+        total_fis_time+=(time.time()-fis_start_time)
+
+        weights_start_time = time.time()
+        w = assign_weights_parallel(neighbors_coords, cohesion,
+                                          adhesion, FIS)
+        total_assign_weights_time_parallel+=(time.time()-weights_start_time)
+
         # print('Weights', w)
+        grad_start = time.time()
         grad = flola_gradient_estimate(
             points_x[ii, :],
             points_y[ii],
@@ -415,8 +434,10 @@ def best_neighbourhoods(
             points_y[neighbors_idx, :],
             w,
         )
+        total_gradient_time+=(time.time()-grad_start)
         # print('grad', grad, grad.shape)
         # E_fuzzy(P_r) Eq. (3.2) [2]
+        nonl_start = time.time()
         nonlinear_score[ii] = nonlinearity_measure(
             points_x[ii, :],
             points_y[ii, :],
@@ -424,8 +445,16 @@ def best_neighbourhoods(
             points_x[neighbors_idx, :],
             points_y[neighbors_idx, :],
         )
+        total_nonlscore_time+=(time.time() - nonl_start)
+        #del FIS
         # print('Nonlinear score', nonlinear_score[ii])
-
+    # print(f"------------------------------------------------")
+    # print(f"total FIS creation time: {total_fis_time}")
+    # print(f"total_assign_weights_time: {total_assign_weights_time}")
+    # print(f"total_assign_weights_time: {total_assign_weights_time_parallel}")
+    # print(f"total grad creation time: {total_gradient_time}")
+    # print(f"total_nonl_weights_time: {total_nonlscore_time}")
+    # print(f"------------------------------------------------")
     # H_fuzzy(P_r) Eq.(5.1) [2]
     H_fuzzy = flola_voronoi_score(nonlinear_score, volume_estimate)
     # print(H_fuzzy, H_fuzzy.shape)
@@ -470,12 +499,11 @@ def init_FIS(data_points: np.ndarray, adhesion: np.ndarray):
     rule4 = ctrl.Rule(~coh["high"] & adh["high"], wei["low"])
     # Setup the FIS
     FLOLA_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4])
-    flola_sim = ctrl.ControlSystemSimulation(FLOLA_ctrl)
+    flola_sim = ctrl.ControlSystemSimulation(FLOLA_ctrl, cache=False)
 
     return flola_sim
 
 
-# TODO time it if needed
 def assign_weights(
     data_points: np.ndarray,
     cohesion: np.ndarray,
@@ -493,18 +521,57 @@ def assign_weights(
     :return weight: The N-dimensional weight values returned by the evaluation of FIS S
     """
 
-    S = flola_sim
     dims = data_points.shape
     weights = np.zeros(dims[0])
 
     # Get the weights for each neighbor
     for i in range(dims[0]):
-        S.input["cohesion"] = cohesion[i]
-        S.input["adhesion"] = adhesion[i]
-        S.compute()
-        weights[i] = S.output["weight"]
+        flola_sim.input["cohesion"] = cohesion[i]
+        flola_sim.input["adhesion"] = adhesion[i]
+        flola_sim.compute()
+        weights[i] = flola_sim.output["weight"]
 
     return weights
+
+
+def assign_weights_parallel(
+    data_points: np.ndarray,
+    cohesion: np.ndarray,
+    adhesion: np.ndarray,
+    flola_sim,
+) -> np.ndarray:
+    """
+    Weight calculation of data_points based on cohesion & adhesion values between
+    the data points; Section 4 [2].
+
+    :param data_points: Nxd-dimensional input vector of N data points with d dimensions
+    :param cohesion: The N-dimensional cohesion values of the neighbors of P_r
+    :param adhesion: The N-dimensional adhesion values of the neighbors of P_r
+    :param flola_sim: The Fuzzy Inference System S
+    :return weight: The N-dimensional weight values returned by the evaluation of FIS S
+    """
+
+
+    dims = data_points.shape
+
+    # Get the weights for each neighbor
+    results = []
+    for i in range(dims[0]):
+        results.append(apply_fis_compute(flola_sim, cohesion[i], adhesion[i]))
+
+    weights = dask.compute(results, scheduler="synchronous")
+
+    return np.asarray(weights).flatten()
+
+
+@dask.delayed
+def apply_fis_compute(flola_sim, co, ad):
+    flola_sim.input["cohesion"] = co
+    flola_sim.input["adhesion"] = ad
+    flola_sim.compute()
+    weight = flola_sim.output["weight"]
+
+    return weight
 
 
 def coh_high(x, s_c=0.3):
@@ -612,7 +679,6 @@ def calculate_distance_matrix(
     :param points_x: The set of point P
     :return: A distance matrix for P
     """
-
     if not fractional:
         return squareform(pdist(points_x, "euclidean"))
     else:
@@ -676,7 +742,7 @@ def voronoi_volume_estimate(
     """
     # dimensions are not checked
     if n_simulation is None:
-        n_simulation = 100 * points.shape[0]
+        n_simulation = 100 * points.shape[1]
 
     if random_points is None:
         n_dim = len(domain_lower_bound)

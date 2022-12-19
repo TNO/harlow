@@ -78,7 +78,7 @@ class CVVoronoi(Sampler):
             save_dir,
         )
 
-        self.surrogates = []
+        #self.surrogates = []
         self.n_fold = n_fold
 
     def _fit_models(self):
@@ -380,8 +380,7 @@ def pick_new_samples(
     sens_cell = closest_indicator_mx[:, most_sensitive_cell]
     voronoi_i_distances = distance_mx[sens_cell, most_sensitive_cell]
     voronoi_i_points = random_points[sens_cell, :]
-
-    max_dist_i = np.argpartition(voronoi_i_distances, -n)[-1:]
+    max_dist_i = np.argpartition(voronoi_i_distances, -n)[-n:]
 
     return voronoi_i_points[max_dist_i, :][:]
 
@@ -497,7 +496,7 @@ def calculate_voronoi_cells(
     """
     # dimensions are not checked
     if n_simulation is None:
-        n_simulation = 100 * points.shape[0] * points.shape[1]
+        n_simulation = 100 * points.shape[1]
 
     if random_points is None:
         n_dim = len(domain_lower_bound)

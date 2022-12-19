@@ -12,7 +12,8 @@ from harlow.surrogating.surrogate_model import (
 from harlow.utils.examples.model_twin_girder_betti import IJssel_bridge_model
 from harlow.utils.helper_functions import latin_hypercube_sampling
 from harlow.utils.metrics import logrmse, mae, nrmse, rmse, rrse
-from harlow.utils.test_functions import F_3_4_6, F_3_6, F_4_5_6, hartmann, peaks_2d
+from harlow.utils.test_functions import F_3_4_6, F_3_6, F_4_5_6, hartmann, \
+    peaks_2d
 from harlow.utils.transforms import ExpandDims, TensorTransform
 
 # from system_identification_detailed_FEM import DIR_FIGS, DIR_DATA, DIR_MODELS
@@ -144,8 +145,8 @@ def create_train_test_sets(problem, ijs_low, ijs_up):
 # # ====================================================================
 # # SURROGATING PARAMETERS
 # # ====================================================================
-N_train = 20
-N_update = 50
+N_train = 50
+N_update = 500
 N_iter = 100
 rmse_criterium = 0.01
 silence_warnings = True
@@ -347,7 +348,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-i",
         "--iterations",
-        default=2,
+        default=500,
         type=int,
         help="Number of iterations for adaptive sampling",
     )
@@ -378,9 +379,10 @@ if __name__ == "__main__":
         test_sampler = LatinHypercube
 
     # Problems to solver
-    # problems = [2, 6, 'ijssel']
-    problems = [6]
+    problems = [2, 6, 'ijssel']
+    # problems = [6]
     # problems = ['ijssel']
+    # problems = [2]
     for p in problems:
         # Create train and test data for the problem at hand
         train_X, train_y, update_X, update_y, target_func, domain_lower_bound, domain_upper_bound = \
@@ -421,7 +423,9 @@ if __name__ == "__main__":
         sampler.set_initial_set(train_X, train_y)
         sampler.construct_surrogate()
 
-        if args.sampler in ["FLOLA", "LOLA"]:
-            sampler.surrogate_loop(train_y.shape[1], args.iterations)
-        else:
-            sampler.surrogate_loop(args.new_points, args.iterations)
+        # if args.sampler in ["FLOLA", "LOLA", "CV"]:
+        #     sampler.surrogate_loop(train_y.shape[1], args.iterations)
+        # else:
+        #     sampler.surrogate_loop(args.new_points, args.iterations)
+        sampler.surrogate_loop(train_y.shape[1]*args.new_points,
+                               args.iterations)
