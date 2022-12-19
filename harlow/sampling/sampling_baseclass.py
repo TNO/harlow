@@ -85,7 +85,7 @@ class Sampler(ABC):
             self.run_name = self._generate_run_name()
         # Init writer for live web-based logging.
         self.writer = SummaryWriter(comment="-" + self.run_name)
-        pref = self.writer.logdir.split('\\')[1]
+        pref = Path(self.writer.logdir).name
         pref = '_'.join(pref.split('_')[0:2])
         self.run_name = f"{pref}-{self.run_name}"
 
