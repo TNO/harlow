@@ -402,7 +402,7 @@ def identify_sensitive_voronoi_cell(
         normalized_responses.append(normalized_response(m, points_X))
         # equation 4 from [2]
         pred = m.predict(test_points_X)
-        surrogates_nrmse.append(nrmse(pred, test_points_y[:, idx]))  # equation 5
+        surrogates_nrmse.append(nrmse(test_points_y[:, idx], pred))  # equation 5
         # from [2]
 
     total_error = sum(surrogates_nrmse)
